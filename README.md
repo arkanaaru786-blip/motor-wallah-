@@ -1,4 +1,4 @@
-# Insightful Image Analytics
+# motor wallah project 
 
 Build a website to analyse my data from the image i have share and make a professional corporate website
 
