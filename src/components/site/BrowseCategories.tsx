@@ -3,7 +3,7 @@ import { BUY_CATEGORIES } from "@/lib/site";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import cars from "@/assets/homepage/Car.png";
 import bikes from "@/assets/homepage/Bike.png";
-import threeWheelers from "@/assets/homepage/Three-Wheeler.png";
+import threeWheelers from "@/assets/homepage/3 Wheeler.png";
 import miniTruck from "@/assets/homepage/Mini-Truck.png";
 import trucks from "@/assets/homepage/Truck.png";
 import buses from "@/assets/homepage/Bus.png";
