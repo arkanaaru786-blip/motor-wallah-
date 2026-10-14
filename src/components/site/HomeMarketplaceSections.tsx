@@ -5,11 +5,25 @@ import { VEHICLES, formatPrice, formatKm } from "@/lib/cars-data";
 import { CATEGORIES, CATEGORY_LISTINGS } from "@/lib/vehicle-categories";
 import franchiseShowroom from "@/assets/franchise-showroom.jpg";
 import businessSpotlight from "@/assets/business-spotlight.jpg";
-import carPhoto from "@/assets/homepage/baleno-scene.jpg.asset.json";
-import threeWheelPhoto from "@/assets/homepage/auto-scene.jpg.asset.json";
+import carPhoto from "@/assets/homepage/Car.png";
+import bikePhoto from "@/assets/homepage/Bike.png";
+import threeWheelPhoto from "@/assets/homepage/Three-Wheeler.png";
+import miniTruckPhoto from "@/assets/homepage/Mini-Truck.png";
+import truckPhoto from "@/assets/homepage/Truck.png";
+import busPhoto from "@/assets/homepage/Bus.png";
+import tractorPhoto from "@/assets/homepage/Tractor.png";
+import taxiPhoto from "@/assets/homepage/Taxi.png";
 
 // Presentation-only imagery: do not substitute unrelated models for demo listings.
-const CATEGORY_IMAGES: (string | undefined)[] = [undefined, threeWheelPhoto.url, undefined, undefined, undefined, undefined, undefined];
+const CATEGORY_IMAGES: string[] = [
+  bikePhoto,
+  threeWheelPhoto,
+  miniTruckPhoto,
+  truckPhoto,
+  busPhoto,
+  tractorPhoto,
+  taxiPhoto,
+];
 const car = VEHICLES.find((vehicle) => vehicle.status === "Available");
 const LISTINGS = [
   ...(car ? [{ name: `${car.make} ${car.model}`, variant: car.variant, year: car.year, fuel: car.fuel, km: formatKm(car.kilometres), place: car.location, price: formatPrice(car.price), image: carPhoto.url, to: "/cars/$id", slug: car.slug, badge: "Demo listing" }] : []),
