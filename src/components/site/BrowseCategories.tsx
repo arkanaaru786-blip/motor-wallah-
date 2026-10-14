@@ -1,8 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { BUY_CATEGORIES } from "@/lib/site";
 import { ArrowRight, ChevronRight } from "lucide-react";
-import cars from "@/assets/car-hatch.jpg";
-import threeWheelers from "@/assets/homepage/auto-scene.jpg.asset.json";
+import cars from "@/assets/homepage/Car.png";
+import bikes from "@/assets/homepage/Bike.png";
+import threeWheelers from "@/assets/homepage/Three-Wheeler.png";
+import miniTruck from "@/assets/homepage/Mini-Truck.png";
+import trucks from "@/assets/homepage/Truck.png";
+import buses from "@/assets/homepage/Bus.png";
+import tractors from "@/assets/homepage/Tractor.png";
+import taxis from "@/assets/homepage/Taxi.png";
 import maruti from "@/assets/homepage/maruti.svg.asset.json";
 import hyundai from "@/assets/homepage/hyundai.png.asset.json";
 import tata from "@/assets/homepage/tata.png.asset.json";
