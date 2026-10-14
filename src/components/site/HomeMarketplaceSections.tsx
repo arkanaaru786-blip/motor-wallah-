@@ -26,7 +26,7 @@ const CATEGORY_IMAGES: string[] = [
 ];
 const car = VEHICLES.find((vehicle) => vehicle.status === "Available");
 const LISTINGS = [
-  ...(car ? [{ name: `${car.make} ${car.model}`, variant: car.variant, year: car.year, fuel: car.fuel, km: formatKm(car.kilometres), place: car.location, price: formatPrice(car.price), image: carPhoto.url, to: "/cars/$id", slug: car.slug, badge: "Demo listing" }] : []),
+  ...(car ? [{ name: `${car.make} ${car.model}`, variant: car.variant, year: car.year, fuel: car.fuel, km: formatKm(car.kilometres), place: car.location, price: formatPrice(car.price), image: carPhoto, to: "/cars/$id", slug: car.slug, badge: "Demo listing" }] : []),
   ...CATEGORIES.flatMap((category, index) => {
     const listing = CATEGORY_LISTINGS.find((item) => item.category === category.id);
     return listing ? [{ name: `${listing.brand.replace(/\s*\([^)]*\)/g, "")} ${listing.model}`, variant: category.title, year: listing.year, fuel: listing.fuel, km: formatKm(listing.kilometres), place: listing.location, price: formatPrice(listing.price), image: CATEGORY_IMAGES[index], to: category.to, slug: undefined, badge: "Demo listing" }] : [];
