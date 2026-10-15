@@ -18,7 +18,7 @@ import TaxiPhoto from "@/assets/homepage/Taxi.png";
 const CATEGORY_IMAGES: string[] = [
   carPhoto, 
   BikePhoto,
-  3WheelPhoto,
+  threeWheelPhoto,
   SCVPhoto,
   TruckPhoto,
   BusPhoto,
