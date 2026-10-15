@@ -16,13 +16,13 @@ import taxiPhoto from "@/assets/homepage/Taxi.png";
 
 // Presentation-only imagery: do not substitute unrelated models for demo listings.
 const CATEGORY_IMAGES: string[] = [
-  bikePhoto,
-  threeWheelPhoto,
-  miniTruckPhoto,
-  truckPhoto,
-  busPhoto,
-  tractorPhoto,
-  taxiPhoto,
+  BikePhoto,
+  3WheelPhoto,
+  SCVPhoto,
+  TruckPhoto,
+  BusPhoto,
+  TractorPhoto,
+  TaxiPhoto,
 ];
 const car = VEHICLES.find((vehicle) => vehicle.status === "Available");
 const LISTINGS = [
