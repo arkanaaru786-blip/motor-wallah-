@@ -7,7 +7,7 @@ import franchiseShowroom from "@/assets/franchise-showroom.jpg";
 import businessSpotlight from "@/assets/business-spotlight.jpg";
 import carPhoto from "@/assets/homepage/Car.png";
 import BikePhoto from "@/assets/homepage/Bike.png";
-import threeWheelPhoto from "@/assets/homepage/3wheeler.png";
+import threeWheelPhoto from "@/assets/homepage/3 wheeler.png";
 import SCVPhoto from "@/assets/homepage/SCV.png";
 import TruckPhoto from "@/assets/homepage/Truck.png";
 import BusPhoto from "@/assets/homepage/Bus.png";
