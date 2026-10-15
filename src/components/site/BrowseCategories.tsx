@@ -28,14 +28,14 @@ import force from "@/assets/homepage/force-motors.png.asset.json";
 
 // Only independent scene photographs; unavailable categories stay replaceable.
 const IMAGES: string[] = [
-  cars,
-  bikes,
-  threeWheelers,
-  miniTruck,
-  trucks,
-  buses,
-  tractors,
-  taxis,
+  Cars,
+  Bikes,
+  3Wheelers,
+  SCV,
+  Trucks,
+  Buses,
+  Tractors,
+  Taxis,
 ];
 const BRAND_LOGOS: Record<string, string> = {
   "Maruti Suzuki": maruti.url, Hyundai: hyundai.url, Tata: tata.url,
