@@ -8,7 +8,7 @@ import businessSpotlight from "@/assets/business-spotlight.jpg";
 import carPhoto from "@/assets/homepage/Car.png";
 import bikePhoto from "@/assets/homepage/Bike.png";
 import threeWheelPhoto from "@/assets/homepage/3 wheeler.png";
-import miniTruckPhoto from "@/assets/homepage/Scv.png";
+import miniTruckPhoto from "@/assets/homepage/SCV.png";
 import truckPhoto from "@/assets/homepage/Truck.png";
 import busPhoto from "@/assets/homepage/Bus.png";
 import tractorPhoto from "@/assets/homepage/Tractor.png";
