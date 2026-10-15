@@ -16,7 +16,7 @@ import taxiPhoto from "@/assets/homepage/Taxi.png";
 
 // Presentation-only imagery: do not substitute unrelated models for demo listings.
 const CATEGORY_IMAGES: string[] = [
-  Carphoto 
+  carPhoto, 
   BikePhoto,
   3WheelPhoto,
   SCVPhoto,
