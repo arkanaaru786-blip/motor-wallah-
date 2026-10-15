@@ -5,14 +5,14 @@ import { VEHICLES, formatPrice, formatKm } from "@/lib/cars-data";
 import { CATEGORIES, CATEGORY_LISTINGS } from "@/lib/vehicle-categories";
 import franchiseShowroom from "@/assets/franchise-showroom.jpg";
 import businessSpotlight from "@/assets/business-spotlight.jpg";
-import carPhoto from "@/assets/homepage/Car.png";
-import bikePhoto from "@/assets/homepage/Bike.png";
-import threeWheelPhoto from "@/assets/homepage/3 wheeler.png";
-import miniTruckPhoto from "@/assets/homepage/SCV.png";
-import truckPhoto from "@/assets/homepage/Truck.png";
-import busPhoto from "@/assets/homepage/Bus.png";
-import tractorPhoto from "@/assets/homepage/Tractor.png";
-import taxiPhoto from "@/assets/homepage/Taxi.png";
+import carPhoto from "@/assets/homepage/car.png";
+import BikePhoto from "@/assets/homepage/Bike.png";
+import 3WheelPhoto from "@/assets/homepage/3wheeler.png";
+import SCVPhoto from "@/assets/homepage/SCV.png";
+import TruckPhoto from "@/assets/homepage/Truck.png";
+import BusPhoto from "@/assets/homepage/Bus.png";
+import TractorPhoto from "@/assets/homepage/Tractor.png";
+import TaxiPhoto from "@/assets/homepage/Taxi.png";
 
 // Presentation-only imagery: do not substitute unrelated models for demo listings.
 const CATEGORY_IMAGES: string[] = [
