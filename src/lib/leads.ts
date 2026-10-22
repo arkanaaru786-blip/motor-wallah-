@@ -13,6 +13,9 @@ export type LeadType =
   | "warranty_enquiry"
   | "sell_car"
   | "exchange_car"
+  | "listing_enquiry"
+  | "listing_offer"
+  | "listing_report"
   | "general_enquiry";
 
 export type Lead = {
@@ -32,11 +35,9 @@ export type Lead = {
   estimate?: { low: number; high: number; confidence: string; notes: string[] } | undefined;
   /** Internal only: customer expected price vs AI estimate midpoint. */
   expectation?:
-    | { expectedPrice: number; aiMidpoint: number; gap: number; gapPercent: number }
-    | undefined;
+    { expectedPrice: number; aiMidpoint: number; gap: number; gapPercent: number } | undefined;
   createdAt: string;
 };
-
 
 const QUEUE_KEY = "mw_lead_queue";
 

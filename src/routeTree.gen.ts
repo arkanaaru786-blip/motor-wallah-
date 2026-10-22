@@ -28,6 +28,7 @@ import { Route as SellYourCarRouteImport } from './routes/sell-your-car'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as WarrantyRouteImport } from './routes/warranty'
 import { Route as WorkshopRouteImport } from './routes/workshop'
+import { Route as BuyIndexRouteImport } from './routes/buy.index'
 import { Route as BuyBikesRouteImport } from './routes/buy.bikes'
 import { Route as BuyBusesRouteImport } from './routes/buy.buses'
 import { Route as BuyScvRouteImport } from './routes/buy.scv'
@@ -39,6 +40,7 @@ import { Route as CarsIndexRouteImport } from './routes/cars.index'
 import { Route as CarsIdRouteImport } from './routes/cars.$id'
 import { Route as FranchiseApplyRouteImport } from './routes/franchise.apply'
 import { Route as InternalEvaluationsRouteImport } from './routes/internal.evaluations'
+import { Route as BuyVehicleIdRouteImport } from './routes/buy.vehicle.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -135,6 +137,11 @@ const WorkshopRoute = WorkshopRouteImport.update({
   path: '/workshop',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BuyIndexRoute = BuyIndexRouteImport.update({
+  id: '/buy/',
+  path: '/buy/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BuyBikesRoute = BuyBikesRouteImport.update({
   id: '/buy/bikes',
   path: '/buy/bikes',
@@ -190,6 +197,11 @@ const InternalEvaluationsRoute = InternalEvaluationsRouteImport.update({
   path: '/internal/evaluations',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BuyVehicleIdRoute = BuyVehicleIdRouteImport.update({
+  id: '/buy/vehicle/$id',
+  path: '/buy/vehicle/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -221,7 +233,9 @@ export interface FileRoutesByFullPath {
   '/cars/$id': typeof CarsIdRoute
   '/franchise/apply': typeof FranchiseApplyRoute
   '/internal/evaluations': typeof InternalEvaluationsRoute
+  '/buy/': typeof BuyIndexRoute
   '/cars/': typeof CarsIndexRoute
+  '/buy/vehicle/$id': typeof BuyVehicleIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -253,7 +267,9 @@ export interface FileRoutesByTo {
   '/cars/$id': typeof CarsIdRoute
   '/franchise/apply': typeof FranchiseApplyRoute
   '/internal/evaluations': typeof InternalEvaluationsRoute
+  '/buy': typeof BuyIndexRoute
   '/cars': typeof CarsIndexRoute
+  '/buy/vehicle/$id': typeof BuyVehicleIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -286,7 +302,9 @@ export interface FileRoutesById {
   '/cars/$id': typeof CarsIdRoute
   '/franchise/apply': typeof FranchiseApplyRoute
   '/internal/evaluations': typeof InternalEvaluationsRoute
+  '/buy/': typeof BuyIndexRoute
   '/cars/': typeof CarsIndexRoute
+  '/buy/vehicle/$id': typeof BuyVehicleIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -320,7 +338,9 @@ export interface FileRouteTypes {
     | '/cars/$id'
     | '/franchise/apply'
     | '/internal/evaluations'
+    | '/buy/'
     | '/cars/'
+    | '/buy/vehicle/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -352,7 +372,9 @@ export interface FileRouteTypes {
     | '/cars/$id'
     | '/franchise/apply'
     | '/internal/evaluations'
+    | '/buy'
     | '/cars'
+    | '/buy/vehicle/$id'
   id:
     | '__root__'
     | '/'
@@ -384,7 +406,9 @@ export interface FileRouteTypes {
     | '/cars/$id'
     | '/franchise/apply'
     | '/internal/evaluations'
+    | '/buy/'
     | '/cars/'
+    | '/buy/vehicle/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -416,7 +440,9 @@ export interface RootRouteChildren {
   BuyTrucksRoute: typeof BuyTrucksRoute
   CarsIdRoute: typeof CarsIdRoute
   InternalEvaluationsRoute: typeof InternalEvaluationsRoute
+  BuyIndexRoute: typeof BuyIndexRoute
   CarsIndexRoute: typeof CarsIndexRoute
+  BuyVehicleIdRoute: typeof BuyVehicleIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -554,6 +580,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkshopRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/buy/': {
+      id: '/buy/'
+      path: '/buy'
+      fullPath: '/buy/'
+      preLoaderRoute: typeof BuyIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/buy/bikes': {
       id: '/buy/bikes'
       path: '/buy/bikes'
@@ -631,6 +664,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InternalEvaluationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/buy/vehicle/$id': {
+      id: '/buy/vehicle/$id'
+      path: '/buy/vehicle/$id'
+      fullPath: '/buy/vehicle/$id'
+      preLoaderRoute: typeof BuyVehicleIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -675,7 +715,9 @@ const rootRouteChildren: RootRouteChildren = {
   BuyTrucksRoute: BuyTrucksRoute,
   CarsIdRoute: CarsIdRoute,
   InternalEvaluationsRoute: InternalEvaluationsRoute,
+  BuyIndexRoute: BuyIndexRoute,
   CarsIndexRoute: CarsIndexRoute,
+  BuyVehicleIdRoute: BuyVehicleIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

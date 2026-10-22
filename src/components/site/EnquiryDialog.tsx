@@ -23,6 +23,7 @@ export function EnquiryDialog({
   leadType,
   source,
   vehicle,
+  subject,
   disclaimer,
 }: {
   open: boolean;
@@ -34,10 +35,14 @@ export function EnquiryDialog({
   leadType: LeadType;
   source: string;
   vehicle?: Vehicle;
+  /** Lightweight alternative for listings that are not in the car dataset. */
+  subject?: { id: string; name: string; location?: string | undefined };
   disclaimer?: string;
 }) {
   const [done, setDone] = useState(false);
   if (!open) return null;
+  const subjectName = vehicle ? vehicleName(vehicle) : subject?.name;
+  const subjectLocation = vehicle?.location ?? subject?.location;
 
   return (
     <div className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center">
@@ -46,8 +51,8 @@ export function EnquiryDialog({
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
             <p className="font-display text-xl uppercase leading-tight">{title}</p>
-            {(subtitle || vehicle) && (
-              <p className="mt-1 text-xs text-muted-foreground">{subtitle ?? (vehicle && vehicleName(vehicle))}</p>
+            {(subtitle || subjectName) && (
+              <p className="mt-1 text-xs text-muted-foreground">{subtitle ?? subjectName}</p>
             )}
           </div>
           <button type="button" aria-label="Close" onClick={onClose}>
@@ -80,9 +85,9 @@ export function EnquiryDialog({
               await submitLead({
                 type: leadType,
                 source,
-                vehicleId: vehicle?.id,
-                vehicleName: vehicle ? vehicleName(vehicle) : undefined,
-                location: vehicle?.location,
+                vehicleId: vehicle?.id ?? subject?.id,
+                vehicleName: subjectName,
+                location: subjectLocation,
                 name: values["name"],
                 mobile: values["mobile"],
                 fields: values,
@@ -90,20 +95,24 @@ export function EnquiryDialog({
               setDone(true);
             }}
           >
-            {vehicle && (
+            {subjectName && (
               <label className="block border border-border bg-secondary/40 px-3 py-2">
-                <span className="block text-[0.65rem] uppercase tracking-wide text-muted-foreground">Vehicle</span>
+                <span className="block text-[0.65rem] uppercase tracking-wide text-muted-foreground">
+                  Vehicle
+                </span>
                 <input
                   readOnly
                   name="vehicle"
-                  value={vehicleName(vehicle)}
+                  value={subjectName}
                   className="w-full bg-transparent text-sm font-semibold outline-none"
                 />
               </label>
             )}
             {fields.map((f) => (
               <label key={f.name} className="block border border-border px-3 py-2">
-                <span className="block text-[0.65rem] uppercase tracking-wide text-muted-foreground">{f.label}</span>
+                <span className="block text-[0.65rem] uppercase tracking-wide text-muted-foreground">
+                  {f.label}
+                </span>
                 {f.type === "textarea" ? (
                   <textarea
                     name={f.name}

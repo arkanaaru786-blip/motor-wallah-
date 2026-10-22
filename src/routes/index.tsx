@@ -4,7 +4,14 @@ import { Hero } from "@/components/site/Hero";
 import { StickyActions } from "@/components/site/StickyActions";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { BrowseCategories } from "@/components/site/BrowseCategories";
-import { BusinessSpotlight, FranchiseBanner, MarketplaceActions, PopularVehicles, TrustStrip } from "@/components/site/HomeMarketplaceSections";
+import {
+  BusinessSpotlight,
+  FranchiseBanner,
+  MarketplaceActions,
+  MarketplaceHub,
+  PopularVehicles,
+  TrustStrip,
+} from "@/components/site/HomeMarketplaceSections";
 
 const TITLE = "Motor Wallah | Every Vehicle. One Marketplace.";
 const DESCRIPTION =
@@ -31,11 +38,12 @@ function Index() {
       <main>
         <Hero />
         <BrowseCategories />
-        <div className="home-promotions home-container"><FranchiseBanner /><BusinessSpotlight /></div>
+        <FranchiseBanner />
+        <MarketplaceHub />
         <PopularVehicles />
+        <BusinessSpotlight />
         <MarketplaceActions />
         <TrustStrip />
-        <FranchiseBanner compact />
       </main>
       <SiteFooter />
       <StickyActions />

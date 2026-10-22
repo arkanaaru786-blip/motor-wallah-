@@ -31,3 +31,7 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Local QA artifacts: preview screenshots, logs and scratch debug scripts
+artifacts/*
+!artifacts/buy-e2e.mjs

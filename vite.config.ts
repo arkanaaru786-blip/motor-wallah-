@@ -8,6 +8,16 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { copyFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
+// The Lovable vite config ships a `lovable:assets-proxy` dev plugin that
+// forwards `/__l5e/assets-v1/*` (stored brand artwork referenced by
+// `src/assets/homepage/*.asset.json`) to the Lovable preview host. It only
+// activates when LOVABLE_PREVIEW_HOST is set, so pin this project's preview
+// host here — otherwise every brand logo 404s in local dev.
+if (!process.env["LOVABLE_PREVIEW_HOST"]) {
+  process.env["LOVABLE_PREVIEW_HOST"] =
+    "id-preview--c99f9f9b-a3f0-487a-b8b7-bf8f0309b74d.lovable.app";
+}
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
@@ -24,6 +34,11 @@ export default defineConfig({
     },
   },
   vite: {
+    server: {
+      // The preview browser reaches this dev server through one exact
+      // hostname; allow only that host (never a blanket allowedHosts rule).
+      allowedHosts: ["pv-6c4a0adeccea-c3aba940-f33d-4642-813e-deb751607c84.style.dev"],
+    },
     plugins: [
       {
         name: "spa-shell-index-html",
