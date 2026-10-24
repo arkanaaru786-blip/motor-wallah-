@@ -1,46 +1,52 @@
-import { ArrowUpRight, LayoutGrid } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { useRef } from "react";
+import { ArrowLeft, ChevronRight, LayoutGrid } from "lucide-react";
 import { BrandArt } from "@/components/buy/BrandArt";
 import type { BuyCategory } from "@/lib/buy-catalog";
 
 /**
- * Step 2 of BUY: brand logos for the selected category only. Brands are the
- * ones that actually have a listing in that category, so a click always yields
- * results and brands never mix between unrelated categories.
+ * Step 2 of BUY (reference screen 2): "← Back to Categories", the selected
+ * category title and a horizontally scrollable rail of brand LOGO cards
+ * specific to that category. Brands come from the category's own catalogue,
+ * so a click always lands on that category's models and listings — brands
+ * never leak between unrelated categories.
  */
 export function BuyBrandRail({
   category,
   brands,
   selected,
   onSelect,
+  onBack,
 }: {
   category: BuyCategory;
   brands: { brand: string; count: number }[];
   selected: string;
   onSelect: (brand: string) => void;
+  onBack: () => void;
 }) {
-  return (
-    <section className="buy-section buy-section--brands" aria-labelledby="buy-brands-title">
-      <div className="home-container">
-        <div className="buy-section-head">
-          <div>
-            <p className="buy-kicker">
-              <span>Step 2</span> Brand
-            </p>
-            <h2 id="buy-brands-title" className="buy-section-title">
-              {category.singular} <span>brands</span>
-            </h2>
-            <p className="buy-section-text">
-              Only brands listed in {category.label.toLowerCase()} are shown. Choose one to narrow
-              the models and listings below.
-            </p>
-          </div>
-          <Link to={category.to} className="buy-section-link">
-            Full {category.label} page <ArrowUpRight size={15} />
-          </Link>
-        </div>
+  const railRef = useRef<HTMLDivElement>(null);
 
-        <div className="buy-brand-rail" role="group" aria-label={`${category.label} brands`}>
+  const scrollRail = (direction: 1 | -1) => {
+    const rail = railRef.current;
+    if (!rail) return;
+    rail.scrollBy({ left: direction * Math.max(220, rail.clientWidth * 0.6), behavior: "smooth" });
+  };
+
+  const total = brands.reduce((sum, entry) => sum + entry.count, 0);
+
+  return (
+    <section className="buy-rail-section" aria-labelledby="buy-rail-title">
+      <div className="buy-rail-head">
+        <button type="button" className="buy-rail-back" onClick={onBack}>
+          <ArrowLeft size={14} aria-hidden="true" /> Back to Categories
+        </button>
+        <h2 id="buy-rail-title" className="buy-rail-title">
+          {category.label}
+        </h2>
+        <p className="buy-rail-sub">Select Brand</p>
+      </div>
+
+      <div className="buy-rail-wrap">
+        <div className="buy-brand-rail" role="group" aria-label={`${category.label} brands`} ref={railRef}>
           <button
             type="button"
             onClick={() => onSelect("")}
@@ -49,12 +55,10 @@ export function BuyBrandRail({
             className="buy-brand-chip buy-brand-chip--all"
           >
             <span className="buy-brand-logo-slot">
-              <LayoutGrid size={20} aria-hidden="true" />
+              <LayoutGrid size={22} aria-hidden="true" />
             </span>
-            <span className="buy-brand-name">All brands</span>
-            <span className="buy-brand-count">
-              {brands.reduce((total, b) => total + b.count, 0)}
-            </span>
+            <span className="buy-brand-name">All</span>
+            <span className="buy-brand-count">{total}</span>
           </button>
 
           {brands.map(({ brand, count }) => (
@@ -65,15 +69,25 @@ export function BuyBrandRail({
               aria-pressed={selected === brand}
               data-active={selected === brand || undefined}
               className="buy-brand-chip"
+              title={count > 0 ? `${brand} — ${count} listings` : `${brand} — no listings yet`}
             >
               <span className="buy-brand-logo-slot">
                 <BrandArt brand={brand} />
               </span>
               <span className="buy-brand-name">{brand.replace(/\s*\(.*?\)\s*/g, "")}</span>
-              <span className="buy-brand-count">{count}</span>
+              <span className="buy-brand-count">{count > 0 ? `${count} listed` : "Catalogue"}</span>
             </button>
           ))}
         </div>
+
+        <button
+          type="button"
+          className="buy-rail-next"
+          aria-label="Scroll to more brands"
+          onClick={() => scrollRail(1)}
+        >
+          <ChevronRight size={18} aria-hidden="true" />
+        </button>
       </div>
     </section>
   );

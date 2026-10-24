@@ -10,7 +10,6 @@ import {
   FUELS,
   KM_RANGES,
   LOCATIONS,
-  OWNERSHIPS,
   PRICE_RANGES,
   TRANSMISSIONS,
   VEHICLES,
@@ -75,7 +74,6 @@ type Filters = {
   transmission: string;
   bodyType: string;
   location: string;
-  ownership: string;
   availability: string;
 };
 
@@ -89,7 +87,6 @@ const EMPTY: Filters = {
   transmission: ANY,
   bodyType: ANY,
   location: ANY,
-  ownership: ANY,
   availability: ANY,
 };
 
@@ -103,7 +100,6 @@ const LABELS: Record<keyof Filters, string> = {
   transmission: "Transmission",
   bodyType: "Body Type",
   location: "Location",
-  ownership: "Ownership",
   availability: "Availability",
 };
 
@@ -126,7 +122,6 @@ function applyFilters(list: Vehicle[], f: Filters, q: string) {
     if (f.bodyType !== ANY && v.bodyType !== f.bodyType) return false;
     if (f.year !== ANY && String(v.year) !== f.year) return false;
     if (f.location !== ANY && v.location !== f.location) return false;
-    if (f.ownership !== ANY && v.ownership !== f.ownership) return false;
     if (f.availability !== ANY && v.status !== f.availability) return false;
     if (f.price !== ANY) {
       const r = PRICE_RANGES.find((x) => x.label === f.price);
@@ -260,7 +255,6 @@ function Page() {
       <Field label="Transmission" value={filters.transmission} options={TRANSMISSIONS} onChange={set("transmission")} />
       <Field label="Body Type" value={filters.bodyType} options={BODY_TYPES} onChange={set("bodyType")} />
       <Field label="Location" value={filters.location} options={LOCATIONS} onChange={set("location")} />
-      <Field label="Ownership" value={filters.ownership} options={OWNERSHIPS} onChange={set("ownership")} />
       <Field label="Availability" value={filters.availability} options={AVAILABILITY} onChange={set("availability")} />
       <button
         type="button"

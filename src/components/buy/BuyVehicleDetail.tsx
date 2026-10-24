@@ -12,6 +12,7 @@ import {
   IndianRupee,
   MapPin,
   MessageCircle,
+  Navigation,
   Phone,
   Settings2,
   ShieldCheck,
@@ -19,10 +20,9 @@ import {
 } from "lucide-react";
 import {
   buyListingHighlights,
-  buyListingName,
   fuelLabel,
   getBuyCategory,
-  lakhLabel,
+  rupees,
   type BuyListing,
 } from "@/lib/buy-catalog";
 import { VehicleGallery } from "@/components/site/VehicleGallery";
@@ -34,6 +34,8 @@ import { PHONE_HREF, whatsappLink } from "@/lib/site";
 import { submitLead } from "@/lib/leads";
 
 const NOT_SHARED = "Not shared by seller yet";
+
+const priceRupees = (lakh: number) => rupees(Math.round(lakh * 100000));
 
 function Spec({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
@@ -66,15 +68,17 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
   const [offer, setOffer] = useState(false);
 
   const category = getBuyCategory(listing.categoryId);
-  const name = buyListingName(listing);
+  const name = [listing.brand, listing.model, listing.variant].filter(Boolean).join(" ");
+  const fullName = `${listing.year} ${name}`;
   const highlights = buyListingHighlights(listing);
   const sold = listing.status === "Sold";
   const enquiryText = `Hello MOTOR WALLAH, I am interested in the ${name} listed in ${listing.city}.`;
+  const mapQuery = `${listing.city}, Madhya Pradesh`;
 
   const description =
     listing.description ??
     [
-      `${name} is listed in ${listing.city}${category ? ` under ${category.label}` : ""}.`,
+      `${fullName} is listed in ${listing.city}${category ? ` under ${category.label}` : ""}.`,
       `This ${listing.year} vehicle runs on ${fuelLabel(listing.fuel).toLowerCase()}${
         listing.transmission ? ` with a ${listing.transmission.toLowerCase()} transmission` : ""
       }${listing.kilometres !== null ? ` and shows ${listing.kilometres.toLocaleString("en-IN")} km` : ""}.`,
@@ -129,29 +133,19 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
               {listing.photoNote} Video is not uploaded for this listing.
             </p>
 
-            <div className="buy-detail-heading">
+            {/* Mobile-first heading — the desktop heading lives in the right column. */}
+            <div className="buy-detail-heading buy-detail-heading--mobile">
               <p className="buy-kicker">
                 <span>{listing.categoryLabel}</span> {listing.brand}
               </p>
-              <h1 className="buy-detail-title">
-                {listing.year} {listing.brand} {listing.model}
-                {listing.variant ? ` ${listing.variant}` : ""}
-              </h1>
-              <p className="buy-detail-price">{lakhLabel(listing.priceLakh)}</p>
+              <h1 className="buy-detail-title">{name}</h1>
+              <p className="buy-detail-price">{priceRupees(listing.priceLakh)}</p>
             </div>
 
-            <div className="buy-highlights" aria-label="Vehicle highlights">
-              {highlights.map((highlight) => (
-                <span key={highlight} className="buy-highlight">
-                  {highlight}
-                </span>
-              ))}
-            </div>
-
-            {/* Mobile: keep the two primary actions within reach, above the fold. */}
+            {/* Mobile: keep the primary actions within reach, above the fold. */}
             <div className="buy-quick-actions">
               <button type="button" onClick={() => setContact(true)} className="buy-primary-button">
-                <MessageCircle size={16} /> Enquire Now
+                <MessageCircle size={16} /> Contact Seller
               </button>
               <button
                 type="button"
@@ -168,31 +162,6 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
               >
                 <IndianRupee size={15} /> Make an Offer
               </button>
-            </div>
-
-            <div className="buy-specs">
-              <Spec icon={<CalendarDays size={16} />} label="Year" value={String(listing.year)} />
-              <Spec
-                icon={<Car size={16} />}
-                label="Body / type"
-                value={listing.bodyType ?? listing.categoryLabel}
-              />
-              <Spec icon={<Fuel size={16} />} label="Fuel" value={fuelLabel(listing.fuel)} />
-              {listing.transmission && (
-                <Spec
-                  icon={<Settings2 size={16} />}
-                  label="Transmission"
-                  value={listing.transmission}
-                />
-              )}
-              {listing.kilometres !== null && (
-                <Spec
-                  icon={<Gauge size={16} />}
-                  label="KM driven"
-                  value={`${listing.kilometres.toLocaleString("en-IN")} km`}
-                />
-              )}
-              <Spec icon={<MapPin size={16} />} label="City" value={listing.city} />
             </div>
 
             <section className="buy-panel" aria-labelledby="buy-description-title">
@@ -226,25 +195,6 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
               </dl>
             </section>
 
-            <section className="buy-panel" aria-labelledby="buy-location-title">
-              <h2 id="buy-location-title" className="buy-panel-title">
-                Location
-              </h2>
-              <div className="buy-location">
-                <MapPin size={18} aria-hidden="true" />
-                <div>
-                  <p className="buy-location-city">{listing.city}</p>
-                  <p className="buy-location-area">
-                    Locality / colony: {listing.locality ?? NOT_SHARED}
-                  </p>
-                </div>
-              </div>
-              <p className="buy-field-hint">
-                No map is shown because this listing has no verified map coordinates yet. The exact
-                address is shared by the Motor Wallah team before a visit.
-              </p>
-            </section>
-
             <button type="button" onClick={() => setReport(true)} className="buy-report-link">
               <Flag size={14} aria-hidden="true" /> Report this listing
             </button>
@@ -252,10 +202,15 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
 
           <aside className="buy-detail-aside">
             <div className="buy-action-panel">
-              <p className="buy-action-price">{lakhLabel(listing.priceLakh)}</p>
-              <p className="buy-action-name">
-                {listing.year} {listing.brand} {listing.model}
-              </p>
+              {/* Desktop heading — right column per the reference design. */}
+              <div className="buy-detail-heading buy-detail-heading--aside">
+                <p className="buy-kicker">
+                  <span>{listing.categoryLabel}</span> {listing.brand}
+                </p>
+                <p className="buy-detail-title">{name}</p>
+                <p className="buy-detail-price">{priceRupees(listing.priceLakh)}</p>
+              </div>
+
               {listing.verified ? (
                 <p className="buy-action-verified">
                   <BadgeCheck size={15} aria-hidden="true" /> Verified by Motor Wallah
@@ -267,20 +222,88 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
                 </p>
               )}
 
+              <div className="buy-highlights" aria-label="Vehicle highlights">
+                {highlights.map((highlight) => (
+                  <span key={highlight} className="buy-highlight">
+                    {highlight}
+                  </span>
+                ))}
+              </div>
+
+              <div className="buy-specs">
+                <Spec icon={<CalendarDays size={16} />} label="Year" value={String(listing.year)} />
+                <Spec icon={<Fuel size={16} />} label="Fuel" value={fuelLabel(listing.fuel)} />
+                <Spec
+                  icon={<Car size={16} />}
+                  label="Type"
+                  value={listing.bodyType ?? listing.categoryLabel}
+                />
+                {listing.transmission && (
+                  <Spec
+                    icon={<Settings2 size={16} />}
+                    label="Transmission"
+                    value={listing.transmission}
+                  />
+                )}
+                {listing.kilometres !== null && (
+                  <Spec
+                    icon={<Gauge size={16} />}
+                    label="KM driven"
+                    value={`${listing.kilometres.toLocaleString("en-IN")} km`}
+                  />
+                )}
+                <Spec icon={<MapPin size={16} />} label="City" value={listing.city} />
+              </div>
+
+              <section className="buy-panel buy-panel--location" aria-labelledby="buy-location-title">
+                <h2 id="buy-location-title" className="buy-panel-title">
+                  Location
+                </h2>
+                <div
+                  className="buy-map"
+                  role="img"
+                  aria-label={`Approximate map of ${listing.city}, Madhya Pradesh`}
+                >
+                  <span className="buy-map-grid" aria-hidden="true" />
+                  <span className="buy-map-road buy-map-road--a" aria-hidden="true" />
+                  <span className="buy-map-road buy-map-road--b" aria-hidden="true" />
+                  <span className="buy-map-pin" aria-hidden="true">
+                    <MapPin size={18} />
+                  </span>
+                  <span className="buy-map-label" aria-hidden="true">
+                    {listing.city}
+                  </span>
+                </div>
+                <div className="buy-location">
+                  <MapPin size={18} aria-hidden="true" />
+                  <div>
+                    <p className="buy-location-city">{listing.city}, Madhya Pradesh</p>
+                    <p className="buy-location-area">
+                      Locality / colony: {listing.locality ?? NOT_SHARED}
+                    </p>
+                  </div>
+                </div>
+                <a
+                  className="buy-map-link"
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Navigation size={13} aria-hidden="true" /> View on Map
+                </a>
+                <p className="buy-field-hint">
+                  The pin marks the listing city only — the exact address is shared by the Motor
+                  Wallah team before a visit.
+                </p>
+              </section>
+
               <div className="buy-action-buttons">
                 <button
                   type="button"
                   onClick={() => setContact(true)}
                   className="buy-primary-button"
                 >
-                  <MessageCircle size={16} /> Enquire Now
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOffer(true)}
-                  className="buy-secondary-button buy-secondary-button--offer"
-                >
-                  <IndianRupee size={15} /> Make an Offer
+                  <MessageCircle size={16} /> Contact Seller
                 </button>
                 <button
                   type="button"
@@ -289,6 +312,13 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
                   className="buy-secondary-button"
                 >
                   {sold ? "Vehicle sold" : "Book Test Drive"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOffer(true)}
+                  className="buy-secondary-button buy-secondary-button--offer"
+                >
+                  <IndianRupee size={15} /> Make an Offer
                 </button>
                 <a href={PHONE_HREF} className="buy-secondary-button buy-secondary-button--link">
                   <Phone size={16} /> Call seller
@@ -302,7 +332,7 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
                       type: "whatsapp_click",
                       source: "buy_detail",
                       vehicleId: listing.id,
-                      vehicleName: name,
+                      vehicleName: fullName,
                       location: listing.city,
                     })
                   }
@@ -339,13 +369,13 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
         open={testDrive}
         onClose={() => setTestDrive(false)}
         title="Book Test Drive"
-        subject={{ id: listing.id, name, location: listing.city }}
+        subject={{ id: listing.id, name: fullName, location: listing.city }}
         leadType="test_drive"
         source="buy_detail_test_drive"
         submitLabel="Request Test Drive"
-        disclaimer={`This request is for the ${name}. Test drives depend on seller availability — your slot is confirmed only after the Motor Wallah team contacts you.`}
+        disclaimer={`This request is for the ${fullName}. Test drives depend on seller availability — your slot is confirmed only after the Motor Wallah team contacts you.`}
         fields={[
-          { name: "name", label: "Customer name", required: true },
+          { name: "name", label: "Full name", required: true },
           { name: "mobile", label: "Mobile number", type: "tel", required: true },
           { name: "date", label: "Preferred date", type: "date", required: true },
           { name: "time", label: "Preferred time", type: "time", required: true },

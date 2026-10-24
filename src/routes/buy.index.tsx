@@ -8,17 +8,19 @@ import { EnquiryDialog, type EnquiryField } from "@/components/site/EnquiryDialo
 import { BuyHub } from "@/components/buy/BuyHub";
 import {
   BuyServiceSidebar,
-  BuyVehicleSidebar,
-  type BuyFilters,
   type BuyServiceFilters,
 } from "@/components/buy/BuySidebar";
+import {
+  BuyFilterBar,
+  BuyActiveFilters,
+  type BuyFilters,
+} from "@/components/buy/BuyFilterBar";
+import { BuyBrandRail } from "@/components/buy/BuyBrandRail";
 import { BuyListingCard } from "@/components/buy/BuyListingCard";
 import { BuyServiceCard } from "@/components/buy/BuyServiceCard";
 import { MakeOfferDialog } from "@/components/buy/MakeOfferDialog";
-import { ContactSellerDialog } from "@/components/buy/ContactSellerDialog";
 import {
   BUY_CATEGORY_LIST,
-  BUY_LISTINGS,
   BUY_YEAR_MAX,
   BUY_YEAR_MIN,
   brandTilesFor,
@@ -27,14 +29,11 @@ import {
   fuelOptionsFor,
   getBuyCategory,
   listingsInCategory,
-  matchesSearch,
   priceBounds,
-  transmissionOptionsFor,
   type BuyCategoryId,
   type BuyListing,
 } from "@/lib/buy-catalog";
 import {
-  BUY_SERVICE_ID_LIST,
   getBuyServiceCategory,
   isBuyServiceId,
   serviceCitiesInCategory,
@@ -84,17 +83,22 @@ export const Route = createFileRoute("/buy/")({
 });
 
 const defaultFilters = (min = 0, max = 0): BuyFilters => ({
-  query: "",
   brand: "",
   model: "",
-  fuel: "",
-  transmission: "",
+  fuels: [],
   city: "",
   price: [min, max],
   yearMin: BUY_YEAR_MIN,
   yearMax: BUY_YEAR_MAX,
   verifiedOnly: false,
 });
+
+/**
+ * The five fuel checkboxes from the reference filter bar are always offered;
+ * extra fuels that actually occur in a category's records (e.g. LPG) are
+ * appended after them.
+ */
+const BASE_FUELS = ["Petrol", "Diesel", "CNG", "Hybrid", "Electric"];
 
 const defaultServiceFilters = (min = 0, max = 0): BuyServiceFilters => ({
   query: "",
@@ -146,7 +150,6 @@ function BuyPage() {
   );
   const [shortlistedOnly, setShortlistedOnly] = useState(false);
   const [offerListing, setOfferListing] = useState<BuyListing | null>(null);
-  const [chatListing, setChatListing] = useState<BuyListing | null>(null);
   const [serviceEnquiry, setServiceEnquiry] = useState<{
     listing: BuyServiceListing;
     mode: "apply" | "enquire";
@@ -181,48 +184,42 @@ function BuyPage() {
     () => (categoryId ? catalogModelsFor(categoryId, filters.brand || undefined) : []),
     [categoryId, filters.brand],
   );
-  const fuels = useMemo(
-    () =>
-      categoryId
-        ? fuelOptionsFor(categoryId, filters.brand || undefined, filters.model || undefined)
-        : [],
-    [categoryId, filters.brand, filters.model],
-  );
-  const transmissions = useMemo(
-    () =>
-      categoryId
-        ? transmissionOptionsFor(categoryId, filters.brand || undefined, filters.model || undefined)
-        : [],
-    [categoryId, filters.brand, filters.model],
-  );
+  const fuels = useMemo(() => {
+    if (!categoryId) return [];
+    const derived = fuelOptionsFor(
+      categoryId,
+      filters.brand || undefined,
+      filters.model || undefined,
+    );
+    return Array.from(new Set([...BASE_FUELS, ...derived]));
+  }, [categoryId, filters.brand, filters.model]);
   const cities = useMemo(() => (categoryId ? citiesInCategory(categoryId) : []), [categoryId]);
 
-  // Keep model/fuel/transmission valid when the brand or model changes.
+  // Keep model/fuel selections valid when the brand or model changes.
   useEffect(() => {
     setFilters((prev) => {
       const next = { ...prev };
       if (next.brand && !brands.some((b) => b.brand === next.brand)) next.brand = "";
       if (next.model && !models.includes(next.model)) next.model = "";
-      if (next.fuel && !fuels.includes(next.fuel)) next.fuel = "";
-      if (next.transmission && !transmissions.includes(next.transmission)) next.transmission = "";
+      const keptFuels = next.fuels.filter((fuel) => fuels.includes(fuel));
+      next.fuels = keptFuels.length === next.fuels.length ? next.fuels : keptFuels;
       return next.brand === prev.brand &&
         next.model === prev.model &&
-        next.fuel === prev.fuel &&
-        next.transmission === prev.transmission
+        next.fuels === prev.fuels
         ? prev
         : next;
     });
-  }, [brands, models, fuels, transmissions]);
+  }, [brands, models, fuels]);
 
   const results = useMemo(() => {
     if (!categoryId) return [];
     const [low, high] = filters.price;
     return listingsInCategory(categoryId)
-      .filter((listing) => matchesSearch(listing, filters.query))
       .filter((listing) => !filters.brand || listing.brand === filters.brand)
       .filter((listing) => !filters.model || listing.model === filters.model)
-      .filter((listing) => !filters.fuel || listing.fuel === filters.fuel)
-      .filter((listing) => !filters.transmission || listing.transmission === filters.transmission)
+      .filter(
+        (listing) => filters.fuels.length === 0 || filters.fuels.includes(listing.fuel),
+      )
       .filter((listing) => !filters.city || listing.city === filters.city)
       .filter((listing) => listing.year >= filters.yearMin && listing.year <= filters.yearMax)
       .filter((listing) => {
@@ -236,11 +233,9 @@ function BuyPage() {
 
   const activeCount = categoryId
     ? [
-        Boolean(filters.query),
         Boolean(filters.brand),
         Boolean(filters.model),
-        Boolean(filters.fuel),
-        Boolean(filters.transmission),
+        filters.fuels.length > 0,
         Boolean(filters.city),
         filters.price[0] !== bounds.min || filters.price[1] !== bounds.max,
         filters.yearMin !== BUY_YEAR_MIN || filters.yearMax !== BUY_YEAR_MAX,
@@ -282,8 +277,6 @@ function BuyPage() {
   /* ---------------------------------------------------------------- */
   /* Actions                                                           */
   /* ---------------------------------------------------------------- */
-  const cityCount = useMemo(() => new Set(BUY_LISTINGS.map((listing) => listing.city)).size, []);
-
   const selectCategory = (id: BuyCategoryId) => {
     shouldScroll.current = true;
     navigate({ to: "/buy", search: { category: id, service: undefined }, replace: true });
@@ -341,31 +334,16 @@ function BuyPage() {
                     Every vehicle. <em>One marketplace.</em>
                   </h1>
                   <p className="mw-buy-hero-text">
-                    Start with the category you actually need — cars, bikes, 3-wheelers, mini
-                    trucks, trucks, buses, tractors or commercial taxis — then narrow by brand,
-                    budget, year, location and fuel. Parts, finance, insurance and RTO services live
-                    here too.
+                    Find the right vehicle, at the right price, with complete trust.
                   </p>
-                </div>
-                <div className="mw-buy-hero-steps" aria-hidden="true">
-                  <span className="mw-buy-hero-step">
-                    <b>01 · Choose</b>
-                    <span>
-                      {BUY_CATEGORY_LIST.length} vehicle + {BUY_SERVICE_ID_LIST.length} service
-                      categories
-                    </span>
-                  </span>
-                  <span className="mw-buy-hero-step">
-                    <b>02 · Filter</b>
-                    <span>
-                      {BUY_LISTINGS.length} listings · {cityCount} cities · {BUY_YEAR_MIN}–
-                      {BUY_YEAR_MAX}
-                    </span>
-                  </span>
-                  <span className="mw-buy-hero-step">
-                    <b>03 · Connect</b>
-                    <span>Chat, offer, or enquire from every card</span>
-                  </span>
+                  <div className="mw-buy-hero-cta">
+                    <a href="#mw-hub" className="mw-buy-hero-btn mw-buy-hero-btn--primary">
+                      Buy Vehicles
+                    </a>
+                    <Link to="/sell-your-car" className="mw-buy-hero-btn mw-buy-hero-btn--ghost">
+                      Sell Vehicle
+                    </Link>
+                  </div>
                 </div>
               </div>
             </section>
@@ -374,24 +352,12 @@ function BuyPage() {
           </>
         ) : (
           <div className="home-container" id="buy-browse">
-            <div className="mw-buy-layout">
-              {category ? (
-                <BuyVehicleSidebar
-                  categoryLabel={category.label}
-                  countLabel={countLabel(listingsInCategory(category.id).length, "demo listing")}
-                  filters={filters}
-                  brands={brands}
-                  models={models}
-                  fuels={fuels}
-                  transmissions={transmissions}
-                  cities={cities}
-                  bounds={bounds}
-                  activeCount={activeCount}
-                  onBack={() => navigate({ to: "/buy", search: {}, replace: true })}
-                  onChange={patch}
-                  onClear={clearAll}
-                />
-              ) : service ? (
+            <div
+              className={
+                category ? "mw-buy-layout mw-buy-layout--flow" : "mw-buy-layout"
+              }
+            >
+              {service ? (
                 <BuyServiceSidebar
                   service={service}
                   countLabel={countLabel(
@@ -410,6 +376,37 @@ function BuyPage() {
               ) : null}
 
               <div className="mw-buy-main">
+                {category && (
+                  <div className="mw-buy-flow">
+                    <BuyBrandRail
+                      category={category}
+                      brands={brands}
+                      selected={filters.brand}
+                      onSelect={(brand) => patch({ brand, model: "" })}
+                      onBack={() => navigate({ to: "/buy", search: {}, replace: true })}
+                    />
+                    <div className="mw-buy-filter-sticky">
+                      <BuyFilterBar
+                        filters={filters}
+                        brands={brands}
+                        models={models}
+                        fuels={fuels}
+                        cities={cities}
+                        bounds={bounds}
+                        activeCount={activeCount}
+                        onChange={patch}
+                        onClear={clearAll}
+                      />
+                      <BuyActiveFilters
+                        filters={filters}
+                        bounds={bounds}
+                        brands={brands}
+                        onChange={patch}
+                        onClear={clearAll}
+                      />
+                    </div>
+                  </div>
+                )}
                 {service && (
                   <div className="mw-service-banner">
                     <BadgeInfo size={16} aria-hidden="true" />
@@ -446,9 +443,14 @@ function BuyPage() {
                         Shortlisted · {shortlist.ids.length}
                       </button>
                       {category && (
-                        <Link to={category.to} className="mw-results-link">
-                          Open {category.label} page
-                        </Link>
+                        <>
+                          <Link to="/buy/offers" className="mw-results-link">
+                            My Offers
+                          </Link>
+                          <Link to={category.to} className="mw-results-link">
+                            Open {category.label} page
+                          </Link>
+                        </>
                       )}
                     </div>
                   )}
@@ -536,7 +538,6 @@ function BuyPage() {
                           shortlisted={shortlist.ids.includes(listing.id)}
                           onToggleShortlist={shortlist.toggle}
                           onMakeOffer={setOfferListing}
-                          onChat={setChatListing}
                         />
                       ))}
                     </div>
@@ -551,9 +552,6 @@ function BuyPage() {
       <StickyActions />
       {offerListing && (
         <MakeOfferDialog listing={offerListing} open onClose={() => setOfferListing(null)} />
-      )}
-      {chatListing && (
-        <ContactSellerDialog listing={chatListing} open onClose={() => setChatListing(null)} />
       )}
       {serviceEnquiry && enquiryCategory && (
         <EnquiryDialog

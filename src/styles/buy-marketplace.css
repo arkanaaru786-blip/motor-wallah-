@@ -1262,3 +1262,157 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* 9-screen buy flow — reference design                                */
+/* ------------------------------------------------------------------ */
+
+/* Screen 1 — hero CTAs (BUY VEHICLES / SELL VEHICLE). */
+.mw-buy-hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.mw-buy-hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 22px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.mw-buy-hero-btn--primary {
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  color: #fff;
+  box-shadow: 0 12px 24px -16px oklch(0.55 0.223 27 / 0.9);
+}
+
+.mw-buy-hero-btn--primary:hover {
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--color-primary) 88%, #000);
+}
+
+.mw-buy-hero-btn--ghost {
+  background: rgb(255 255 255 / 0.85);
+  border: 1px solid var(--color-border);
+  color: var(--color-ink);
+}
+
+.mw-buy-hero-btn--ghost:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+  color: var(--color-primary);
+}
+
+/* Screen 1 — the category card chevron is always visible (reference). */
+.mw-hub-arrow {
+  opacity: 1;
+  transform: none;
+  background: color-mix(in srgb, var(--color-primary) 8%, #fff);
+  border-color: color-mix(in srgb, var(--color-primary) 25%, #fff);
+}
+
+/* Screens 2+3 — single-column vehicle flow: brand rail + sticky filter bar. */
+.mw-buy-layout--flow {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+.mw-buy-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 18px;
+}
+
+.mw-buy-filter-sticky {
+  position: sticky;
+  top: 74px;
+  z-index: 30;
+}
+
+/* Screen 4 — bento card spec rows. */
+.mw-card-photos {
+  left: auto;
+  right: 10px;
+  top: 10px;
+  bottom: auto;
+}
+
+.mw-card-specs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+}
+
+.mw-card-specs > span {
+  display: inline-flex;
+  align-items: center;
+}
+
+.mw-card-specs i {
+  display: inline-block;
+  width: 1px;
+  height: 11px;
+  margin: 0 8px;
+  background: var(--color-border);
+}
+
+.mw-card-meta {
+  align-items: center;
+  gap: 12px;
+}
+
+.mw-card-city {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mw-card-city svg {
+  color: var(--color-primary);
+}
+
+/* Screen 4 — heart + VIEW DETAILS row, MAKE AN OFFER below. */
+.mw-card-actions-row {
+  display: flex;
+  gap: 8px;
+}
+
+.mw-card-actions-row .mw-btn {
+  flex: 1;
+  min-width: 0;
+}
+
+.mw-card-fav--action {
+  position: static;
+  align-self: stretch;
+  width: 44px;
+  height: auto;
+  min-height: 38px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 55%, #fff);
+  background: #fff;
+  color: var(--color-primary);
+}
+
+.mw-card-fav--action:hover,
+.mw-card-fav--action[data-active] {
+  background: color-mix(in srgb, var(--color-primary) 7%, #fff);
+}

@@ -156,6 +156,36 @@
   border-color: var(--primary);
   color: oklch(1 0 0);
 }
+
+/* Screen 3 — fuel type checkboxes (multi-select). */
+.buy-fuel-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.buy-fuel-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--foreground);
+  cursor: pointer;
+  user-select: none;
+}
+
+.buy-fuel-check input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.buy-fuel-check:has(input:checked) {
+  color: var(--primary);
+}
 .buy-verified-row {
   display: flex;
   align-items: center;

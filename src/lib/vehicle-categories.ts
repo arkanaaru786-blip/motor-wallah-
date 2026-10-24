@@ -1,7 +1,8 @@
 /**
  * Non-car vehicle categories. Each category owns its OWN Brand -> Model
- * catalogue and listings; models never appear in more than one category
- * (e.g. Tata Ace exists only under SCV). Cars live in vehicle-catalog.ts.
+ * catalogue and listings; a model may legitimately appear in more than one
+ * category when the same vehicle is sold there too (e.g. Tata Ace is listed
+ * under both SCV and Trucks). Cars live in vehicle-catalog.ts.
  */
 export type CategoryId =
   "bikes" | "three-wheelers" | "scv" | "trucks" | "buses" | "tractors" | "taxi";
@@ -48,6 +49,7 @@ export const CATEGORIES: CategoryDef[] = [
         ["Platina", 2006, NOW],
         ["Avenger", 2005, NOW],
         ["Dominar 400", 2016, NOW],
+        ["Chetak", 2020, NOW],
         ["Discover", 2004, 2020],
       ],
       TVS: [
@@ -107,6 +109,15 @@ export const CATEGORIES: CategoryDef[] = [
         ["Gem", 2014, NOW],
         ["Shakti", 2006, NOW],
       ],
+      // Local e-rickshaw brands requested for the 3-wheeler marketplace.
+      "Khalsa EV": [
+        ["E-Rickshaw Deluxe", 2020, NOW],
+        ["E-Rickshaw Passenger", 2021, NOW],
+      ],
+      "All Fine EV": [
+        ["E-Rickshaw Gold", 2020, NOW],
+        ["E-Rickshaw Cargo", 2022, NOW],
+      ],
     },
   },
   {
@@ -147,6 +158,7 @@ export const CATEGORIES: CategoryDef[] = [
     fuels: ["Diesel", "CNG"],
     catalog: {
       "Tata Motors": [
+        ["Ace", 2005, NOW],
         ["407", 1986, NOW],
         ["LPT 1109", 2005, NOW],
         ["Signa 4825", 2016, NOW],
@@ -154,6 +166,7 @@ export const CATEGORIES: CategoryDef[] = [
         ["Ultra 1918", 2014, NOW],
       ],
       "Ashok Leyland": [
+        ["Dost", 2011, NOW],
         ["Ecomet 1615", 2011, NOW],
         ["Boss 1115", 2013, NOW],
         ["2820 Tipper", 2010, NOW],
@@ -185,6 +198,7 @@ export const CATEGORIES: CategoryDef[] = [
     catalog: {
       "Tata Buses": [
         ["Starbus", 2005, NOW],
+        ["Magna", 2010, NOW],
         ["Cityride", 2008, NOW],
         ["Winger", 2007, NOW],
       ],
@@ -228,7 +242,7 @@ export const CATEGORIES: CategoryDef[] = [
         ["Tiger 50", 2016, NOW],
       ],
       "John Deere": [
-        ["5050 D", 2005, NOW],
+        ["5050D", 2005, NOW],
         ["5310", 2008, NOW],
       ],
       "Massey Ferguson": [
@@ -307,7 +321,7 @@ const LOCS = ["Indore", "Bhopal", "Ujjain", "Dewas"];
  * combustion fuel (or the other way round), because the BUY page derives its
  * model-specific fuel options from these records.
  */
-const ELECTRIC_MODEL = /(\be-?city|treo|\bs1\b|s1 pro|s1 air|xpres|electric|\bev\b)/i;
+const ELECTRIC_MODEL = /(\be-?city|treo|chetak|rickshaw|\bs1\b|s1 pro|s1 air|xpres|electric|\bev\b)/i;
 
 const fuelFor = (categoryId: CategoryId, model: string, index: number): string => {
   if (ELECTRIC_MODEL.test(model)) return "Electric";

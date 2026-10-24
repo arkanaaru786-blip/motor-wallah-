@@ -1,9 +1,6 @@
 import { ChevronRight, Cog, FileText, Landmark, ShieldCheck, Wrench } from "lucide-react";
-import { BrandArt } from "@/components/buy/BrandArt";
 import {
   BUY_CATEGORY_LIST,
-  brandsInCategory,
-  listingCount,
   type BuyCategoryId,
 } from "@/lib/buy-catalog";
 import { BUY_SERVICE_CATEGORIES, type BuyServiceId } from "@/lib/buy-services";
@@ -19,10 +16,9 @@ const SERVICE_ICONS = {
 /**
  * Page 1 of the BUY marketplace — the category hub.
  *
- * Vehicle cards first (image on top, bold name, blurb, real brand logos at
- * the bottom), then the service categories (parts, finance, insurance, RTO).
- * Picking any card moves the visitor into the dynamic listing page; nothing
- * else on the hub is filtered first.
+ * Vehicle cards follow the reference design: category image on top, bold name,
+ * blurb and a chevron arrow. Picking any card moves the visitor into that
+ * category's dynamic listing flow; nothing else on the hub is filtered first.
  */
 export function BuyHub({
   onSelectCategory,
@@ -33,61 +29,48 @@ export function BuyHub({
 }) {
   return (
     <>
-      <section className="mw-hub" aria-labelledby="mw-hub-title">
+      <section className="mw-hub" id="mw-hub" aria-labelledby="mw-hub-title">
         <div className="home-container">
           <div className="mw-hub-head">
             <p className="mw-hub-kicker">
-              <span aria-hidden="true" /> Explore vehicles
+              <span aria-hidden="true" /> Choose vehicle category
             </p>
             <h2 id="mw-hub-title" className="mw-hub-title">
-              Choose your <span>vehicle category</span>
+              Explore <span>8 categories</span>
             </h2>
             <p className="mw-hub-text">
-              Eight marketplace categories with their own brands, models and listings — every card
-              opens its own listing page.
+              Explore 8 categories, find your perfect ride — every card opens its own brand rail,
+              filters and listings.
             </p>
           </div>
 
           <div className="mw-hub-grid">
-            {BUY_CATEGORY_LIST.map((category) => {
-              const brands = brandsInCategory(category.id)
-                .slice(0, 5)
-                .map((entry) => entry.brand);
-              return (
-                <button
-                  key={category.id}
-                  type="button"
-                  onClick={() => onSelectCategory(category.id)}
-                  className="mw-hub-card"
-                  aria-label={`Browse ${category.label} listings`}
-                >
-                  <span className="mw-hub-media">
-                    <img
-                      src={category.image}
-                      alt={`${category.label} illustrative vehicle photograph`}
-                      width={720}
-                      height={450}
-                      loading="lazy"
-                    />
-                    <span className="mw-hub-count">{listingCount(category.id)} listings</span>
-                  </span>
-                  <span className="mw-hub-body">
-                    <span className="mw-hub-name">{category.label}</span>
-                    <span className="mw-hub-blurb">{category.blurb}</span>
-                    <span className="mw-hub-brands" aria-hidden="true">
-                      {brands.map((brand) => (
-                        <span key={brand} className="mw-hub-brand-slot">
-                          <BrandArt brand={brand} className="mw-hub-brand-logo" />
-                        </span>
-                      ))}
-                    </span>
-                  </span>
-                  <span className="mw-hub-arrow" aria-hidden="true">
-                    <ChevronRight size={16} />
-                  </span>
-                </button>
-              );
-            })}
+            {BUY_CATEGORY_LIST.map((category) => (
+              <button
+                key={category.id}
+                type="button"
+                onClick={() => onSelectCategory(category.id)}
+                className="mw-hub-card"
+                aria-label={`Browse ${category.label} listings`}
+              >
+                <span className="mw-hub-media">
+                  <img
+                    src={category.image}
+                    alt={`${category.label} illustrative vehicle photograph`}
+                    width={720}
+                    height={450}
+                    loading="lazy"
+                  />
+                </span>
+                <span className="mw-hub-body">
+                  <span className="mw-hub-name">{category.label}</span>
+                  <span className="mw-hub-blurb">{category.blurb}</span>
+                </span>
+                <span className="mw-hub-arrow" aria-hidden="true">
+                  <ChevronRight size={16} />
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       </section>

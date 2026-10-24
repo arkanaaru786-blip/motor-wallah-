@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 120" role="img" aria-label="All Fine EV">
+  <rect x="6" y="16" width="88" height="88" rx="20" fill="#b45309"/>
+  <path d="M30 62 l16 16 28-34" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="112" y="60" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="800" fill="#111827" letter-spacing="1">ALL FINE</text>
+  <text x="112" y="96" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#b45309" letter-spacing="8">EV</text>
+</svg>

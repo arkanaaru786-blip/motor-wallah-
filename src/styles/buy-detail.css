@@ -783,6 +783,423 @@
     padding-inline: 9px;
   }
 }
+/* Screen 5 — heading exists once per breakpoint (mobile in main, desktop in
+   the right column) so the title/price always sit near the gallery. */
+.buy-detail-heading--mobile {
+  display: block;
+}
+.buy-detail-heading--aside {
+  display: none;
+  margin-top: 0;
+}
+@media (min-width: 1024px) {
+  .buy-detail-heading--mobile {
+    display: none;
+  }
+  .buy-detail-heading--aside {
+    display: block;
+  }
+}
+
+/* Screen 5 — stylised location map with a city pin. */
+.buy-panel--location {
+  margin-top: 12px;
+}
+.buy-map {
+  position: relative;
+  height: 150px;
+  margin-top: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--home-line);
+  overflow: hidden;
+  background:
+    linear-gradient(0deg, rgb(148 163 184 / 0.18), rgb(148 163 184 / 0.18)),
+    repeating-linear-gradient(0deg, transparent 0 24px, rgb(100 116 139 / 0.18) 24px 26px),
+    repeating-linear-gradient(90deg, transparent 0 34px, rgb(100 116 139 / 0.15) 34px 36px),
+    #eef2f6;
+}
+.buy-map-grid {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(115deg, transparent 44%, rgb(147 197 253 / 0.45) 45% 52%, transparent 53%),
+    linear-gradient(25deg, transparent 60%, rgb(187 247 208 / 0.5) 61% 70%, transparent 71%);
+}
+.buy-map-road {
+  position: absolute;
+  height: 6px;
+  border-radius: 999px;
+  background: #fde68a;
+  border: 1px solid rgb(202 138 4 / 0.4);
+}
+.buy-map-road--a {
+  left: -8%;
+  right: 26%;
+  top: 38%;
+  transform: rotate(-7deg);
+}
+.buy-map-road--b {
+  left: 30%;
+  right: -6%;
+  top: 68%;
+  transform: rotate(5deg);
+}
+.buy-map-pin {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -100%);
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50% 50% 4px 50%;
+  background: var(--primary);
+  color: oklch(1 0 0);
+  box-shadow: 0 8px 16px -8px rgb(15 15 15 / 0.6);
+  rotate: -45deg;
+}
+.buy-map-pin svg {
+  rotate: 45deg;
+}
+.buy-map-label {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.92);
+  border: 1px solid var(--home-line);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--foreground);
+}
+.buy-map-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.buy-map-link:hover {
+  text-decoration: underline;
+}
+
+/* Screen 6 — cancel action under Submit offer. */
+.buy-offer-cancel {
+  width: 100%;
+  margin-top: 2px;
+}
+
+/* Screen 9 — chat header with vehicle summary + left/right bubbles. */
+.buy-modal-panel--chat {
+  max-width: 560px;
+}
+.buy-chat-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--home-line);
+}
+.buy-chat-thumb {
+  display: block;
+  width: 56px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  overflow: hidden;
+  border: 1px solid var(--home-line);
+  background: var(--secondary);
+}
+.buy-chat-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.buy-chat-head-text {
+  min-width: 0;
+  flex: 1;
+}
+.buy-chat-head-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--foreground);
+}
+.buy-chat-head-sub {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.buy-chat-head-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted-foreground);
+}
+.buy-chat-head-status i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+}
+.buy-chat-message--me {
+  justify-content: flex-end;
+}
+.buy-chat-message--system {
+  justify-content: flex-start;
+}
+.buy-chat-bubble--me {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: oklch(1 0 0);
+  box-shadow: 0 10px 18px -14px rgb(15 15 15 / 0.7);
+}
+.buy-chat-bubble--me p {
+  color: oklch(1 0 0);
+}
+.buy-chat-bubble--me span {
+  color: rgb(255 255 255 / 0.8);
+}
+.buy-chat-bubble--system {
+  background: var(--background);
+  border-style: dashed;
+  border-radius: 12px 12px 12px 2px;
+}
+.buy-chat-action--whatsapp {
+  border-color: color-mix(in oklab, #22c55e 55%, transparent);
+  color: #16a34a;
+}
+.buy-chat-action--whatsapp:hover {
+  border-color: #16a34a;
+  color: #16a34a;
+  background: color-mix(in oklab, #22c55e 8%, transparent);
+}
+
+/* Screen 7 — My Offers page. */
+.buy-offers-page {
+  padding-block: 30px 54px;
+  max-width: 940px;
+}
+.buy-offers-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.buy-offers-title {
+  margin-top: 6px;
+  font-family: var(--font-display);
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--foreground);
+}
+.buy-offers-sub {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.buy-offers-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 13px;
+  border-radius: 10px;
+  border: 1px solid var(--home-line);
+  background: var(--background);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+.buy-offers-back:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.buy-offers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.buy-offer-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--home-line);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--home-shadow);
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease;
+}
+.buy-offer-row:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in oklab, var(--primary) 45%, transparent);
+}
+.buy-offer-thumb {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 60px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  overflow: hidden;
+  border: 1px solid var(--home-line);
+  background: var(--secondary);
+  color: var(--muted-foreground);
+}
+.buy-offer-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.buy-offer-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+.buy-offer-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.buy-offer-name {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.buy-offer-amount {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.buy-offer-meta {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.buy-offer-note {
+  font-size: 11.5px;
+  color: var(--foreground);
+}
+.buy-offer-chevron {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+.buy-offer-badge {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.buy-offer-badge--pending {
+  background: #fdf3d7;
+  border: 1px solid #f4d27a;
+  color: #92600a;
+}
+.buy-offer-badge--counter {
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
+  color: #1d4ed8;
+}
+.buy-offer-badge--accepted {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #15803d;
+}
+.buy-offer-badge--rejected {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+}
+.buy-offers-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 54px 24px;
+  border-radius: 16px;
+  border: 1px dashed var(--home-line);
+  background: rgb(255 255 255 / 0.7);
+  text-align: center;
+}
+.buy-offers-empty svg {
+  color: var(--primary);
+}
+.buy-offers-empty-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--foreground);
+}
+.buy-offers-empty-text {
+  max-width: 52ch;
+  font-size: 12.5px;
+  color: var(--muted-foreground);
+}
+.buy-offers-notice {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px dashed color-mix(in oklab, var(--primary) 45%, transparent);
+  background: color-mix(in oklab, var(--primary) 6%, var(--background));
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+.buy-offers-notice strong {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+.buy-offers-notice p {
+  margin-top: 4px;
+  color: var(--muted-foreground);
+}
+@media (max-width: 560px) {
+  .buy-offer-thumb {
+    width: 64px;
+    height: 46px;
+  }
+  .buy-offer-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .buy-offer-chevron {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mw-buy *,
   .mw-buy *::before,

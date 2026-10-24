@@ -1,5 +1,15 @@
 import { chromium } from "/workspace/homes/6c4a0adeccea143873c1c9fb/pwtools/node_modules/playwright/index.mjs";
 
+/**
+ * 9-screen BUY flow — reference mock verification.
+ *
+ * Screens 1-9 plus the 7 mandatory rules (dynamic categories, no owner filter,
+ * year 1992-2026, real logo images, discontinued models in dropdowns,
+ * glassmorphism + bento, test-data pre-populated for all categories).
+ *
+ * NOTE: this Chromium build returns empty innerText for many elements, so all
+ * text assertions go through textContent (norm/txt/txts helpers below).
+ */
 const BASE = "http://localhost:3000";
 const SHOTS = "artifacts";
 const errors = [];
@@ -10,6 +20,26 @@ const check = (name, pass, detail = "") => {
   console.log(`${pass ? "PASS" : "FAIL"} — ${name}${detail ? ` :: ${detail}` : ""}`);
 };
 
+/* ---------- text helpers (textContent, whitespace-normalised) ---------- */
+const norm = (s) =>
+  (s ?? "")
+    .replace(/\s+/g, " ")
+    .replace(/₹\s+/g, "₹")
+    .trim();
+const txt = async (loc) => norm(await loc.textContent());
+const txts = async (loc) => (await loc.allTextContents()).map(norm);
+const escapeReg = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** Alpha of any computed colour serialisation (rgb/rgba/oklab/hex). */
+const alphaOf = (color) => {
+  const slash = color.match(/\/\s*([\d.]+)\s*\)/);
+  if (slash) return Number(slash[1]);
+  const comma = color.match(/rgba?\([^)]*,\s*([\d.]+)\s*\)$/);
+  if (comma) return Number(comma[1]);
+  if (color.startsWith("#")) return color.length <= 7 ? 1 : parseInt(color.slice(7, 9) || "ff", 16) / 255;
+  return 1;
+};
+
 const browser = await chromium.launch({ args: ["--no-sandbox"] });
 const context = await browser.newContext({ viewport: { width: 1440, height: 950 } });
 const page = await context.newPage();
@@ -18,457 +48,484 @@ page.on("console", (msg) => {
 });
 page.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));
 
+/** Force lazy images eager, then wait until every match is decoded. */
+const eagerImages = (selector) =>
+  page.evaluate((sel) => {
+    document.querySelectorAll(sel).forEach((img) => {
+      img.loading = "eager";
+    });
+  }, selector);
+const waitForImages = async (selector, timeout = 10000) => {
+  try {
+    await page.waitForFunction(
+      (sel) => {
+        const imgs = [...document.querySelectorAll(sel)];
+        return imgs.length > 0 && imgs.every((i) => i.complete && i.naturalWidth > 0);
+      },
+      selector,
+      { timeout },
+    );
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const MODEL_BTN = '.buy-filter-panel button[aria-haspopup="listbox"]';
+const openModels = async () => {
+  await page.locator(MODEL_BTN).first().click();
+  await page.waitForTimeout(250);
+  return txts(page.locator("ul[role='listbox'] li"));
+};
+const closeModels = async () => {
+  await page.locator(MODEL_BTN).first().click();
+  await page.waitForTimeout(120);
+};
+
 /* ================================================================== */
-/* 1. PAGE 1 — CATEGORY HUB + PILL NAVIGATION                         */
+/* SCREEN 1 — CATEGORY SELECTION (hero + 8 cards)                      */
 /* ================================================================== */
 await page.goto(`${BASE}/buy`, { waitUntil: "networkidle" });
 
-const pillLabels = await page.locator(".mw-buy-pill").allInnerTexts();
-const pillNorm = pillLabels.map((p) => p.trim().toLowerCase());
+const heroTitle = await txt(page.locator(".mw-buy-hero-title"));
 check(
-  "pill nav has all 8 items",
-  ["buy", "sell", "exchange", "value", "compare", "service", "scrap", "franchise"].every((l) =>
-    pillNorm.includes(l),
-  ),
-  pillLabels.join(", "),
+  "S1 hero: EVERY VEHICLE. ONE MARKETPLACE.",
+  /every vehicle\./i.test(heroTitle) && /one marketplace\./i.test(heroTitle),
+  heroTitle,
 );
-const activePills = await page.locator(".mw-buy-pill--active").allInnerTexts();
+const heroText = await txt(page.locator(".mw-buy-hero-text"));
 check(
-  "BUY pill is the solid red active pill",
-  activePills.length >= 1 && activePills.every((t) => t.trim().toLowerCase() === "buy"),
-  activePills.join(", "),
+  "S1 hero subtitle: right vehicle / right price / complete trust",
+  /right vehicle/i.test(heroText) && /right price/i.test(heroText) && /complete trust/i.test(heroText),
+  heroText,
 );
+const heroBtns = (await txts(page.locator(".mw-buy-hero-btn"))).map((b) => b.toLowerCase());
 check(
-  "pill nav is the light header (mw-buy-nav)",
-  (await page.locator("header.mw-buy-nav").count()) === 1,
+  "S1 hero buttons: Buy Vehicles + Sell Vehicle",
+  heroBtns.length === 2 && heroBtns.includes("buy vehicles") && heroBtns.includes("sell vehicle"),
+  heroBtns.join(" | "),
 );
-
-check("hero title renders", (await page.locator(".mw-buy-hero-title").count()) === 1);
 
 const vehicleCards = page.locator(".mw-hub-card:not(.mw-hub-card--service)");
-const serviceCards = page.locator(".mw-hub-card--service");
-check(
-  "8 vehicle category cards",
-  (await vehicleCards.count()) === 8,
-  `${await vehicleCards.count()} cards`,
+check("S1 exactly 8 vehicle category cards", (await vehicleCards.count()) === 8);
+const cardNames = (await txts(page.locator(".mw-hub-card:not(.mw-hub-card--service) .mw-hub-name"))).map((n) =>
+  n.toLowerCase(),
 );
+const EXPECTED = [
+  "Cars",
+  "Bikes",
+  "3-Wheelers",
+  "SCV / Mini Trucks",
+  "Trucks",
+  "Buses",
+  "Tractors",
+  "Taxi / Commercial Cars",
+];
 check(
-  "service cards: New Parts, Used Parts, Finance, Insurance, RTO",
-  (await serviceCards.count()) === 5,
-  (await serviceCards.locator(".mw-hub-name").allInnerTexts()).join(" | "),
+  "S1 cards match the 8 reference categories",
+  EXPECTED.every((label) => cardNames.includes(label.toLowerCase())),
+  cardNames.join(", "),
 );
-
 const firstCard = vehicleCards.first();
 check(
-  "hub card has bold name + blurb",
-  (await firstCard.locator(".mw-hub-name").innerText()).trim().toLowerCase() === "cars" &&
-    (await firstCard.locator(".mw-hub-blurb").innerText()).trim().length > 0,
-  await firstCard.locator(".mw-hub-name").innerText(),
+  "S1 card has image + name + blurb + arrow",
+  (await firstCard.locator(".mw-hub-media img").count()) === 1 &&
+    (await firstCard.locator(".mw-hub-arrow").count()) === 1 &&
+    (await txt(firstCard.locator(".mw-hub-blurb"))).length > 0,
 );
+const arrowVisible = await firstCard
+  .locator(".mw-hub-arrow")
+  .evaluate((el) => getComputedStyle(el).opacity === "1");
+check("S1 arrow visible without hover (reference)", arrowVisible);
 check(
-  "hub card shows brand logos at the bottom",
-  (await firstCard.locator(".mw-hub-brand-slot").count()) >= 3,
-  `${await firstCard.locator(".mw-hub-brand-slot").count()} logo slots`,
+  "S1 services section still present below (untouched feature)",
+  (await page.locator(".mw-hub-card--service").count()) >= 5,
 );
-const shadowBefore = await firstCard.evaluate((el) => getComputedStyle(el).boxShadow);
-await firstCard.hover();
-await page.waitForTimeout(350);
-const shadowAfter = await firstCard.evaluate((el) => getComputedStyle(el).boxShadow);
-check(
-  "hover lifts the card with a shadow",
-  shadowBefore !== shadowAfter && shadowAfter !== "none",
-  `${shadowBefore} -> ${shadowAfter.slice(0, 60)}`,
-);
-
-check(
-  "no sidebar / listing grid before a category is chosen",
-  (await page.locator(".mw-side").count()) === 0 && (await page.locator(".mw-card").count()) === 0,
-);
-await page.screenshot({ path: `${SHOTS}/buy-01-hub.png`, fullPage: true });
+await page.screenshot({ path: `${SHOTS}/s1-hub.png`, fullPage: true });
 
 /* ================================================================== */
-/* 2. PAGE 2 — GLASS SIDEBAR ON THE LISTING VIEW                      */
+/* SCREEN 2+3 — CLICK CARS: brand rail + sticky glass filter bar       */
 /* ================================================================== */
 await firstCard.click();
-await page.waitForSelector(".mw-buy-layout");
-check("category click opens the listing view", page.url().includes("category=cars"), page.url());
+await page.waitForSelector(".buy-rail-section");
+check("S1 category click opens the dynamic flow", page.url().includes("category=cars"), page.url());
+
 check(
-  "sticky sidebar present",
-  (await page.locator(".mw-side").evaluate((el) => getComputedStyle(el).position)) === "sticky",
+  "S2 back link + category title + Select Brand",
+  (await txt(page.locator(".buy-rail-back"))).includes("Back to Categories") &&
+    (await txt(page.locator(".buy-rail-title"))).toLowerCase() === "cars" &&
+    (await txt(page.locator(".buy-rail-sub"))) === "Select Brand",
 );
 
-const glass = await page.locator(".mw-side-inner").evaluate((el) => {
+const railScroll = await page
+  .locator(".buy-brand-rail")
+  .evaluate((el) => getComputedStyle(el).overflowX);
+check(
+  "S2 brand rail is horizontally scrollable",
+  railScroll === "auto" || railScroll === "scroll",
+  railScroll,
+);
+
+await eagerImages(".buy-brand-rail .buy-brand-chip img");
+const logosReady = await waitForImages(".buy-brand-rail .buy-brand-chip img");
+const railChips = page.locator(".buy-brand-rail .buy-brand-chip");
+const railCount = await railChips.count();
+check("S2 rail has brand tiles (incl. All)", railCount >= 6, `${railCount} tiles`);
+const logoStats = await railChips.evaluateAll((els) =>
+  els.slice(1).map((el) => {
+    const img = el.querySelector("img");
+    return {
+      brand: (el.textContent ?? "").trim().replace(/\s+/g, " "),
+      hasImg: Boolean(img),
+      ok: img ? img.complete && img.naturalWidth > 0 : false,
+    };
+  }),
+);
+check(
+  "S2 rule: every brand tile is an actual LOGO IMAGE (not text)",
+  logosReady && logoStats.length > 0 && logoStats.every((s) => s.hasImg && s.ok),
+  logoStats.map((s) => `${s.brand}:${s.ok ? "img" : "MISSING"}`).join(", "),
+);
+
+// Ford must appear (reference shows Ford for cars).
+const tileNames = (await txts(page.locator(".buy-brand-rail .buy-brand-name"))).map((t) => t.toLowerCase());
+check("S2 cars rail includes Ford (reference)", tileNames.includes("ford"), tileNames.join(", "));
+
+/* --- Screen 3: the sticky glass filter bar, exactly 7 filters -------- */
+const stickyPos = await page
+  .locator(".mw-buy-filter-sticky")
+  .evaluate((el) => getComputedStyle(el).position);
+check("S3 filter bar is sticky", stickyPos === "sticky", stickyPos);
+const glass = await page.locator(".buy-filter-panel").evaluate((el) => {
   const s = getComputedStyle(el);
   const blurs = [s.backdropFilter, s.webkitBackdropFilter]
     .filter((v) => v && v !== "none" && /blur/.test(v))
     .join(" ");
-  return {
-    bg: s.backgroundColor,
-    blur: blurs || "none",
-  };
+  return { bg: s.backgroundColor, blur: blurs || "none" };
 });
 check(
-  "glassmorphism: rgba(255,255,255,0.8) background",
-  glass.bg.replace(/\s/g, "") === "rgba(255,255,255,0.8)",
-  glass.bg,
-);
-check("glassmorphism: backdrop blur(10px)", /blur\(10px\)/.test(glass.blur), glass.blur);
-
-// Brand grid = logos only (plus the "All" tile), no text names.
-const tiles = page.locator(".mw-brand-tile");
-check("brand logo grid populated", (await tiles.count()) > 6, `${await tiles.count()} tiles`);
-const tileText = await tiles.allInnerTexts();
-check(
-  "brand tiles are logo-only (just the All tile has text)",
-  tileText.filter((t) => t.trim() && t.trim().toLowerCase() !== "all").length === 0,
-  tileText.join(","),
+  "S3 rule: glassmorphism (translucent + backdrop blur)",
+  alphaOf(glass.bg) < 1 && /blur/.test(glass.blur),
+  `${glass.bg} / ${glass.blur}`,
 );
 
-// Model dropdown locked until a brand is picked.
+const panelText = await txt(page.locator(".buy-filter-panel"));
+// NOTE: textContent glues labels together ("…Clear AllBrandAll brands…"),
+// so word-boundary regexes would miss them — match substrings instead.
+const has = (name) => panelText.toLowerCase().includes(name.toLowerCase());
+const REQUIRED_FILTERS = [
+  "Brand",
+  "Model",
+  "Price Range",
+  "Year",
+  "Location",
+  "Fuel Type",
+  "Verified Listings",
+];
+const extraFilter = /transmission|search|owner/i.test(panelText);
 check(
-  "model dropdown disabled before picking a brand",
-  (await page.locator(".mw-side-lock[data-disabled]").count()) === 1,
+  "S3 exactly the 7 reference filters",
+  REQUIRED_FILTERS.every(has) && !extraFilter,
+  REQUIRED_FILTERS.filter(has).join(", ") + (extraFilter ? " [EXTRA FILTER FOUND]" : ""),
+);
+check(
+  "S3 Clear All button present",
+  (await txt(page.locator(".buy-filter-panel .buy-clear"))).includes("Clear All"),
 );
 
-// Pick Maruti -> model dropdown unlocks with DISCONTINUED models included.
-await page.locator('.mw-brand-tile[title^="Maruti"]').click();
-await page.waitForTimeout(300);
-check(
-  "model dropdown unlocks after picking a brand",
-  (await page.locator(".mw-side-lock[data-disabled]").count()) === 0,
-);
-await page.locator('.mw-side-panel button[aria-haspopup="listbox"]').first().click();
-await page.waitForTimeout(250);
-const modelOptions = (await page.locator("ul[role='listbox'] li").allInnerTexts()).map((m) =>
-  m.trim(),
-);
-check(
-  "Maruti model list includes discontinued models (Zen/Esteem)",
-  modelOptions.some((m) => /zen|esteem/i.test(m)),
-  modelOptions.join(", "),
-);
+check("S3 rule: NO owner filter anywhere in the bar", !/owner/i.test(panelText));
 
-// Pick a discontinued model: either zero listings with an honest message,
-// or listings that really are that model.
-const discontinued =
-  modelOptions.find((m) => /zen/i.test(m)) ?? modelOptions.find((m) => /esteem/i.test(m));
-if (discontinued) {
-  await page.locator("ul[role='listbox'] li", { hasText: discontinued }).first().click();
-  await page.waitForTimeout(400);
-  const cardCount = await page.locator(".mw-card").count();
-  if (cardCount === 0) {
-    const emptyText = await page.locator(".mw-empty").innerText();
-    check(
-      `discontinued model "${discontinued}" shows an honest empty state`,
-      /discontinued/i.test(emptyText),
-      emptyText.split("\n")[1] ?? "",
-    );
-  } else {
-    const titles = await page.locator(".mw-card-title").allInnerTexts();
-    check(
-      `discontinued model "${discontinued}" only shows its own listings`,
-      titles.every((t) => t.toLowerCase().includes(discontinued.toLowerCase().split(" ").pop())),
-      titles.join(" / "),
-    );
-  }
-} else {
-  check("discontinued model selectable", false, "Zen/Esteem missing from list");
-}
-await page.locator(".mw-side-clear").click();
-await page.waitForTimeout(300);
-
-// Year range 1992-2026.
-const yearFrom = page.locator(".mw-side-years select").first();
-const yearOptions = await yearFrom.locator("option").allInnerTexts();
+const yearOptions = await txts(page.locator(".buy-filter-years select").first().locator("option"));
 check(
-  "year dropdown spans 1992-2026",
+  "S3 rule: year dropdown spans 1992-2026",
   yearOptions.includes("1992") && yearOptions.includes("2026"),
   `${yearOptions[0]}..${yearOptions[yearOptions.length - 1]}`,
 );
 
-// Fuel + transmission chips (no Owners filter anywhere).
-const sideText = await page.locator(".mw-side-panel").innerText();
-check("no Owners filter in the sidebar", !/owner/i.test(sideText));
-const chipText = (await page.locator(".mw-chip").allInnerTexts()).map((c) => c.trim());
+const fuelChecks = await txts(page.locator(".buy-fuel-checks label"));
 check(
-  "fuel chips present (Petrol/Diesel/CNG/EV-class)",
-  ["All", "Petrol", "Diesel"].every((f) => chipText.includes(f)) &&
-    chipText.some((c) => /CNG|EV/i.test(c)),
-  chipText.join(", "),
+  "S3 fuel checkboxes: Petrol, Diesel, CNG, Hybrid, EV",
+  ["petrol", "diesel", "cng", "hybrid", "ev"].every((f) =>
+    fuelChecks.map((c) => c.toLowerCase()).includes(f),
+  ),
+  fuelChecks.join(", "),
 );
 check(
-  "transmission chips Manual + Automatic",
-  chipText.includes("Manual") && chipText.includes("Automatic"),
-);
-check("budget slider rendered", (await page.locator(".buy-slider-thumb").count()) === 2);
-check(
-  "budget shown in rupees",
-  /₹[\d,]+/.test(await page.locator(".mw-side-budget").innerText()),
-  await page.locator(".mw-side-budget").innerText(),
-);
-check(
-  "location dropdown present",
-  (await page.locator('.mw-side-panel button[aria-haspopup="listbox"]').count()) === 2,
-);
-check(
-  "verified-only toggle present",
-  (await page.locator('.mw-side-panel button[role="switch"]').count()) === 1,
+  "S3 verified toggle present",
+  (await page.locator(".buy-field--verified [role='switch']").count()) === 1,
 );
 
 /* ================================================================== */
-/* 3. BENTO GRID + 3-BUTTON LISTING CARDS                             */
+/* SCREEN 4 — BENTO GRID LISTING CARDS                                 */
 /* ================================================================== */
+await page.waitForSelector(".mw-bento");
 const cards = page.locator(".mw-card");
 const total = await cards.count();
-check("listings render in the bento grid", total > 0, `${total} cards`);
+check("S4 cars render in the bento grid", total >= 8, `${total} cards`);
+check("S4 first card is the wide featured card", (await page.locator(".mw-card[data-featured]").count()) === 1);
 
-const featured = page.locator(".mw-card[data-featured]");
-check("first card is a wide featured listing", (await featured.count()) === 1);
-const widths = await page.evaluate(() => {
-  const f = document.querySelector(".mw-card[data-featured]")?.getBoundingClientRect().width ?? 0;
-  const n =
-    document.querySelector(".mw-card:not([data-featured])")?.getBoundingClientRect().width ?? 0;
-  return { f: Math.round(f), n: Math.round(n) };
-});
-check("featured card spans ~2 columns", widths.f > widths.n * 1.6, JSON.stringify(widths));
-
-const firstVehicleCard = cards.first();
-const actionTexts = (await firstVehicleCard.locator(".mw-btn").allInnerTexts()).map((t) =>
-  t.trim().toLowerCase(),
-);
+const first = cards.first();
+const titleTxt = await txt(first.locator(".mw-card-title"));
+const priceTxt = await txt(first.locator(".mw-card-price"));
+const specsTxt = await txt(first.locator(".mw-card-specs"));
+const metaTxt = await txt(first.locator(".mw-card-meta"));
+check("S4 card has image", (await first.locator(".mw-card-media img").count()) === 1);
+check("S4 card has Demo/Verified badge markup", (await first.locator(".mw-tag").count()) >= 1);
+check("S4 title includes brand + model", /tata|maruti|hyundai|mahindra/i.test(titleTxt), titleTxt);
+check("S4 price in red rupee format (₹8,50,000 style)", /^₹[\d,]+$/.test(priceTxt), priceTxt);
 check(
-  "card has exactly 3 full-width actions: View details / Chat with seller / Make an offer",
-  actionTexts.length === 3 &&
-    actionTexts[0] === "view details" &&
-    actionTexts[1] === "chat with seller" &&
-    actionTexts[2] === "make an offer",
-  actionTexts.join(" | "),
+  "S4 specs row: Year · Fuel (· Transmission)",
+  /\d{4}/.test(specsTxt) && /(petrol|diesel|cng|ev|hybrid|electric)/i.test(specsTxt),
+  specsTxt,
 );
-const brandLine = await firstVehicleCard.locator(".mw-card-brand").innerText();
-const priceLine = await firstVehicleCard.locator(".mw-card-price").innerText();
-const metaLine = await firstVehicleCard.locator(".mw-card-meta").innerText();
-check("red brand eyebrow rendered", brandLine.trim().length > 0, brandLine);
-check("large red price in lakh format", /₹[\d.]+ Lakh/.test(priceLine), priceLine);
-check(
-  "Year · Fuel · Location row",
-  /\d{4}/.test(metaLine) && metaLine.includes("·"),
-  metaLine.replace(/\n/g, " "),
-);
+check("S4 meta row: km + location", /km/i.test(metaTxt) && metaTxt.length > 3, metaTxt);
 
-// All cards carry all three buttons.
-const btnCounts = await cards.evaluateAll((els) =>
+const actionControls = await first.evaluate((el) => ({
+  btns: [...el.querySelectorAll(".mw-card-actions .mw-btn, .mw-card-actions a.mw-btn")].map((b) =>
+    b.textContent.trim().toLowerCase(),
+  ),
+  fav: el.querySelectorAll(".mw-card-fav").length,
+}));
+check(
+  "S4 actions: heart + VIEW DETAILS (red) + MAKE AN OFFER (secondary)",
+  actionControls.fav === 1 &&
+    actionControls.btns.length === 2 &&
+    actionControls.btns[0] === "view details" &&
+    actionControls.btns[1] === "make an offer",
+  JSON.stringify(actionControls),
+);
+const allCounts = await cards.evaluateAll((els) =>
   els.map(
-    (el) => el.querySelectorAll(".mw-card-actions .mw-btn, .mw-card-actions a.mw-btn").length,
+    (el) =>
+      el.querySelectorAll(".mw-card-actions .mw-btn, .mw-card-actions a.mw-btn").length +
+      el.querySelectorAll(".mw-card-fav").length,
   ),
 );
+check("S4 every card has all 3 actions", allCounts.every((c) => c === 3), allCounts.join(","));
+
+// Required test data: cars dropdown incl. discontinued models.
+let models = await openModels();
 check(
-  "every card has 3 action buttons",
-  btnCounts.every((c) => c === 3),
-  btnCounts.join(","),
+  "S4 rule: Maruti dropdown includes discontinued Zen + Esteem",
+  models.some((m) => /^zen$/i.test(m)) && models.some((m) => /^esteem$/i.test(m)),
+  models.filter((m) => /zen|esteem|swift|baleno/i.test(m)).join(", "),
 );
+await closeModels();
 
-// Search filter -> honest empty state -> clear.
-await page.locator(".mw-side-search input").fill("zzzznotavehicle");
+// Brand filtering (Tata) narrows to Tata models from the required data.
+await page.locator(".buy-brand-rail .buy-brand-chip", { hasText: "Tata" }).first().click();
 await page.waitForTimeout(350);
-check("nonsense search shows empty state", (await page.locator(".mw-empty").count()) === 1);
-await page.locator(".mw-empty .mw-btn").click();
-await page.waitForTimeout(350);
-check("clear restores the listings", (await page.locator(".mw-card").count()) === total);
+const tataTitles = await txts(page.locator(".mw-card-title"));
+const tataModels = tataTitles.join(" | ");
+check(
+  "S4 brand filter shows required Tata models (Nexon/Harrier/Tiago/Punch/Sierra...)",
+  tataTitles.length > 0 && /(nexon|harrier|tiago|punch|sierra|altroz|tigor|safari)/i.test(tataModels),
+  tataModels,
+);
+models = await openModels();
+const tataModelsList = models.map((m) => m.trim());
+check(
+  "S4 Tata dropdown has Nexon, Harrier, Tiago, Sierra",
+  ["Nexon", "Harrier", "Tiago", "Sierra"].every((m) => tataModelsList.includes(m)),
+  tataModelsList.filter((m) => /nexon|harrier|tiago|sierra/i.test(m)).join(", "),
+);
+await closeModels();
 
-// Verified-only toggle keeps honesty.
-await page.locator('.mw-side-panel button[role="switch"]').click();
+await page.locator(".buy-clear").click();
+await page.waitForTimeout(300);
+check("S3 Clear All restores all cards", (await cards.count()) === total);
+
+// Verified-only toggle stays honest (no fake verified listings).
+await page.locator(".buy-field--verified [role='switch']").click();
 await page.waitForTimeout(300);
 const verifiedEmpty = (await page.locator(".mw-empty").count())
-  ? await page.locator(".mw-empty").innerText()
+  ? await txt(page.locator(".mw-empty"))
   : "";
 check(
-  "verified filter never fakes verified listings",
-  (await page.locator(".mw-card").count()) === 0 &&
-    /completed Motor Wallah inspection/i.test(verifiedEmpty),
+  "S3 verified filter never fakes verified badges",
+  (await cards.count()) === 0 && /inspection/i.test(verifiedEmpty),
+  verifiedEmpty.slice(0, 80),
 );
-await page.locator(".mw-side-clear").click();
+await page.locator(".buy-clear").click();
 await page.waitForTimeout(300);
 
-// Budget slider narrows results.
-const beforeBudget = await page.locator(".mw-card").count();
-const maxThumb = page.locator(".buy-slider-thumb").nth(1);
-await maxThumb.focus();
-for (let i = 0; i < 15; i += 1) await page.keyboard.press("ArrowLeft");
-await page.waitForTimeout(400);
-const afterBudget = await page.locator(".mw-card").count();
-check(
-  "budget slider filters listings",
-  afterBudget < beforeBudget,
-  `${beforeBudget} -> ${afterBudget}`,
-);
-await page.locator(".mw-side-clear").click();
-await page.waitForTimeout(300);
-
-// Shortlist from the card heart.
+// Shortlist heart works.
 await page.locator(".mw-card-fav").first().click();
 await page.waitForTimeout(250);
-const shortlistLabel = await page.locator(".mw-shortlist-toggle").innerText();
-check("heart shortlists the card", /1/.test(shortlistLabel), shortlistLabel.replace(/\n/g, " "));
+const shortlistLabel = await txt(page.locator(".mw-shortlist-toggle"));
+check("S4 heart shortlists the card", /1/.test(shortlistLabel), shortlistLabel);
 await page.locator(".mw-shortlist-toggle").click();
 await page.waitForTimeout(300);
-check("shortlist toggle filters to 1 card", (await page.locator(".mw-card").count()) === 1);
+check("S4 shortlist view filters to the 1 saved card", (await cards.count()) === 1);
 await page.locator(".mw-shortlist-toggle").click();
-await page.waitForTimeout(200);
-
-await page.screenshot({ path: `${SHOTS}/buy-02-listing.png`, fullPage: true });
-
-/* ================================================================== */
-/* 4. CARD DIALOGS — CHAT + MAKE AN OFFER                             */
-/* ================================================================== */
-await page.locator("button", { hasText: "Chat with seller" }).first().click();
-await page.waitForSelector(".buy-chat-notice");
-check(
-  "chat dialog discloses the missing messaging backend",
-  /not connected/i.test(await page.locator(".buy-chat-notice").innerText()),
-);
-await page.locator(".buy-chat-input textarea").fill("Is this vehicle available this weekend?");
-await page.locator(".buy-chat-send").click();
-await page.waitForTimeout(400);
-check(
-  "chat message saves to the local thread",
-  /available this weekend/i.test(await page.locator(".buy-chat-thread").innerText()),
-);
-await page.locator(".buy-modal-close").click();
 await page.waitForTimeout(300);
+check("S4 toggling shortlist off restores the grid", (await cards.count()) === total);
 
-await page.locator("button", { hasText: "Make an offer" }).first().click();
-await page.waitForSelector(".buy-offer-form");
-await page.locator(".buy-offer-input input").fill("-100");
-await page.locator("input[name='name']").fill("Test Buyer");
-await page.locator("input[name='mobile']").fill("9876543210");
-await page.locator(".buy-offer-form button[type='submit']").click();
-await page.waitForTimeout(250);
-const offerError = await page
-  .locator(".buy-offer-error")
-  .innerText()
-  .catch(() => "");
-check("negative offer rejected", /valid offer amount/i.test(offerError), offerError);
-await page.locator(".buy-offer-input input").fill("450000");
-await page.locator(".buy-offer-form button[type='submit']").click();
-await page.waitForSelector("[data-testid='offer-success']", { timeout: 4000 });
-const offerDone = await page.locator("[data-testid='offer-success']").innerText();
-check("offer reports Pending status", /status Pending/i.test(offerDone));
-check(
-  "offer discloses missing seller backend",
-  /No seller offer backend is connected/i.test(offerDone),
-);
-const storedOffer = await page.evaluate(() => {
-  try {
-    return JSON.parse(localStorage.getItem("mw_listing_offers") ?? "[]");
-  } catch {
-    return [];
+// Flow-level rule: no Owner FILTER anywhere in rail/filter/results.
+const flowText = `${await txt(page.locator(".mw-buy-flow"))} ${await txt(page.locator(".mw-bento"))}`;
+check("S4 rule: no owner word anywhere in the vehicle flow", !/owner/i.test(flowText));
+
+await page.screenshot({ path: `${SHOTS}/s4-listing-cars.png`, fullPage: true });
+
+/* ================================================================== */
+/* DYNAMIC FLOW — all 8 categories, each with its own brands/models     */
+/* ================================================================== */
+const CATEGORIES = [
+  { id: "cars", label: "Cars" },
+  { id: "bikes", label: "Bikes" },
+  { id: "three-wheelers", label: "3-Wheelers" },
+  { id: "scv", label: "SCV / Mini Trucks" },
+  { id: "trucks", label: "Trucks" },
+  { id: "buses", label: "Buses" },
+  { id: "tractors", label: "Tractors" },
+  { id: "taxi", label: "Taxi / Commercial Cars" },
+];
+const BRAND_MODEL_CHECKS = [
+  { cat: "cars", brand: "Maruti Suzuki", models: ["Swift", "Baleno", "Zen", "Esteem"] },
+  { cat: "cars", brand: "Tata", models: ["Nexon", "Harrier", "Tiago", "Sierra"] },
+  { cat: "cars", brand: "Hyundai", models: ["Creta", "i20", "Santro"] },
+  { cat: "bikes", brand: "Hero", models: ["Splendor", "Xpulse", "Passion"] },
+  { cat: "bikes", brand: "Bajaj", models: ["Pulsar", "Dominar", "Chetak"] },
+  { cat: "bikes", brand: "Royal Enfield", models: ["Classic 350", "Bullet 350"] },
+  { cat: "three-wheelers", brand: "Mahindra", models: ["Treo", "Alfa"] },
+  { cat: "three-wheelers", brand: "Piaggio", models: ["Ape"] },
+  { cat: "three-wheelers", brand: "Khalsa EV", models: ["E-Rickshaw"] },
+  { cat: "three-wheelers", brand: "All Fine EV", models: ["E-Rickshaw"] },
+  { cat: "trucks", brand: "Tata Motors", models: ["Ace", "407", "Prima"] },
+  { cat: "trucks", brand: "Ashok Leyland", models: ["Dost", "Ecomet"] },
+  { cat: "buses", brand: "Tata Buses", models: ["Starbus", "Magna"] },
+  { cat: "buses", brand: "Ashok Leyland Buses", models: ["Viking"] },
+  { cat: "tractors", brand: "Mahindra", models: ["275 DI", "Arjun"] },
+  { cat: "tractors", brand: "Swaraj", models: ["735 FE"] },
+  { cat: "tractors", brand: "John Deere", models: ["5050D"] },
+];
+
+for (const { id, label } of CATEGORIES) {
+  await page.goto(`${BASE}/buy?category=${id}`, { waitUntil: "networkidle" });
+  await page.waitForSelector(".buy-rail-section");
+
+  const titleOk = (await txt(page.locator(".buy-rail-title"))).toLowerCase() === label.toLowerCase();
+  const chips = await page
+    .locator(".buy-brand-rail .buy-brand-chip:not(.buy-brand-chip--all)")
+    .count();
+  const imgsOk = await page
+    .locator(".buy-brand-rail .buy-brand-chip:not(.buy-brand-chip--all) img")
+    .count();
+  const cardN = await page.locator(".mw-card").count();
+  const noOwner = !/owner/i.test(await txt(page.locator(".buy-filter-panel")));
+  check(
+    `flow ${label}: rail + logos + listings + no owner filter`,
+    titleOk && chips >= 3 && imgsOk === chips && cardN > 0 && noOwner,
+    `${chips} brands/${imgsOk} imgs/${cardN} cards`,
+  );
+}
+
+// Required test data — brand -> model dropdown checks.
+const checkedPairs = new Set();
+for (const spec of BRAND_MODEL_CHECKS) {
+  const key = `${spec.cat}:${spec.brand}`;
+  if (checkedPairs.has(key)) continue;
+  checkedPairs.add(key);
+  await page.goto(`${BASE}/buy?category=${spec.cat}`, { waitUntil: "networkidle" });
+  await page.waitForSelector(".buy-brand-rail");
+  const chip = page
+    .locator(".buy-brand-rail .buy-brand-chip")
+    .filter({
+      has: page.locator(".buy-brand-name", {
+        hasText: new RegExp(`^${escapeReg(spec.brand)}`, "i"),
+      }),
+    })
+    .first();
+  if ((await chip.count()) === 0) {
+    check(`data ${spec.cat}/${spec.brand}: brand tile present`, false, "tile missing");
+    continue;
   }
-});
-check(
-  "offer persisted locally",
-  storedOffer.length === 1 &&
-    storedOffer[0].status === "Pending" &&
-    storedOffer[0].amount === 450000,
-  JSON.stringify(storedOffer.map((o) => ({ id: o.listingId, amount: o.amount }))),
-);
-await page.locator(".buy-modal-close").click();
-await page.waitForTimeout(300);
+  await chip.click();
+  await page.waitForTimeout(300);
+  const opts = (await openModels()).map((o) => o.trim());
+  const missing = spec.models.filter(
+    (m) => !opts.some((o) => o.toLowerCase().includes(m.toLowerCase())),
+  );
+  check(
+    `data ${spec.cat}/${spec.brand}: models ${spec.models.join(", ")}`,
+    missing.length === 0,
+    missing.length ? `missing ${missing.join(", ")}` : `${opts.length} options`,
+  );
+  await closeModels();
+}
+
+await page.goto(`${BASE}/buy?category=bikes`, { waitUntil: "networkidle" });
+await page.waitForSelector(".mw-bento");
+await page.screenshot({ path: `${SHOTS}/s2-bikes-flow.png`, fullPage: true });
 
 /* ================================================================== */
-/* 5. DETAIL PAGE (unchanged component, still wired)                  */
+/* SCREEN 5 — VEHICLE DETAIL PAGE                                      */
 /* ================================================================== */
+await page.goto(`${BASE}/buy?category=cars`, { waitUntil: "networkidle" });
+await page.waitForSelector(".mw-bento");
 const detailHref = await page.locator(".mw-card-title a").first().getAttribute("href");
-await page.locator(".mw-card-title a").first().scrollIntoViewIfNeeded();
 await page.locator(".mw-card-title a").first().click({ force: true });
-await page.waitForTimeout(800);
-check(
-  "card opens its detail page",
-  page.url().endsWith(detailHref),
-  `${page.url()} vs ${detailHref}`,
-);
-await page.waitForSelector(".buy-detail-title");
-check(
-  "detail highlights bar rendered",
-  (await page.locator(".buy-highlights").innerText()).split("\n").filter(Boolean).length >= 3,
-);
-check("detail ownership/history rows", (await page.locator(".buy-row").count()) >= 6);
+await page.waitForSelector(".buy-detail-layout");
+check("S5 card opens its detail page", page.url().endsWith(detailHref), page.url());
 
-await page.locator(".buy-detail-aside .buy-primary-button", { hasText: "Enquire Now" }).click();
-await page.waitForSelector(".buy-chat-notice");
 check(
-  "detail chat is honest",
-  /not connected/i.test(await page.locator(".buy-chat-notice").innerText()),
+  "S5 gallery + title + red price",
+  (await page.locator(".buy-detail-gallery").count()) === 1 &&
+    (await txt(page.locator(".buy-detail-heading--aside .buy-detail-title"))).length > 0 &&
+    /^₹[\d,]+$/.test(await txt(page.locator(".buy-detail-heading--aside .buy-detail-price"))),
 );
-await page.locator(".buy-modal-close").click();
-await page.waitForTimeout(200);
-
-await page.locator(".buy-report-link").click();
-await page.waitForSelector(".buy-report-form");
-await page.locator(".buy-report-form select").selectOption("Wrong or misleading photos");
-await page.locator(".buy-report-form button[type='submit']").click();
-await page.waitForTimeout(400);
+const specLabels = (await txts(page.locator(".buy-detail-aside .buy-spec-label"))).map((s) =>
+  s.toLowerCase(),
+);
 check(
-  "report listing honest about moderation backend",
-  /not transmitted|not connected/i.test(await page.locator(".buy-report-done").innerText()),
+  "S5 key specs: Year, Fuel, KM on the right",
+  specLabels.includes("year") && specLabels.includes("fuel") && specLabels.includes("km driven"),
+  specLabels.join(", "),
 );
-await page.locator(".buy-modal-close").click();
-await page.waitForTimeout(200);
+check(
+  "S5 location map panel + View on Map link",
+  (await page.locator(".buy-map").count()) === 1 &&
+    /google\.com\/maps/.test((await page.locator(".buy-map-link").getAttribute("href")) ?? ""),
+);
+check("S5 vehicle description present", (await txt(page.locator(".buy-description"))).length > 40);
+const asideBtns = await txts(page.locator(".buy-action-buttons button"));
+check(
+  "S5 bottom buttons: Contact Seller (red) + Book Test Drive (outline) + Make an Offer",
+  (await page.locator(".buy-action-buttons .buy-primary-button", { hasText: "Contact Seller" }).count()) ===
+    1 &&
+    asideBtns.some((b) => /book test drive/i.test(b)) &&
+    asideBtns.some((b) => /make an offer/i.test(b)),
+  asideBtns.join(" | "),
+);
+await page.screenshot({ path: `${SHOTS}/s5-detail.png`, fullPage: true });
 
 /* ================================================================== */
-/* 6. SERVICE CATEGORY — ALTERNATE FILTERS + APPLY/ENQUIRE            */
+/* SCREEN 8 — BOOK TEST DRIVE MODAL                                    */
 /* ================================================================== */
-await page.goto(`${BASE}/buy`, { waitUntil: "networkidle" });
-await page.locator(".mw-hub-card--service", { hasText: "Finance" }).click();
-await page.waitForSelector(".mw-buy-layout");
-check("finance service opens its listing view", page.url().includes("service=finance"), page.url());
-check(
-  "service disclaimer banner shown",
-  (await page.locator(".mw-service-banner").count()) === 1,
-  (await page.locator(".mw-service-banner").innerText()).slice(0, 80),
-);
-
-const sideLabels = await page.locator(".mw-side-panel .mw-side-label").allInnerTexts();
-check(
-  "sidebar swaps Brand for Bank name",
-  sideLabels.some((l) => /bank name/i.test(l)) && !sideLabels.some((l) => /^brand/i.test(l)),
-  sideLabels.join(" | "),
+await page.locator(".buy-action-buttons button", { hasText: "Book Test Drive" }).click();
+await page.waitForSelector("div.fixed.inset-0 .font-display");
+const tdTitle = await txt(page.locator("div.fixed.inset-0 .font-display").first());
+check("S8 test-drive modal opens", /book test drive/i.test(tdTitle), tdTitle);
+const tdLabels = (await txts(page.locator("div.fixed.inset-0 label span"))).map((l) =>
+  l.replace(/\s*\*$/, "").trim(),
 );
 check(
-  "no vehicle controls on service view",
-  (await page.locator(".mw-brand-grid").count()) === 0 &&
-    (await page.locator(".mw-side-years").count()) === 0 &&
-    (await page.locator(".mw-chip").count()) === 0,
+  "S8 fields: Full name, Mobile, Preferred date, Preferred time, Message",
+  tdLabels.some((l) => /full name/i.test(l)) &&
+    tdLabels.some((l) => /mobile number/i.test(l)) &&
+    tdLabels.some((l) => /preferred date/i.test(l)) &&
+    tdLabels.some((l) => /preferred time/i.test(l)) &&
+    tdLabels.some((l) => /message/i.test(l)),
+  tdLabels.join(", "),
 );
-
-const serviceCardsDom = page.locator(".mw-card--service");
-const svcCount = await serviceCardsDom.count();
-check("service partner cards render", svcCount >= 5, `${svcCount} cards`);
-const svcButtons = await serviceCardsDom.first().locator(".mw-btn").allInnerTexts();
-check(
-  "service cards have Apply now + Enquire",
-  svcButtons.map((b) => b.trim().toLowerCase()).join("|") === "apply now|enquire",
-  svcButtons.join(" | "),
-);
-check(
-  "service cards show provider eyebrow + value line",
-  (await serviceCardsDom.first().locator(".mw-card-brand").innerText()).trim().length > 0 &&
-    /₹/.test(await serviceCardsDom.first().locator(".mw-card-price").innerText()),
-);
-
-// Enquire dialog -> leads queue.
-await serviceCardsDom.first().locator("button", { hasText: "Enquire" }).click();
-await page.waitForTimeout(300);
-const enquireTitle = await page.locator("div.fixed.inset-0 .font-display").first().innerText();
-check("Enquire opens the enquiry dialog", /enquire/i.test(enquireTitle), enquireTitle);
-await page.locator("input[name='name']").fill("Service Tester");
+await page.locator("input[name='name']").fill("Arkan Tester");
 await page.locator("input[name='mobile']").fill("9876543210");
-await page.locator("input[name='city']").fill("Indore");
+await page.locator("input[name='date']").fill("2026-11-15");
+await page.locator("input[name='time']").fill("10:30");
 await page.locator("div.fixed.inset-0 form button[type='submit']").click();
-await page.waitForTimeout(400);
-check(
-  "enquiry confirms submission",
-  /request received/i.test(await page.locator("div.fixed.inset-0").innerText()),
-);
+await page.waitForTimeout(600);
+const tdDone = await txt(page.locator("div.fixed.inset-0").first());
+check("S8 submit confirms the request", /request received/i.test(tdDone), tdDone.slice(0, 80));
 const leads = await page.evaluate(() => {
   try {
     return JSON.parse(localStorage.getItem("mw_lead_queue") ?? "[]");
@@ -477,108 +534,192 @@ const leads = await page.evaluate(() => {
   }
 });
 check(
-  "enquiry saved as a finance lead",
-  leads.some((l) => l.type === "finance_enquiry"),
+  "S8 test drive saved to the lead queue",
+  leads.some((l) => l.type === "test_drive"),
   `${leads.length} leads`,
 );
 await page.locator("div.fixed.inset-0 button[aria-label='Close']").first().click();
 await page.waitForTimeout(300);
 
-// Apply now uses the same dialog with the Apply title.
-await serviceCardsDom.first().locator("button", { hasText: "Apply now" }).click();
-await page.waitForTimeout(300);
+/* ================================================================== */
+/* SCREEN 6 — MAKE AN OFFER MODAL                                      */
+/* ================================================================== */
+await page.locator(".buy-action-buttons button", { hasText: "Make an Offer" }).click();
+await page.waitForSelector(".buy-offer-form");
 check(
-  "Apply now opens apply dialog",
-  /apply now/i.test(await page.locator("div.fixed.inset-0 .font-display").first().innerText()),
+  "S6 vehicle summary shown in modal",
+  (await txt(page.locator(".buy-offer-vehicle-name"))).length > 0 &&
+    /^₹[\d,]+$/.test(norm((await txt(page.locator(".buy-offer-vehicle-price"))).replace("Asking: ", ""))),
+  await txt(page.locator(".buy-offer-vehicle-price")),
 );
-await page.locator("div.fixed.inset-0 button[aria-label='Close']").first().click();
-await page.waitForTimeout(200);
-
-// Service sidebar filter actually filters.
-await page.locator('.mw-side-panel button[aria-haspopup="listbox"]').first().click();
+await page.locator(".buy-offer-input input").fill("-100");
+await page.locator("input[name='name']").fill("Arkan");
+await page.locator("input[name='mobile']").fill("9876543210");
+await page.locator(".buy-offer-form button[type='submit']").click();
 await page.waitForTimeout(250);
-const bankOptions = (await page.locator("ul[role='listbox'] li").allInnerTexts()).map((b) =>
-  b.trim(),
+const offerError = (await page.locator(".buy-offer-error").textContent().catch(() => "")) ?? "";
+check("S6 negative offer rejected", /valid offer amount/i.test(offerError), norm(offerError));
+await page.locator(".buy-offer-input input").fill("780000");
+await page.locator(".buy-offer-form button[type='submit']").click();
+await page.waitForSelector("[data-testid='offer-success']", { timeout: 4000 });
+const offerDone = await txt(page.locator("[data-testid='offer-success']"));
+check("S6 offer reports status Pending", /status\s*:?\s*pending/i.test(offerDone), offerDone.slice(0, 120));
+const storedOffer = await page.evaluate(() => {
+  try {
+    return JSON.parse(localStorage.getItem("mw_listing_offers") ?? "[]");
+  } catch {
+    return [];
+  }
+});
+check(
+  "S6 offer persisted locally",
+  storedOffer.length === 1 && storedOffer[0].status === "Pending" && storedOffer[0].amount === 780000,
+  `${storedOffer.length} offers`,
 );
-const bank = bankOptions.find((b) => b && !/^all/i.test(b));
-if (bank) {
-  await page.locator("ul[role='listbox'] li", { hasText: bank }).first().click();
-  await page.waitForTimeout(350);
-  const providers = await page.locator(".mw-card-brand").allInnerTexts();
-  check(
-    "bank filter filters the finance cards",
-    providers.length > 0 &&
-      providers.every((p) =>
-        p.toLowerCase().includes(bank.toLowerCase().split(" ")[0].toLowerCase()),
-      ),
-    `${bank}: ${providers.join(", ")}`,
-  );
-} else {
-  check("bank filter filters the finance cards", false, "no bank options");
-}
-await page.locator(".mw-side-clear").click();
-await page.waitForTimeout(250);
-await page.screenshot({ path: `${SHOTS}/buy-03-service.png`, fullPage: true });
-
-// Back to categories.
-await page.locator(".mw-side-back").click();
-await page.waitForTimeout(400);
-check("back to categories returns to the hub", (await page.locator(".mw-hub-grid").count()) >= 1);
+const successLinks = await txts(page.locator("[data-testid='offer-success'] a"));
+check(
+  "S6 success links to My Offers",
+  successLinks.some((t) => /track my offers/i.test(t)),
+  successLinks.join(", "),
+);
+await page.locator(".buy-modal-close").click();
+await page.waitForTimeout(300);
 
 /* ================================================================== */
-/* 7. OTHER ROUTES UNCHANGED + NO OVERFLOW                            */
+/* SCREEN 7 — MY OFFERS (status tracking)                              */
+/* ================================================================== */
+await page.goto(`${BASE}/buy/offers`, { waitUntil: "networkidle" });
+await page.waitForSelector(".buy-offers-page");
+check("S7 page title", /my offers/i.test(await txt(page.locator(".buy-offers-title"))));
+const rows = page.locator(".buy-offer-row");
+check("S7 the saved offer is listed", (await rows.count()) === 1);
+const badge = await txt(page.locator(".buy-offer-badge").first());
+const badgeClass = await page.locator(".buy-offer-badge").first().getAttribute("class");
+check(
+  "S7 Pending badge (yellow style)",
+  badge.toLowerCase() === "pending" && /buy-offer-badge--pending/.test(badgeClass ?? ""),
+  `${badge} / ${badgeClass}`,
+);
+const rowText = await txt(rows.first());
+check(
+  "S7 row: vehicle name + offered amount + Offered on date",
+  /tata|maruti|hyundai/i.test(rowText) && /₹7,80,000/.test(rowText) && /offered on/i.test(rowText),
+  rowText,
+);
+check("S7 honest notice (no seller backend claim)", (await txt(page.locator(".buy-offers-notice"))).length > 40);
+// Badge style coverage for the other two reference statuses is structural:
+const badgeStyles = await page.evaluate(() => {
+  const sheet = [...document.styleSheets];
+  const css = sheet
+    .flatMap((s) => {
+      try {
+        return [...s.cssRules].map((r) => r.cssText);
+      } catch {
+        return [];
+      }
+    })
+    .join(" ");
+  return {
+    counter: /buy-offer-badge--counter/.test(css),
+    accepted: /buy-offer-badge--accepted/.test(css),
+  };
+});
+check(
+  "S7 Counter Offer (blue) + Accepted (green) badge styles exist",
+  badgeStyles.counter && badgeStyles.accepted,
+  JSON.stringify(badgeStyles),
+);
+await page.screenshot({ path: `${SHOTS}/s7-my-offers.png`, fullPage: true });
+
+/* ================================================================== */
+/* SCREEN 9 — IN-SITE CHAT                                             */
+/* ================================================================== */
+await page.goto(`${BASE}${detailHref}`, { waitUntil: "networkidle" });
+await page.waitForSelector(".buy-detail-layout");
+await page.locator(".buy-action-buttons .buy-primary-button", { hasText: "Contact Seller" }).click();
+await page.waitForSelector(".buy-chat-head");
+check(
+  "S9 chat header: Chat with Seller + vehicle + price",
+  /chat with seller/i.test(await txt(page.locator(".buy-chat-head-title"))) &&
+    /₹/.test(await txt(page.locator(".buy-chat-head-sub"))),
+  await txt(page.locator(".buy-chat-head-sub")),
+);
+check(
+  "S9 system bubble on the seller (left) side",
+  (await page.locator(".buy-chat-bubble--system").count()) === 1,
+);
+await page.locator(".buy-chat-input textarea").fill("Is this vehicle available this weekend?");
+await page.locator(".buy-chat-send").click();
+await page.waitForTimeout(400);
+check(
+  "S9 sent message renders on the buyer (right) side",
+  (await page.locator(".buy-chat-message--me").count()) === 1 &&
+    /available this weekend/i.test(await txt(page.locator(".buy-chat-message--me"))),
+);
+const chatActions = await txts(page.locator(".buy-chat-action"));
+check(
+  "S9 Call + WhatsApp actions",
+  chatActions.some((t) => /^call$/i.test(t)) && chatActions.some((t) => /whatsapp/i.test(t)),
+  chatActions.join(", "),
+);
+check(
+  "S9 input + Send button",
+  (await page.locator(".buy-chat-input textarea").getAttribute("placeholder")) === "Type a message…" &&
+    /send/i.test(await txt(page.locator(".buy-chat-send"))),
+);
+check(
+  "S9 honest about the missing messaging backend",
+  /not connected/i.test(await txt(page.locator(".buy-chat-bubble--system"))),
+);
+await page.locator(".buy-modal-close").click();
+await page.waitForTimeout(200);
+await page.screenshot({ path: `${SHOTS}/s9-chat.png`, fullPage: false });
+
+/* ================================================================== */
+/* GUARDS — homepage untouched + other routes + mobile                 */
 /* ================================================================== */
 await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
 check(
-  "homepage keeps the classic dark header (no buy pill nav)",
+  "homepage untouched (classic dark header, no buy pill nav)",
   (await page.locator("header.mw-buy-nav").count()) === 0 &&
     (await page.locator("header.bg-ink").count()) >= 1,
 );
-for (const path of ["/", "/cars", "/buy/bikes", "/buy/trucks", "/sell-your-car", "/services"]) {
+for (const path of ["/", "/cars", "/buy/bikes", "/buy/trucks", "/buy/offers", "/sell-your-car", "/services"]) {
   const response = await page.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded" });
-  await page.waitForTimeout(400);
-  const h1 = await page
-    .locator("h1")
-    .first()
-    .innerText()
-    .catch(() => "");
+  await page.waitForTimeout(300);
+  const h1 = norm((await page.locator("h1").first().textContent().catch(() => "")) ?? "");
   check(
-    `existing route ${path}`,
+    `route ${path}`,
     (response?.status() ?? 0) < 400 && h1.length > 0,
-    `${response?.status()} — ${h1}`,
+    `${response?.status()} — ${h1.slice(0, 60)}`,
   );
 }
 
-// Mobile overflow sanity on the new pages.
 const mobile = await browser.newContext({
   viewport: { width: 360, height: 780 },
   isMobile: true,
   hasTouch: true,
 });
 const mpage = await mobile.newPage();
+mpage.on("console", (msg) => {
+  if (msg.type() === "error") errors.push(`mobile console: ${msg.text()}`);
+});
 mpage.on("pageerror", (error) => errors.push(`mobile pageerror: ${error.message}`));
-await mpage.goto(`${BASE}/buy`, { waitUntil: "networkidle" });
-await mpage.locator(".mw-hub-card").first().click();
-await mpage.waitForSelector(".mw-buy-layout");
-await mpage.waitForTimeout(500);
-if (await mpage.locator(".mw-side-toggle").isVisible()) {
-  await mpage.locator(".mw-side-toggle").click();
-  await mpage.waitForTimeout(300);
-}
+await mpage.goto(`${BASE}/buy?category=bikes`, { waitUntil: "networkidle" });
+await mpage.waitForSelector(".mw-bento");
 const mWidth = await mpage.evaluate(() => ({
   scroll: document.documentElement.scrollWidth,
   client: document.documentElement.clientWidth,
 }));
-check(
-  "no horizontal overflow on mobile listing",
-  mWidth.scroll <= mWidth.client + 1,
-  JSON.stringify(mWidth),
-);
-await mpage.screenshot({ path: `${SHOTS}/buy-04-mobile.png`, fullPage: true });
+check("no horizontal overflow on mobile flow", mWidth.scroll <= mWidth.client + 1, JSON.stringify(mWidth));
+await mpage.screenshot({ path: `${SHOTS}/mobile-flow.png`, fullPage: true });
 
 console.log("ERRORS:", errors.length ? errors.join("\n") : "none");
 const failed = results.filter((r) => !r.pass);
 console.log(`RESULT: ${results.length - failed.length}/${results.length} checks passed`);
-if (failed.length) console.log("FAILED:", failed.map((f) => f.name).join(", "));
+if (failed.length)
+  console.log(
+    "FAILED:\n" + failed.map((f) => `${f.name} (${f.detail})`).join("\n"),
+  );
 await browser.close();
 process.exit(failed.length || errors.length ? 1 : 0);

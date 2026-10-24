@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { BadgeCheck, IndianRupee, Tag, X } from "lucide-react";
-import { buyListingName, lakhLabel, rupees, type BuyListing } from "@/lib/buy-catalog";
+import { buyListingName, rupees, type BuyListing } from "@/lib/buy-catalog";
 import { saveOffer, type ListingOffer } from "@/lib/listing-offers";
 
 /**
@@ -33,6 +34,7 @@ export function MakeOfferDialog({
 
   const vehicleName = buyListingName(listing);
   const askingRupees = Math.round(listing.priceLakh * 100000);
+  const askingLabel = rupees(askingRupees);
 
   const reset = () => {
     setAmount("");
@@ -128,7 +130,7 @@ export function MakeOfferDialog({
               />
               <div>
                 <p className="buy-offer-vehicle-name">{vehicleName}</p>
-                <p className="buy-offer-vehicle-price">Asking: {lakhLabel(listing.priceLakh)}</p>
+                <p className="buy-offer-vehicle-price">Asking: {askingLabel}</p>
               </div>
             </div>
 
@@ -140,20 +142,19 @@ export function MakeOfferDialog({
             </p>
 
             <div className="buy-chat-notice">
-              <strong>No seller offer backend is connected yet.</strong>
-              <p>
-                This offer is stored on this device (and in this project&apos;s local lead queue)
-                against {vehicleName}. It has <em>not</em> been transmitted to a seller, no one has
-                accepted or rejected it, and the asking price stays {lakhLabel(listing.priceLakh)}.
-                Accepted, Rejected and Counter statuses only appear once seller-side tooling exists.
-                For a real response now, use Call or WhatsApp below.
-              </p>
+              <strong>No seller offer backend is connected yet.</strong>                <p>
+                  This offer is stored on this device (and in this project&apos;s local lead queue)
+                  against {vehicleName}. It has <em>not</em> been transmitted to a seller, no one has
+                  accepted or rejected it, and the asking price stays {askingLabel}. Accepted,
+                  Rejected and Counter statuses only appear once seller-side tooling exists. For a
+                  real response now, use Call or WhatsApp below.
+                </p>
             </div>
 
             <div className="buy-chat-actions">
               <a
                 href={`https://wa.me/919999999999?text=${encodeURIComponent(
-                  `Hello MOTOR WALLAH, I would like to offer ${rupees(saved.amount)} for the ${vehicleName} listed in ${listing.city}. Asking price: ${lakhLabel(listing.priceLakh)}.`,
+                  `Hello MOTOR WALLAH, I would like to offer ${rupees(saved.amount)} for the ${vehicleName} listed in ${listing.city}. Asking price: ${askingLabel}.`,
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -164,6 +165,9 @@ export function MakeOfferDialog({
               <button type="button" onClick={close} className="buy-chat-action">
                 Done
               </button>
+              <Link to="/buy/offers" className="buy-chat-action">
+                Track my offers
+              </Link>
             </div>
           </div>
         ) : (
@@ -178,7 +182,7 @@ export function MakeOfferDialog({
               />
               <div>
                 <p className="buy-offer-vehicle-name">{vehicleName}</p>
-                <p className="buy-offer-vehicle-price">Asking: {lakhLabel(listing.priceLakh)}</p>
+                <p className="buy-offer-vehicle-price">Asking: {askingLabel}</p>
               </div>
             </div>
 
@@ -260,6 +264,9 @@ export function MakeOfferDialog({
 
             <button type="submit" className="buy-primary-button" disabled={busy}>
               {busy ? "Saving offer…" : "Submit offer"}
+            </button>
+            <button type="button" onClick={close} className="buy-secondary-button buy-offer-cancel">
+              Cancel
             </button>
           </form>
         )}

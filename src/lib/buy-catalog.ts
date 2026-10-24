@@ -20,7 +20,11 @@ import truckCategoryImage from "@/assets/homepage/Truck.png";
 import busCategoryImage from "@/assets/homepage/Bus.png";
 import tractorCategoryImage from "@/assets/homepage/Tractor.png";
 import taxiCategoryImage from "@/assets/homepage/Taxi.png";
-import { VEHICLES } from "@/lib/cars-data";
+import { VEHICLES, placeholderFor } from "@/lib/cars-data";
+import {
+  EXTRA_DEMO_CARS,
+  EXTRA_DEMO_LISTINGS,
+} from "@/lib/buy-demo-inventory";
 import { modelsForBrand, BRAND_NAMES } from "@/lib/vehicle-catalog";
 import { hasBrandLogo } from "@/components/buy/BrandArt";
 import {
@@ -47,7 +51,7 @@ export const BUY_CATEGORY_LIST: BuyCategory[] = [
     id: "cars",
     label: "Cars",
     singular: "Car",
-    blurb: "Hatchbacks, sedans, SUVs & MUVs",
+    blurb: "Sedans, SUVs, Hatchbacks & more",
     image: carCategoryImage,
     to: "/cars",
   },
@@ -55,7 +59,7 @@ export const BUY_CATEGORY_LIST: BuyCategory[] = [
     id: "bikes",
     label: "Bikes",
     singular: "Bike",
-    blurb: "Motorcycles & scooters",
+    blurb: "Sports, Commuters, Scooters & more",
     image: bikeCategoryImage,
     to: "/buy/bikes",
   },
@@ -63,7 +67,7 @@ export const BUY_CATEGORY_LIST: BuyCategory[] = [
     id: "three-wheelers",
     label: "3-Wheelers",
     singular: "3-Wheeler",
-    blurb: "Autos, cargo & e-rickshaws",
+    blurb: "Passenger & Cargo",
     image: threeWheelerCategoryImage,
     to: "/buy/three-wheelers",
   },
@@ -71,7 +75,7 @@ export const BUY_CATEGORY_LIST: BuyCategory[] = [
     id: "scv",
     label: "SCV / Mini Trucks",
     singular: "Small Commercial Vehicle",
-    blurb: "Mini trucks & pickups",
+    blurb: "Ace, Intra, Dost & more",
     image: scvCategoryImage,
     to: "/buy/scv",
   },
@@ -79,7 +83,7 @@ export const BUY_CATEGORY_LIST: BuyCategory[] = [
     id: "trucks",
     label: "Trucks",
     singular: "Truck",
-    blurb: "Light to heavy haulage",
+    blurb: "Heavy & Medium Duty",
     image: truckCategoryImage,
     to: "/buy/trucks",
   },
@@ -87,7 +91,7 @@ export const BUY_CATEGORY_LIST: BuyCategory[] = [
     id: "buses",
     label: "Buses",
     singular: "Bus",
-    blurb: "School, staff & tourist",
+    blurb: "Mini, Mid, Luxury & more",
     image: busCategoryImage,
     to: "/buy/buses",
   },
@@ -95,7 +99,7 @@ export const BUY_CATEGORY_LIST: BuyCategory[] = [
     id: "tractors",
     label: "Tractors",
     singular: "Tractor",
-    blurb: "Farm & haulage tractors",
+    blurb: "Farm & Utility",
     image: tractorCategoryImage,
     to: "/buy/tractors",
   },
@@ -103,7 +107,7 @@ export const BUY_CATEGORY_LIST: BuyCategory[] = [
     id: "taxi",
     label: "Taxi / Commercial Cars",
     singular: "Taxi",
-    blurb: "Yellow-plate commercial cars",
+    blurb: "Commercial & Fleet Vehicles",
     image: taxiCategoryImage,
     to: "/buy/taxi",
   },
@@ -159,32 +163,61 @@ const CATEGORY_IMAGES: Record<NonCarCategoryId, string> = {
   taxi: taxiCategoryImage,
 };
 
-const CAR_LISTINGS: BuyListing[] = VEHICLES.map((v) => ({
-  id: v.id,
-  categoryId: "cars",
-  categoryLabel: "Cars",
-  brand: v.make,
-  model: v.model,
-  variant: v.variant,
-  year: v.year,
-  registrationYear: v.registrationYear,
-  priceLakh: v.price,
-  kilometres: v.kilometres,
-  fuel: v.fuel,
-  transmission: v.transmission,
-  bodyType: v.bodyType,
-  city: v.location,
-  locality: null,
-  ownership: v.ownership,
-  images: v.images,
-  // A demo record is never verified — a real inspection must exist first.
-  verified: v.certified === true && v.inspection?.verified === true,
-  status: v.status,
-  demo: v.demo,
-  description: v.description,
-  photoNote: "Neutral body-type placeholder photo. Real vehicle photos are shared by the team.",
-  photoAlt: `${v.bodyType} demo placeholder photo`,
-}));
+const CAR_LISTINGS: BuyListing[] = [
+  ...VEHICLES.map((v) => ({
+    id: v.id,
+    categoryId: "cars" as const,
+    categoryLabel: "Cars",
+    brand: v.make,
+    model: v.model,
+    variant: v.variant,
+    year: v.year,
+    registrationYear: v.registrationYear,
+    priceLakh: v.price,
+    kilometres: v.kilometres,
+    fuel: v.fuel,
+    transmission: v.transmission,
+    bodyType: v.bodyType,
+    city: v.location,
+    locality: null,
+    ownership: v.ownership,
+    images: v.images,
+    // A demo record is never verified — a real inspection must exist first.
+    verified: v.certified === true && v.inspection?.verified === true,
+    status: v.status,
+    demo: v.demo,
+    description: v.description,
+    photoNote: "Neutral body-type placeholder photo. Real vehicle photos are shared by the team.",
+    photoAlt: `${v.bodyType} demo placeholder photo`,
+  })),
+  // Seeded test-data cars (Harrier, Tiago, Punch, Sierra, Swift, Zen, Esteem,
+  // Santro …) so every required model has a listing to browse.
+  ...EXTRA_DEMO_CARS.map((v) => ({
+    id: v.id,
+    categoryId: "cars" as const,
+    categoryLabel: "Cars",
+    brand: v.make,
+    model: v.model,
+    variant: v.variant,
+    year: v.year,
+    registrationYear: null,
+    priceLakh: v.priceLakh,
+    kilometres: v.kilometres,
+    fuel: v.fuel,
+    transmission: v.transmission,
+    bodyType: v.bodyType,
+    city: v.location,
+    locality: null,
+    ownership: v.ownership,
+    images: [placeholderFor(v.bodyType)],
+    verified: false,
+    status: "Available" as const,
+    demo: true,
+    description: null,
+    photoNote: "Neutral body-type placeholder photo. Real vehicle photos are shared by the team.",
+    photoAlt: `${v.bodyType} demo placeholder photo`,
+  })),
+];
 
 const NON_CAR_LISTINGS: BuyListing[] = CATEGORY_LISTINGS.map((l) => {
   const category = CATEGORIES.find((c) => c.id === l.category)!;
@@ -215,7 +248,43 @@ const NON_CAR_LISTINGS: BuyListing[] = CATEGORY_LISTINGS.map((l) => {
   };
 });
 
-export const BUY_LISTINGS: BuyListing[] = [...CAR_LISTINGS, ...NON_CAR_LISTINGS];
+const EXTRA_NON_CAR_LISTINGS: BuyListing[] = EXTRA_DEMO_LISTINGS.flatMap((l) => {
+  const category = CATEGORIES.find((c) => c.id === l.categoryId);
+  if (!category) return [];
+  return [
+    {
+      id: l.id,
+      categoryId: category.id,
+      categoryLabel: category.title,
+      brand: l.brand,
+      model: l.model,
+      variant: null,
+      year: l.year,
+      registrationYear: null,
+      priceLakh: l.priceLakh,
+      kilometres: l.kilometres,
+      fuel: l.fuel,
+      transmission: l.transmission,
+      bodyType: category.singular,
+      city: l.city,
+      locality: null,
+      ownership: l.ownership,
+      images: [CATEGORY_IMAGES[category.id]],
+      verified: false,
+      status: "Available" as const,
+      demo: true,
+      description: null,
+      photoNote: "Illustrative category photograph. Real vehicle photos are shared by the team.",
+      photoAlt: `Illustrative ${category.title} category photograph`,
+    },
+  ];
+});
+
+export const BUY_LISTINGS: BuyListing[] = [
+  ...CAR_LISTINGS,
+  ...NON_CAR_LISTINGS,
+  ...EXTRA_NON_CAR_LISTINGS,
+];
 
 export const listingsInCategory = (categoryId: BuyCategoryId) =>
   BUY_LISTINGS.filter((l) => l.categoryId === categoryId);

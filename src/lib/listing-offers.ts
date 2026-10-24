@@ -59,6 +59,9 @@ function write(list: ListingOffer[]): boolean {
 export const offersForListing = (listingId: string) =>
   read().filter((offer) => offer.listingId === listingId);
 
+/** Every offer this device has made, newest first (powers My Offers). */
+export const listOffers = (): ListingOffer[] => [...read()].reverse();
+
 /**
  * Validate + persist one offer. Returns the saved record, or an error message
  * that the UI must show verbatim — it never reports success without a write.

@@ -31,6 +31,7 @@ import { Route as WorkshopRouteImport } from './routes/workshop'
 import { Route as BuyIndexRouteImport } from './routes/buy.index'
 import { Route as BuyBikesRouteImport } from './routes/buy.bikes'
 import { Route as BuyBusesRouteImport } from './routes/buy.buses'
+import { Route as BuyOffersRouteImport } from './routes/buy.offers'
 import { Route as BuyScvRouteImport } from './routes/buy.scv'
 import { Route as BuyTaxiRouteImport } from './routes/buy.taxi'
 import { Route as BuyThreeWheelersRouteImport } from './routes/buy.three-wheelers'
@@ -152,6 +153,11 @@ const BuyBusesRoute = BuyBusesRouteImport.update({
   path: '/buy/buses',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BuyOffersRoute = BuyOffersRouteImport.update({
+  id: '/buy/offers',
+  path: '/buy/offers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BuyScvRoute = BuyScvRouteImport.update({
   id: '/buy/scv',
   path: '/buy/scv',
@@ -225,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/workshop': typeof WorkshopRoute
   '/buy/bikes': typeof BuyBikesRoute
   '/buy/buses': typeof BuyBusesRoute
+  '/buy/offers': typeof BuyOffersRoute
   '/buy/scv': typeof BuyScvRoute
   '/buy/taxi': typeof BuyTaxiRoute
   '/buy/three-wheelers': typeof BuyThreeWheelersRoute
@@ -259,6 +266,7 @@ export interface FileRoutesByTo {
   '/workshop': typeof WorkshopRoute
   '/buy/bikes': typeof BuyBikesRoute
   '/buy/buses': typeof BuyBusesRoute
+  '/buy/offers': typeof BuyOffersRoute
   '/buy/scv': typeof BuyScvRoute
   '/buy/taxi': typeof BuyTaxiRoute
   '/buy/three-wheelers': typeof BuyThreeWheelersRoute
@@ -294,6 +302,7 @@ export interface FileRoutesById {
   '/workshop': typeof WorkshopRoute
   '/buy/bikes': typeof BuyBikesRoute
   '/buy/buses': typeof BuyBusesRoute
+  '/buy/offers': typeof BuyOffersRoute
   '/buy/scv': typeof BuyScvRoute
   '/buy/taxi': typeof BuyTaxiRoute
   '/buy/three-wheelers': typeof BuyThreeWheelersRoute
@@ -330,6 +339,7 @@ export interface FileRouteTypes {
     | '/workshop'
     | '/buy/bikes'
     | '/buy/buses'
+    | '/buy/offers'
     | '/buy/scv'
     | '/buy/taxi'
     | '/buy/three-wheelers'
@@ -364,6 +374,7 @@ export interface FileRouteTypes {
     | '/workshop'
     | '/buy/bikes'
     | '/buy/buses'
+    | '/buy/offers'
     | '/buy/scv'
     | '/buy/taxi'
     | '/buy/three-wheelers'
@@ -398,6 +409,7 @@ export interface FileRouteTypes {
     | '/workshop'
     | '/buy/bikes'
     | '/buy/buses'
+    | '/buy/offers'
     | '/buy/scv'
     | '/buy/taxi'
     | '/buy/three-wheelers'
@@ -433,6 +445,7 @@ export interface RootRouteChildren {
   WorkshopRoute: typeof WorkshopRoute
   BuyBikesRoute: typeof BuyBikesRoute
   BuyBusesRoute: typeof BuyBusesRoute
+  BuyOffersRoute: typeof BuyOffersRoute
   BuyScvRoute: typeof BuyScvRoute
   BuyTaxiRoute: typeof BuyTaxiRoute
   BuyThreeWheelersRoute: typeof BuyThreeWheelersRoute
@@ -601,6 +614,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BuyBusesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/buy/offers': {
+      id: '/buy/offers'
+      path: '/buy/offers'
+      fullPath: '/buy/offers'
+      preLoaderRoute: typeof BuyOffersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/buy/scv': {
       id: '/buy/scv'
       path: '/buy/scv'
@@ -708,6 +728,7 @@ const rootRouteChildren: RootRouteChildren = {
   WorkshopRoute: WorkshopRoute,
   BuyBikesRoute: BuyBikesRoute,
   BuyBusesRoute: BuyBusesRoute,
+  BuyOffersRoute: BuyOffersRoute,
   BuyScvRoute: BuyScvRoute,
   BuyTaxiRoute: BuyTaxiRoute,
   BuyThreeWheelersRoute: BuyThreeWheelersRoute,

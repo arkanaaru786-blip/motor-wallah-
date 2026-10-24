@@ -1,14 +1,17 @@
 import { Link } from "@tanstack/react-router";
-import { BadgeCheck, Heart, Images } from "lucide-react";
-import { buyListingName, fuelLabel, lakhLabel, type BuyListing } from "@/lib/buy-catalog";
+import { BadgeCheck, Heart, Images, MapPin } from "lucide-react";
+import { fuelLabel, rupees, type BuyListing } from "@/lib/buy-catalog";
 
 /**
- * Marketplace vehicle card (reference design): image on top, small red brand
- * line, bold model name, Year · Fuel · Location row, large red price, then
- * three full-width actions — VIEW DETAILS, CHAT WITH SELLER, MAKE AN OFFER.
+ * Reference screen 4 — marketplace vehicle card for the bento grid.
  *
- * `featured` renders the wide first card of the bento grid (image on the
- * left, content on the right) without changing the internal design.
+ * Image on top with the Verified badge and photo count, then the full vehicle
+ * name, a large RED price in rupees, and the spec rows (Year · Fuel ·
+ * Transmission / Km · Location). Actions: heart shortlist icon, VIEW DETAILS
+ * (red) and MAKE AN OFFER (secondary).
+ *
+ * `featured` renders the wide first card of the bento grid (image left,
+ * content right) without changing the internal design.
  */
 export function BuyListingCard({
   listing,
@@ -16,7 +19,6 @@ export function BuyListingCard({
   shortlisted,
   onToggleShortlist,
   onMakeOffer,
-  onChat,
 }: {
   listing: BuyListing;
   featured?: boolean;
@@ -25,10 +27,15 @@ export function BuyListingCard({
   /** Opens the Make an Offer modal — lifted to the page so the fixed panel is
    *  never clipped by the card's overflow/transform. */
   onMakeOffer: (listing: BuyListing) => void;
-  /** Opens the in-site Contact Seller thread for this listing. */
-  onChat: (listing: BuyListing) => void;
 }) {
-  const name = buyListingName(listing);
+  const name = [listing.brand, listing.model, listing.variant].filter(Boolean).join(" ");
+  const price = rupees(Math.round(listing.priceLakh * 100000));
+
+  const specs: string[] = [
+    String(listing.year),
+    fuelLabel(listing.fuel),
+    listing.transmission ?? "",
+  ].filter(Boolean);
 
   return (
     <article className="mw-card" data-featured={featured || undefined}>
@@ -58,54 +65,53 @@ export function BuyListingCard({
             <Images size={13} aria-hidden="true" /> {listing.images.length}
           </span>
         )}
-        <button
-          type="button"
-          className="mw-card-fav"
-          aria-label={shortlisted ? `Remove ${name} from shortlist` : `Shortlist ${name}`}
-          aria-pressed={shortlisted}
-          data-active={shortlisted || undefined}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onToggleShortlist(listing.id);
-          }}
-        >
-          <Heart size={15} fill={shortlisted ? "currentColor" : "none"} aria-hidden="true" />
-        </button>
       </Link>
 
       <div className="mw-card-body">
-        <p className="mw-card-brand">
-          {listing.brand} · {listing.categoryLabel}
-        </p>
         <h3 className="mw-card-title">
           <Link to="/buy/vehicle/$id" params={{ id: listing.id }}>
-            {listing.model}
-            {listing.variant ? ` ${listing.variant}` : ""}
+            {name}
           </Link>
         </h3>
-        <p className="mw-card-meta">
-          <span>{listing.year}</span>
-          <span aria-hidden="true">·</span>
-          <span>{fuelLabel(listing.fuel)}</span>
-          <span aria-hidden="true">·</span>
-          <span>{listing.city}</span>
+        <p className="mw-card-price">{price}</p>
+        <p className="mw-card-specs">
+          {specs.map((spec, index) => (
+            <span key={spec}>
+              {index > 0 && <i aria-hidden="true" />}
+              {spec}
+            </span>
+          ))}
         </p>
-        <p className="mw-card-price">{lakhLabel(listing.priceLakh)}</p>
+        <p className="mw-card-meta">
+          {listing.kilometres !== null && (
+            <span>{listing.kilometres.toLocaleString("en-IN")} km</span>
+          )}
+          <span className="mw-card-city">
+            <MapPin size={12} aria-hidden="true" /> {listing.city}
+          </span>
+        </p>
       </div>
 
       <div className="mw-card-actions">
-        <Link to="/buy/vehicle/$id" params={{ id: listing.id }} className="mw-btn mw-btn--primary">
-          View details
-        </Link>
-        <button
-          type="button"
-          className="mw-btn mw-btn--outline"
-          onClick={() => onChat(listing)}
-          aria-label={`Chat with seller about ${name}`}
-        >
-          Chat with seller
-        </button>
+        <div className="mw-card-actions-row">
+          <button
+            type="button"
+            className="mw-card-fav mw-card-fav--action"
+            aria-label={shortlisted ? `Remove ${name} from shortlist` : `Shortlist ${name}`}
+            aria-pressed={shortlisted}
+            data-active={shortlisted || undefined}
+            onClick={() => onToggleShortlist(listing.id)}
+          >
+            <Heart size={17} fill={shortlisted ? "currentColor" : "none"} aria-hidden="true" />
+          </button>
+          <Link
+            to="/buy/vehicle/$id"
+            params={{ id: listing.id }}
+            className="mw-btn mw-btn--primary"
+          >
+            View details
+          </Link>
+        </div>
         <button
           type="button"
           className="mw-btn mw-btn--outline"

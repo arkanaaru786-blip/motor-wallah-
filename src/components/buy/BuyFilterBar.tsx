@@ -4,10 +4,21 @@ import { Switch } from "@/components/ui/switch";
 import { DualRangeSlider } from "@/components/buy/DualRangeSlider";
 import { BUY_YEAR_MAX, BUY_YEAR_MIN, fuelLabel, rupees } from "@/lib/buy-catalog";
 
+/**
+ * Reference screen 3 — the sticky filter bar. Exactly 7 filters, no owner
+ * filter anywhere:
+ *
+ *   Brand · Model · Price Range · Year (1992–2026) · Location · Fuel Type ·
+ *   Verified Listings   (+ Clear All)
+ *
+ * Fuel types are checkboxes (multi-select) built from the fuels that actually
+ * occur in the selected brand/model, so the bar never offers a choice that
+ * cannot return results.
+ */
 export type BuyFilters = {
   brand: string;
   model: string;
-  fuel: string;
+  fuels: string[];
   city: string;
   price: [number, number];
   yearMin: number;
@@ -25,12 +36,10 @@ function YearSelect({
   label,
   value,
   onChange,
-  hint,
 }: {
   label: string;
   value: number;
   onChange: (value: number) => void;
-  hint?: string;
 }) {
   return (
     <label className="buy-field">
@@ -43,7 +52,6 @@ function YearSelect({
         {YEARS_DESC.map((year) => (
           <option key={year} value={year}>
             {year}
-            {hint && year === String(value) ? ` ${hint}` : ""}
           </option>
         ))}
       </select>
@@ -80,6 +88,13 @@ export function BuyFilterBar({
   const setYearMax = (year: number) =>
     onChange({ yearMax: year, yearMin: Math.min(year, filters.yearMin) });
 
+  const toggleFuel = (fuel: string) =>
+    onChange({
+      fuels: filters.fuels.includes(fuel)
+        ? filters.fuels.filter((entry) => entry !== fuel)
+        : [...filters.fuels, fuel],
+    });
+
   return (
     <div className="buy-filter-panel" id="buy-filters">
       <div className="buy-filter-head">
@@ -101,7 +116,11 @@ export function BuyFilterBar({
           </span>
           <span>
             Filters
-            <small>{activeCount === 0 ? "Nothing applied yet" : `${activeCount} applied`}</small>
+            <small>
+              {activeCount === 0
+                ? `Nothing applied yet · ${BUY_YEAR_MIN} – ${BUY_YEAR_MAX}`
+                : `${activeCount} applied`}
+            </small>
           </span>
         </div>
         <button type="button" onClick={onClear} disabled={activeCount === 0} className="buy-clear">
@@ -128,7 +147,7 @@ export function BuyFilterBar({
 
         <SearchableSelect
           label="Model"
-          placeholder="All models"
+          placeholder="Select Model"
           value={filters.model}
           options={models}
           onChange={setModel}
@@ -136,13 +155,13 @@ export function BuyFilterBar({
 
         <div className="buy-filter-budget">
           <div className="buy-filter-budget-head">
-            <span className="buy-field-label">Budget / price range</span>
+            <span className="buy-field-label">Price Range</span>
             <span className="buy-filter-budget-value">
               {rupees(filters.price[0])} – {rupees(filters.price[1])}
             </span>
           </div>
           <DualRangeSlider
-            label="Budget"
+            label="Price range"
             min={bounds.min}
             max={bounds.max}
             step={bounds.step}
@@ -153,7 +172,9 @@ export function BuyFilterBar({
         </div>
 
         <div className="buy-filter-years">
-          <span className="buy-field-label">Manufacturing year</span>
+          <span className="buy-field-label">
+            Year <small>({BUY_YEAR_MIN} – {BUY_YEAR_MAX})</small>
+          </span>
           <div className="buy-filter-years-row">
             <YearSelect label="From" value={filters.yearMin} onChange={setYearMin} />
             <span className="buy-filter-years-dash" aria-hidden="true">
@@ -172,35 +193,24 @@ export function BuyFilterBar({
         />
 
         <div className="buy-field buy-field--fuel">
-          <span className="buy-field-label">Fuel type</span>
-          <div className="buy-fuel-chips" role="group" aria-label="Fuel type">
-            <button
-              type="button"
-              onClick={() => onChange({ fuel: ANY })}
-              aria-pressed={filters.fuel === ANY}
-              data-active={filters.fuel === ANY || undefined}
-              className="buy-fuel-chip"
-            >
-              All
-            </button>
+          <span className="buy-field-label">Fuel Type</span>
+          <div className="buy-fuel-checks" role="group" aria-label="Fuel type">
             {fuels.map((fuel) => (
-              <button
-                key={fuel}
-                type="button"
-                onClick={() => onChange({ fuel })}
-                aria-pressed={filters.fuel === fuel}
-                data-active={filters.fuel === fuel || undefined}
-                className="buy-fuel-chip"
-              >
-                {fuelLabel(fuel)}
-              </button>
+              <label key={fuel} className="buy-fuel-check">
+                <input
+                  type="checkbox"
+                  checked={filters.fuels.includes(fuel)}
+                  onChange={() => toggleFuel(fuel)}
+                />
+                <span>{fuelLabel(fuel)}</span>
+              </label>
             ))}
           </div>
           {fuels.length === 0 && <p className="buy-field-hint">No fuel options for this model.</p>}
         </div>
 
         <div className="buy-field buy-field--verified">
-          <span className="buy-field-label">Verified listings only</span>
+          <span className="buy-field-label">Verified Listings</span>
           <div className="buy-verified-row">
             <Switch
               checked={filters.verifiedOnly}
@@ -245,11 +255,12 @@ export function BuyActiveFilters({
   if (filters.model) {
     chips.push({ key: "model", label: filters.model, clear: () => onChange({ model: ANY }) });
   }
-  if (filters.fuel) {
+  for (const fuel of filters.fuels) {
     chips.push({
-      key: "fuel",
-      label: fuelLabel(filters.fuel),
-      clear: () => onChange({ fuel: ANY }),
+      key: `fuel-${fuel}`,
+      label: fuelLabel(fuel),
+      clear: () =>
+        onChange({ fuels: filters.fuels.filter((entry) => entry !== fuel) }),
     });
   }
   if (filters.city) {

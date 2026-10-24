@@ -424,3 +424,103 @@
 .buy-brand-chip[data-active] .buy-brand-count {
   color: var(--primary);
 }
+
+/* --- Screen 2 — brand rail head (Back to Categories / title / select) --- */
+.buy-rail-section {
+  background: var(--surface);
+  border-radius: 18px;
+  border: 1px solid var(--home-line);
+  box-shadow: var(--home-shadow);
+  padding: 16px 16px 6px;
+}
+
+.buy-rail-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 12px;
+}
+
+.buy-rail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--home-line);
+  background: var(--background);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.buy-rail-back:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.buy-rail-title {
+  margin-top: 6px;
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.4vw, 26px);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--foreground);
+}
+
+.buy-rail-sub {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+.buy-rail-wrap {
+  position: relative;
+}
+
+.buy-rail-next {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-60%);
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--home-line);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--primary);
+  box-shadow: var(--home-shadow);
+  cursor: pointer;
+}
+
+.buy-rail-next:hover {
+  border-color: var(--primary);
+}
+
+/* Screen 2 — authentic logos in full colour, larger slots (reference). */
+.buy-brand-logo-slot {
+  width: 92px;
+  height: 34px;
+}
+
+.buy-brand-logo {
+  max-width: 90px;
+  max-height: 32px;
+  filter: none;
+  opacity: 1;
+}
+
+.buy-brand-chip {
+  min-width: 112px;
+  padding: 14px 12px 11px;
+  background: var(--background);
+}
