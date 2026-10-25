@@ -1,0 +1,134 @@
+/* ==========================================================================
+   EXCHANGE flow (.mw-ex) — builds on the shared .mw-sell light theme,
+   glassmorphism and bento styles; adds only what is unique to the exchange
+   journey: section rhythm, the live estimate panel and the price-difference
+   calculator. Scoped so Buy/Sell/homepage stay untouched.
+   ========================================================================== */
+
+/* Staged sections inside the one glass form. */
+.mw-ex-block {
+  margin-top: 26px;
+}
+.mw-ex-block:first-of-type {
+  margin-top: 0;
+}
+
+/* Step 2 output — live dummy estimate of the old vehicle. */
+.mw-ex-estimate {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, #fff);
+  background: color-mix(in srgb, var(--primary) 6%, rgb(255 255 255 / 0.75));
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 28px -20px oklch(0 0 0 / 0.4);
+}
+.mw-ex-estimate-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.mw-ex-estimate-value {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  line-height: 1;
+  color: var(--primary);
+}
+.mw-ex-estimate-note {
+  font-size: 0.7rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+/* Step 4 — the calculation box: New Price − Old Value = Difference. */
+.mw-ex-calc {
+  grid-column: 1 / -1;
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid rgb(255 255 255 / 0.85);
+  background: rgb(255 255 255 / 0.78);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 2px 4px oklch(0 0 0 / 0.05),
+    0 20px 42px -22px oklch(0 0 0 / 0.4);
+}
+.mw-ex-calc-title {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+.mw-ex-calc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--home-line);
+}
+.mw-ex-calc-row > span {
+  font-size: 0.78rem;
+  color: var(--muted-foreground);
+}
+.mw-ex-calc-row > strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+.mw-ex-calc-row--total {
+  border-bottom: 0;
+  border-top: 2px solid var(--ink);
+  margin-top: 4px;
+  padding-top: 12px;
+}
+.mw-ex-calc-row--total > span {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.mw-ex-calc-row--total > .mw-ex-calc-total {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+.mw-ex-calc-note {
+  margin-top: 10px;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+.mw-ex-calc-formula {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+@media (max-width: 640px) {
+  .mw-ex-calc {
+    padding: 14px;
+  }
+  .mw-ex-calc-row > strong {
+    font-size: 0.875rem;
+  }
+  .mw-ex-calc-row--total > .mw-ex-calc-total {
+    font-size: 1.2rem;
+  }
+}

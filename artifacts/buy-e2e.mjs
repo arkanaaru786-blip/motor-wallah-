@@ -778,7 +778,7 @@ check(
     (await page.locator(".buy-filter-panel").count()) === 0,
   page.url(),
 );
-for (const path of ["/", "/cars", "/buy/bikes", "/buy/trucks", "/buy/offers", "/sell-your-car", "/services"]) {
+for (const path of ["/", "/cars", "/buy/bikes", "/buy/trucks", "/buy/offers", "/sell-your-car", "/exchange", "/services"]) {
   const response = await page.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(300);
   const h1 = norm((await page.locator("h1").first().textContent().catch(() => "")) ?? "");
@@ -1026,6 +1026,188 @@ check(
   page.url(),
 );
 
+/* ================================================================== */
+/* EXCHANGE FLOW — grid → estimate → new vehicle → maths → submit     */
+/* ================================================================== */
+const isRed = (css) => {
+  const o = css.match(/oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)/);
+  if (o) {
+    const light = Number(o[1]);
+    const chroma = Number(o[2]);
+    const hue = Number(o[3]);
+    return light > 0.3 && light < 0.75 && chroma > 0.12 && hue < 60;
+  }
+  const n = (css.match(/[\d.]+/g) ?? []).map(Number);
+  return n.length >= 3 && n[0] > 140 && n[1] < 110 && n[2] < 110;
+};
+const parseRupee = (s) => Number(((s ?? "").match(/[\d,]+/g)?.[0] ?? "").replace(/,/g, ""));
+
+await page.goto(`${BASE}/exchange`, { waitUntil: "networkidle" });
+await page.waitForSelector(".mw-sell-grid");
+check("EXCHANGE step A: category grid of 8 categories", (await page.locator(".mw-sell-cat").count()) === 8);
+const exBg = await page.evaluate(() =>
+  getComputedStyle(document.querySelector(".mw-sell")).backgroundColor,
+);
+check("EXCHANGE light theme (off-white background)", isOffWhite(exBg), exBg);
+
+await page.locator('[data-category="cars"]').click();
+await page.waitForSelector("#exchange-form");
+const exFormGlass = await page.locator(".mw-sell-form").evaluate((el) => {
+  const s = getComputedStyle(el);
+  return { bg: s.backgroundColor, blur: s.backdropFilter || s.webkitBackdropFilter };
+});
+check(
+  "EXCHANGE form: glassmorphism (translucent white + blur(10px))",
+  alphaOf(exFormGlass.bg) < 1 && /blur\(\s*10px\s*\)/.test(exFormGlass.blur),
+  `${exFormGlass.bg} / ${exFormGlass.blur}`,
+);
+check(
+  "EXCHANGE form scoped to the picked category",
+  /car/i.test(await txt(page.locator(".mw-sell-form-title").first())) &&
+    /cars/i.test(await txt(page.locator(".mw-sell-chip"))),
+);
+
+/* --- Step 2: old vehicle details → live estimate --- */
+const exBrands = (await txts(page.locator('select[name="brand"] option'))).map((b) => b.trim());
+const exBrand =
+  exBrands.find((b) => /^tata$/i.test(b)) ?? exBrands.find((b) => b && !/^select/i.test(b));
+await page.selectOption('select[name="brand"]', exBrand);
+await page.waitForTimeout(250);
+const exModels = (await txts(page.locator('select[name="model"] option'))).map((m) => m.trim());
+const exModel =
+  exModels.find((m) => /nexon/i.test(m)) ?? exModels.find((m) => m && !/^select/i.test(m));
+await page.selectOption('select[name="model"]', exModel);
+await page.selectOption('select[name="year"]', "2018");
+await page.fill('input[name="kilometres"]', "45000");
+await page.waitForTimeout(250);
+check(
+  "EXCHANGE estimate appears once details are filled",
+  (await page.locator(".mw-ex-estimate").count()) === 1,
+);
+const estText = await txt(page.locator(".mw-ex-estimate-value"));
+check("EXCHANGE estimate shows a ₹ amount", /^₹[\d,]+$/.test(estText), estText);
+check(
+  "EXCHANGE estimate is honest about being indicative",
+  /indicative/i.test(await txt(page.locator(".mw-ex-estimate-note"))),
+);
+const exFuel = (await txts(page.locator('select[name="fuel"] option')))
+  .map((f) => f.trim())
+  .find((f) => f && !/^select/i.test(f));
+await page.selectOption('select[name="fuel"]', exFuel);
+const exTrans = (await txts(page.locator('select[name="transmission"] option')))
+  .map((t) => t.trim())
+  .find((t) => t && !/^select/i.test(t));
+await page.selectOption('select[name="transmission"]', exTrans);
+await page.setInputFiles('input[type="file"][multiple]', {
+  name: "old-car.png",
+  mimeType: "image/png",
+  buffer: Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+    "base64",
+  ),
+});
+await page.waitForTimeout(350);
+check("EXCHANGE photo upload renders a thumbnail", (await page.locator(".mw-sell-photo").count()) === 1);
+
+/* --- Steps 3+4: new vehicle from listings + difference calculator --- */
+const exVehicles = await page.locator('select[name="newVehicle"] option').evaluateAll((opts) =>
+  opts.map((o) => ({ v: o.value, t: (o.textContent ?? "").trim() })),
+);
+check(
+  "EXCHANGE new-vehicle picker uses existing listings (Nexon, Swift...)",
+  exVehicles.some((o) => /nexon/i.test(o.t)) && exVehicles.some((o) => /swift/i.test(o.t)),
+  `${exVehicles.length} options`,
+);
+const nexonOpt = exVehicles.find((o) => o.v && /nexon/i.test(o.t));
+await page.selectOption('select[name="newVehicle"]', nexonOpt.v);
+await page.waitForSelector(".mw-ex-calc");
+const calc = await page.evaluate(() => {
+  const totalEl = document.querySelector(".mw-ex-calc-total");
+  return {
+    rows: document.querySelectorAll(".mw-ex-calc-row").length,
+    newText: document.querySelector(".mw-ex-calc-new").textContent,
+    oldText: document.querySelector(".mw-ex-calc-old").textContent,
+    totalText: totalEl.textContent,
+    color: getComputedStyle(totalEl).color,
+    formula: document.querySelector(".mw-ex-calc-formula").textContent,
+  };
+});
+check("EXCHANGE calculator shows all 3 rows", calc.rows === 3, `${calc.rows} rows`);
+const nNew = parseRupee(calc.newText);
+const nOld = parseRupee(calc.oldText);
+const nTotal = parseRupee(calc.totalText);
+check(
+  "EXCHANGE math: New − Old = Difference (in rupees)",
+  nNew > 0 && nOld > 0 && nTotal === Math.max(0, nNew - nOld),
+  `${nNew} − ${nOld} = ${nTotal}`,
+);
+check("EXCHANGE difference displayed in red", isRed(calc.color), calc.color);
+check(
+  "EXCHANGE formula line spells out the maths",
+  /new vehicle price.*old vehicle value.*difference/i.test(calc.formula ?? ""),
+  calc.formula,
+);
+
+/* --- Step 5: contact + submit --- */
+await page.fill('input[name="name"]', "Arkan");
+await page.fill('input[name="mobile"]', "9876543210");
+await page.locator("#exchange-form .mw-sell-submit").click();
+await page.waitForSelector("#exchange-done", { timeout: 5000 });
+check(
+  "EXCHANGE step 5: success message after submission",
+  /exchange request submitted/i.test(await txt(page.locator(".mw-sell-done-title"))),
+  await txt(page.locator(".mw-sell-done-title")),
+);
+const exLead = await page.evaluate(() => {
+  try {
+    const queue = JSON.parse(localStorage.getItem("mw_lead_queue") ?? "[]");
+    return queue[queue.length - 1] ?? null;
+  } catch {
+    return null;
+  }
+});
+check(
+  "EXCHANGE submission saved: old vehicle + new vehicle + difference + contact",
+  Boolean(
+    exLead &&
+      exLead.type === "exchange_vehicle" &&
+      exLead.fields?.oldYear === "2018" &&
+      exLead.fields?.oldKilometres === "45000" &&
+      Number(exLead.fields?.estimatedValue) > 0 &&
+      /nexon/i.test(exLead.fields?.newVehicle ?? "") &&
+      Number(exLead.fields?.newVehiclePrice) > 0 &&
+      exLead.fields?.difference === String(nTotal) &&
+      exLead.name === "Arkan" &&
+      exLead.mobile === "9876543210" &&
+      Array.isArray(exLead.photos) &&
+      exLead.photos.length === 1,
+  ),
+  JSON.stringify({
+    type: exLead?.type,
+    oldYear: exLead?.fields?.oldYear,
+    newVehicle: exLead?.fields?.newVehicle,
+    difference: exLead?.fields?.difference,
+  }),
+);
+
+await page.locator(".mw-sell-done-actions .mw-sell-submit").click();
+await page.waitForSelector(".mw-sell-grid", { timeout: 3000 });
+check(
+  "EXCHANGE 'Start Another Exchange' returns to the category grid",
+  (await page.locator(".mw-sell-cat").count()) === 8,
+);
+await page.locator('[data-category="cars"]').click();
+await page.waitForSelector("#exchange-form");
+await page.locator('header a[href="/exchange"]').first().click();
+await page.waitForSelector(".mw-sell-grid", { timeout: 5000 });
+check(
+  "EXCHANGE header link returns to the category grid from inside the form",
+  (await page.locator(".mw-sell-cat").count()) === 8 &&
+    (await page.locator("#exchange-form").count()) === 0,
+  page.url(),
+);
+await page.screenshot({ path: `${SHOTS}/exchange-flow.png`, fullPage: true });
+
 const mobile = await browser.newContext({
   viewport: { width: 360, height: 780 },
   isMobile: true,
@@ -1065,6 +1247,19 @@ check(
   "no horizontal overflow on mobile sell form",
   sellFormOverflow.scroll <= sellFormOverflow.client + 1,
   JSON.stringify(sellFormOverflow),
+);
+await mpage.goto(`${BASE}/exchange`, { waitUntil: "networkidle" });
+await mpage.waitForSelector(".mw-sell-grid");
+await mpage.locator('[data-category="cars"]').click();
+await mpage.waitForSelector("#exchange-form");
+const exMobile = await mpage.evaluate(() => ({
+  scroll: document.documentElement.scrollWidth,
+  client: document.documentElement.clientWidth,
+}));
+check(
+  "no horizontal overflow on mobile exchange form",
+  exMobile.scroll <= exMobile.client + 1,
+  JSON.stringify(exMobile),
 );
 
 console.log("ERRORS:", errors.length ? errors.join("\n") : "none");

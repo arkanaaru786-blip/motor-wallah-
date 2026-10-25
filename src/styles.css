@@ -6,6 +6,7 @@
 @import "./styles/buy-marketplace.css";
 @import "./styles/buy-detail.css";
 @import "./styles/sell-flow.css";
+@import "./styles/exchange-flow.css";
 
 @custom-variant dark (&:is(.dark *));
 
