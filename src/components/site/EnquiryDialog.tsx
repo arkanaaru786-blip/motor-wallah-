@@ -47,7 +47,7 @@ export function EnquiryDialog({
   return (
     <div className="fixed inset-0 z-[80] flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-ink/70" onClick={onClose} />
-      <div className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto border border-border bg-card p-5 sm:p-6">
+      <div className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto border border-border bg-card/85 p-5 backdrop-blur-[10px] sm:p-6">
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
             <p className="font-display text-xl uppercase leading-tight">{title}</p>

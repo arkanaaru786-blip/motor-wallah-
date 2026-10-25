@@ -337,7 +337,19 @@ function BuyPage() {
                     Find the right vehicle, at the right price, with complete trust.
                   </p>
                   <div className="mw-buy-hero-cta">
-                    <a href="#mw-hub" className="mw-buy-hero-btn mw-buy-hero-btn--primary">
+                    <a
+                      href="#mw-hub"
+                      className="mw-buy-hero-btn mw-buy-hero-btn--primary"
+                      onClick={(event) => {
+                        // Issue 1 fix: the hero CTA always reveals the category
+                        // selection grid — never a listing page.
+                        event.preventDefault();
+                        document.getElementById("mw-hub")?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        });
+                      }}
+                    >
                       Buy Vehicles
                     </a>
                     <Link to="/sell-your-car" className="mw-buy-hero-btn mw-buy-hero-btn--ghost">

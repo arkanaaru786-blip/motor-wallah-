@@ -5,6 +5,7 @@
 @import "./styles/buy-filters.css";
 @import "./styles/buy-marketplace.css";
 @import "./styles/buy-detail.css";
+@import "./styles/sell-flow.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -182,7 +183,8 @@
    stays readable.
    ========================================================================== */
 .mw-home,
-.mw-buy {
+.mw-buy,
+.mw-sell {
   --background: oklch(1 0 0);
   --foreground: oklch(0.15 0 0);
   --card: oklch(1 0 0);

@@ -83,7 +83,7 @@ export function Hero() {
             </p>
             <div className="home-hero-cta">
               <Button asChild size="lg" className="home-cta home-cta-primary">
-                <Link to="/cars">
+                <Link to="/buy">
                   Buy Vehicles <ArrowRight size={16} />
                 </Link>
               </Button>

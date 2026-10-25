@@ -12,6 +12,7 @@ export type LeadType =
   | "insurance_enquiry"
   | "warranty_enquiry"
   | "sell_car"
+  | "sell_vehicle"
   | "exchange_car"
   | "listing_enquiry"
   | "listing_offer"
@@ -41,7 +42,15 @@ export type Lead = {
 
 const QUEUE_KEY = "mw_lead_queue";
 
-/** Local-only for now. Swap the body for a CRM/server call when the backend exists. */
+/**
+ * Every lead is stored in the project's local lead queue first (the single
+ * capture point the whole site uses). When a CRM/webhook URL is configured as
+ * VITE_LEAD_ENDPOINT, the same record is also POSTed there best-effort, so the
+ * team receives submissions without any UI changes. Delivery never blocks or
+ * fails the UI — the queue always keeps the record.
+ */
+const LEAD_ENDPOINT: string | undefined = import.meta.env["VITE_LEAD_ENDPOINT"];
+
 export async function submitLead(lead: Omit<Lead, "createdAt">): Promise<{ ok: true }> {
   const record: Lead = { ...lead, createdAt: new Date().toISOString() };
   try {
@@ -51,6 +60,17 @@ export async function submitLead(lead: Omit<Lead, "createdAt">): Promise<{ ok: t
     }
   } catch {
     /* storage unavailable — lead capture must never break the UI */
+  }
+  if (LEAD_ENDPOINT) {
+    try {
+      await fetch(LEAD_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(record),
+      });
+    } catch {
+      /* delivery failed — the local queue already holds the lead */
+    }
   }
   return { ok: true };
 }

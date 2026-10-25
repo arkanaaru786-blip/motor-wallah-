@@ -13,8 +13,8 @@
   border-radius: 18px;
   border: 1px solid var(--home-line);
   background: var(--glass-strong);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   box-shadow: var(--home-shadow);
 }
 .buy-filter-head {

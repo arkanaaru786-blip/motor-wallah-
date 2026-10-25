@@ -1,26 +1,28 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { CheckCircle2, MessageCircle, Phone, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, ImagePlus, MessageCircle, Phone, Trash2 } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { StickyActions } from "@/components/site/StickyActions";
-import { PhotoUploader } from "@/components/site/PhotoUploader";
-import { DocumentUploader } from "@/components/site/DocumentUploader";
 import {
-  ANY,
-  VehicleSelectorFields,
-  selectionToFields,
-  useVehicleSelection,
-} from "@/components/site/VehicleSelector";
+  BUY_CATEGORY_LIST,
+  BUY_YEAR_MAX,
+  BUY_YEAR_MIN,
+  brandTilesFor,
+  catalogModelsFor,
+  citiesInCategory,
+  fuelOptionsFor,
+  getBuyCategory,
+  type BuyCategoryId,
+} from "@/lib/buy-catalog";
 import { submitLead } from "@/lib/leads";
-import { EXTERIOR_SLOTS, MIN_EXTERIOR_PHOTOS, type UploadedFile } from "@/lib/uploads";
-import { estimateValue, formatINR, type Valuation } from "@/lib/valuation";
+import { toUploadedFile, type UploadedFile } from "@/lib/uploads";
 import { LOCATIONS } from "@/lib/cars-data";
 import { PHONE_DISPLAY, PHONE_HREF, whatsappLink } from "@/lib/site";
 
-const TITLE = "Sell Your Car | Motor Wallah";
+const TITLE = "Sell Your Vehicle — Car, Bike, Truck & Tractor | Motor Wallah";
 const DESCRIPTION =
-  "Share your car details, photos and RC to get an indicative Motor Wallah market estimate before a final offer.";
+  "Pick your vehicle category, share brand, model, year, fuel, price, location and photos, and submit your listing to the Motor Wallah sell team.";
 
 export const Route = createFileRoute("/sell-your-car")({
   head: () => ({
@@ -36,464 +38,560 @@ export const Route = createFileRoute("/sell-your-car")({
   component: Page,
 });
 
-type Field = {
-  name: string;
-  label: string;
-  type?: "text" | "tel" | "email" | "number" | "select";
-  options?: readonly string[];
-  required?: boolean;
-  placeholder?: string;
+/**
+ * Dynamic per-category configuration — every one of the 8 vehicle categories
+ * declares its own transmission options, so nothing on this page is hardcoded
+ * for cars. TypeScript fails the build if a category is ever missing here.
+ */
+const TRANSMISSION_OPTIONS: Record<BuyCategoryId, readonly string[]> = {
+  cars: ["Manual", "Automatic"],
+  bikes: ["Manual", "Automatic"],
+  "three-wheelers": ["Manual", "Automatic"],
+  scv: ["Manual", "Automatic"],
+  trucks: ["Manual", "Automatic"],
+  buses: ["Manual", "Automatic"],
+  tractors: ["Manual"],
+  taxi: ["Manual", "Automatic"],
 };
 
-const VEHICLE_FIELDS: Field[] = [
-  { name: "registration", label: "Registration Number", required: true, placeholder: "MP09 AB 1234" },
-  { name: "currentKm", label: "Current Kilometres", type: "number", required: true, placeholder: "e.g. 48500" },
-  {
-    name: "expectedPrice",
-    label: "Expected Selling Price (₹)",
-    type: "number",
-    placeholder: "How much do you expect to get for your car? e.g. 650000",
-  },
-  {
-    name: "ownership",
-    label: "Number of Owners",
-    type: "select",
-    options: ["First Owner", "Second Owner", "Third Owner", "Fourth Owner or more"],
-    required: true,
-  },
-  {
-    name: "serviceHistory",
-    label: "Service History",
-    type: "select",
-    options: ["Full Authorised Service", "Partial Records", "Local Workshop", "No Records"],
-    required: true,
-  },
-  {
-    name: "accidentHistory",
-    label: "Accident / Damage History",
-    type: "select",
-    options: ["No Accident", "Minor Repair", "Major Repair", "Not Sure"],
-    required: true,
-  },
-  {
-    name: "condition",
-    label: "Vehicle Condition",
-    type: "select",
-    options: ["Excellent", "Good", "Average", "Needs Work"],
-    required: true,
-  },
-  {
-    name: "tyreCondition",
-    label: "Tyre Condition",
-    type: "select",
-    options: ["New", "Good", "Average", "Replacement Needed"],
-    required: true,
-  },
-  {
-    name: "insuranceStatus",
-    label: "Insurance Status",
-    type: "select",
-    options: ["Valid Comprehensive", "Valid Third Party", "Expired", "Not Sure"],
-    required: true,
-  },
-];
+const STEPS = ["Choose Category", "Vehicle Details", "Submitted"] as const;
 
-const CUSTOMER_FIELDS: Field[] = [
-  { name: "name", label: "Full Name", required: true },
-  { name: "mobile", label: "Mobile Number", type: "tel", required: true, placeholder: "10-digit mobile" },
-  { name: "whatsapp", label: "WhatsApp Number", type: "tel", placeholder: "If different" },
-  { name: "email", label: "Email (optional)", type: "email", placeholder: "you@example.com" },
-  { name: "city", label: "City / Location", type: "select", options: LOCATIONS, required: true },
-];
+const YEARS = Array.from({ length: BUY_YEAR_MAX - BUY_YEAR_MIN + 1 }, (_, i) =>
+  String(BUY_YEAR_MAX - i),
+);
 
-function FieldInput({ f }: { f: Field }) {
-  return (
-    <label className="block min-w-0 border border-border bg-background px-3 py-2">
-      <span className="block text-[0.65rem] uppercase tracking-wide text-muted-foreground">
-        {f.label}
-        {f.required ? " *" : ""}
-      </span>
-      {f.type === "select" ? (
-        <select
-          name={f.name}
-          required={f.required}
-          defaultValue=""
-          className="w-full bg-transparent text-sm font-semibold text-foreground outline-none"
-        >
-          <option value="">Select</option>
-          {(f.options ?? []).map((o) => (
-            <option key={o} value={o}>
-              {o}
-            </option>
-          ))}
-        </select>
-      ) : (
-        <input
-          name={f.name}
-          type={f.type ?? "text"}
-          required={f.required}
-          maxLength={f.type === "tel" ? 15 : 80}
-          placeholder={f.placeholder ?? ""}
-          className="w-full bg-transparent text-sm font-semibold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground"
-        />
-      )}
-    </label>
-  );
-}
+type Step = "category" | "form" | "done";
 
-const STEPS = ["Vehicle Details", "Car Information & Uploads", "Estimated Market Value"];
+type Submission = {
+  categoryLabel: string;
+  vehicle: string;
+  name: string;
+  mobile: string;
+  expectedPrice: string;
+};
 
 function Page() {
-  const { selection, set, setBrand, setYear } = useVehicleSelection();
-  const [step, setStep] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState<Step>("category");
+  const [categoryId, setCategoryId] = useState<BuyCategoryId | null>(null);
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
+  const [fuel, setFuel] = useState("");
   const [photos, setPhotos] = useState<UploadedFile[]>([]);
-  const [rc, setRc] = useState<UploadedFile | null>(null);
-  const [insurance, setInsurance] = useState<UploadedFile | null>(null);
-  const [puc, setPuc] = useState<UploadedFile | null>(null);
-  const [serviceDoc, setServiceDoc] = useState<UploadedFile | null>(null);
-  const [bills, setBills] = useState<UploadedFile | null>(null);
-  const [noc, setNoc] = useState<UploadedFile | null>(null);
-  const [valuation, setValuation] = useState<Valuation | null>(null);
-  const [finalOffer, setFinalOffer] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [submission, setSubmission] = useState<Submission | null>(null);
+  const photoRef = useRef<HTMLInputElement>(null);
 
-  const vehicleChosen = selection.brand !== ANY && selection.model !== ANY;
+  const category = categoryId ? getBuyCategory(categoryId) : null;
+  const stepIndex = step === "category" ? 0 : step === "form" ? 1 : 2;
 
-  const start = () => {
-    if (!vehicleChosen) {
-      setError("Please select your car brand and model to continue.");
-      return;
-    }
-    setError(null);
-    setStep(1);
+  /* Derived, always-valid selections — the Brand -> Model -> Fuel chain can
+     never hold a value that does not belong to the chosen category. */
+  const brands = category ? brandTilesFor(category.id) : [];
+  const safeBrand = brands.some((b) => b.brand === brand) ? brand : "";
+  const models = safeBrand && category ? catalogModelsFor(category.id, safeBrand) : [];
+  const safeModel = models.includes(model) ? model : "";
+  const fuels = category
+    ? fuelOptionsFor(category.id, safeBrand || undefined, safeModel || undefined)
+    : [];
+  const safeFuel = fuels.includes(fuel) ? fuel : "";
+  const locations = category
+    ? (() => {
+        const cities = citiesInCategory(category.id);
+        return cities.length ? cities : [...LOCATIONS];
+      })()
+    : [];
+
+  const scrollTo = (id: string) =>
     requestAnimationFrame(() =>
-      document.getElementById("sell-form")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }),
     );
+
+  const pickCategory = (id: BuyCategoryId) => {
+    setCategoryId(id);
+    setBrand("");
+    setModel("");
+    setFuel("");
+    setPhotos([]);
+    setError(null);
+    setStep("form");
+    scrollTo("sell-form");
   };
 
-  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const exterior = photos.filter((p) => EXTERIOR_SLOTS.includes(p.label)).length;
-    if (exterior < MIN_EXTERIOR_PHOTOS) {
-      setError(`Please upload at least ${MIN_EXTERIOR_PHOTOS} clear exterior photos of your car.`);
+  const backToCategories = () => {
+    setCategoryId(null);
+    setBrand("");
+    setModel("");
+    setFuel("");
+    setPhotos([]);
+    setError(null);
+    setStep("category");
+    scrollTo("sell-categories");
+  };
+
+  const addPhotos = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setError(null);
+    const added: UploadedFile[] = [];
+    for (const file of Array.from(files).slice(0, 20)) {
+      if (!file.type.startsWith("image/")) {
+        setError("Only image files can be uploaded as vehicle photos.");
+        continue;
+      }
+      try {
+        added.push(await toUploadedFile(file, "Vehicle photo"));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Upload failed.");
+      }
+    }
+    if (added.length) setPhotos((prev) => [...prev, ...added].slice(0, 20));
+  };
+
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const activeCategory = categoryId ? getBuyCategory(categoryId) : null;
+    if (!activeCategory) return;
+
+    const data = new FormData(event.currentTarget);
+    const value = (key: string) => String(data.get(key) ?? "").trim().slice(0, 200);
+    const values = {
+      brand: value("brand"),
+      model: value("model"),
+      year: value("year"),
+      fuel: value("fuel"),
+      transmission: value("transmission"),
+      kilometres: value("kilometres"),
+      expectedPrice: value("expectedPrice"),
+      location: value("location"),
+      name: value("name"),
+      mobile: value("mobile"),
+    };
+
+    const missing = Object.entries(values).filter(([, v]) => !v);
+    if (missing.length) {
+      setError("Please fill in every required field before submitting.");
       return;
     }
-    if (!rc) {
-      setError("Please upload your RC to continue. Insurance is optional.");
+    if (!/^[0-9+ ]{10,15}$/.test(values.mobile)) {
+      setError("Please enter a valid 10-digit mobile number.");
       return;
     }
     setError(null);
 
-    const data = new FormData(e.currentTarget);
-    const values: Record<string, string> = { ...selectionToFields(selection) };
-    [...VEHICLE_FIELDS, ...CUSTOMER_FIELDS].forEach((f) => {
-      const v = String(data.get(f.name) ?? "").trim();
-      if (v) values[f.name] = v.slice(0, 200);
-    });
-
-    const result = estimateValue({
-      brand: selection.brand,
-      model: selection.model,
-      variant: selection.variant,
-      year: selection.year !== ANY ? selection.year : undefined,
-      fuel: selection.fuel !== ANY ? selection.fuel : undefined,
-      transmission: selection.transmission !== ANY ? selection.transmission : undefined,
-      location: values["city"],
-      currentKm: values["currentKm"],
-      ownership: values["ownership"],
-      condition: values["condition"],
-      accidentHistory: values["accidentHistory"],
-      serviceHistory: values["serviceHistory"],
-      tyreCondition: values["tyreCondition"],
-      insuranceStatus: values["insuranceStatus"],
-      hasInsuranceDoc: Boolean(insurance),
-    });
-    setValuation(result);
-
-    const documents = [rc, insurance, puc, serviceDoc, bills, noc].filter(
-      (d): d is UploadedFile => Boolean(d),
-    );
-
+    // Persist the submission through the project's lead capture — the local
+    // lead queue first, then the CRM endpoint when VITE_LEAD_ENDPOINT is set.
     await submitLead({
-      type: "sell_car",
+      type: "sell_vehicle",
       source: "sell-your-car",
-      location: values["city"] ?? undefined,
-      vehicleName: `${selection.brand} ${selection.model}`.trim(),
-      name: values["name"] ?? undefined,
-      mobile: values["mobile"] ?? undefined,
-      fields: values,
+      vehicleName: `${values.year} ${values.brand} ${values.model}`.trim(),
+      location: values.location,
+      name: values.name,
+      mobile: values.mobile,
+      fields: { category: activeCategory.label, ...values },
       photos,
-      documents,
-      estimate: {
-        low: result.low,
-        high: result.high,
-        confidence: result.confidence,
-        notes: result.notes,
-      },
-      expectation: (() => {
-        const expectedPrice = Number(values["expectedPrice"]);
-        if (!Number.isFinite(expectedPrice) || expectedPrice <= 0) return undefined;
-        const aiMidpoint = Math.round((result.low + result.high) / 2);
-        const gap = expectedPrice - aiMidpoint;
-        return {
-          expectedPrice,
-          aiMidpoint,
-          gap,
-          gapPercent: aiMidpoint ? Math.round((gap / aiMidpoint) * 10000) / 100 : 0,
-        };
-      })(),
     });
 
-    setStep(2);
-    requestAnimationFrame(() =>
-      document.getElementById("sell-estimate")?.scrollIntoView({ behavior: "smooth", block: "start" }),
-    );
+    setSubmission({
+      categoryLabel: activeCategory.label,
+      vehicle: `${values.brand} ${values.model}`.trim(),
+      name: values.name,
+      mobile: values.mobile,
+      expectedPrice: values.expectedPrice,
+    });
+    setStep("done");
+    scrollTo("sell-done");
   };
+
+  const restart = () => {
+    setStep("category");
+    setCategoryId(null);
+    setBrand("");
+    setModel("");
+    setFuel("");
+    setPhotos([]);
+    setError(null);
+    setSubmission(null);
+    scrollTo("sell-categories");
+  };
+
+  const whatsapp = whatsappLink("Hi Motor Wallah, I want to sell my vehicle.");
 
   return (
-    <div id="top" className="flex min-h-screen flex-col bg-background pb-14 md:pb-0">
+    <div id="top" className="mw-sell min-h-screen pb-14 md:pb-0">
       <SiteHeader />
-      <main className="flex-1">
-        <section className="bg-ink py-14 text-ink-foreground lg:py-20">
-          <div className="mx-auto max-w-[1600px] px-4 lg:px-8">
-            <h1 className="font-display text-3xl font-bold uppercase leading-tight sm:text-4xl lg:text-5xl">
-              Sell Your Car <span className="text-primary">at the Right Price</span>
+      <main>
+        {/* ---------------- Hero + step strip ---------------- */}
+        <section className="mw-sell-hero">
+          <div className="home-container">
+            <p className="mw-sell-hero-kicker">
+              <span aria-hidden="true" /> Sell · Motor Wallah marketplace
+            </p>
+            <h1 className="mw-sell-hero-title">
+              Sell Your Vehicle <em>at the Right Price</em>
             </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-ink-foreground/80">
-              Select your car, add photos and your RC, and get an indicative Motor Wallah market
-              estimate before a final offer.
+            <p className="mw-sell-hero-text">
+              Choose what you are selling — the form adapts to your category with the right
+              brands, models and fields. Every vehicle type, one simple flow.
             </p>
-            <p className="mt-3 text-xs font-bold uppercase tracking-[0.2em] text-primary">
-              Drive Trust. Drive Quality.
-            </p>
-          </div>
-        </section>
-
-        <div className="border-b border-border bg-card">
-          <div className="mx-auto flex max-w-[1600px] flex-wrap gap-x-6 gap-y-2 px-4 py-3 lg:px-8">
-            {STEPS.map((s, i) => (
-              <span
-                key={s}
-                className={`text-[0.65rem] font-bold uppercase tracking-[0.14em] ${
-                  i <= step ? "text-primary" : "text-muted-foreground"
-                }`}
+            <div className="mw-sell-hero-actions">
+              <a
+                className="mw-sell-ghost-btn"
+                href={whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                {i + 1}. {s}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <section className="bg-secondary/60 py-10 lg:py-14">
-          <div className="mx-auto max-w-[1600px] px-4 lg:px-8">
-            <div className="border border-border bg-card p-5 shadow-panel lg:p-7">
-              <h2 className="font-display text-xl font-bold uppercase">
-                Select Your <span className="text-primary">Car Details</span>
-              </h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Same brand, model and year database used across Motor Wallah — including older and
-                discontinued models.
-              </p>
-
-              <div className="mt-5">
-                <VehicleSelectorFields
-                  selection={selection}
-                  set={set}
-                  setBrand={setBrand}
-                  setYear={setYear}
-                  priceLabel="Expected Price"
-                  showPrice={false}
-                  showKm={false}
-                />
-              </div>
-
-              {step === 0 && error && <p className="mt-4 text-xs font-semibold text-primary">{error}</p>}
-
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={start}
-                  className="inline-flex items-center justify-center gap-2 bg-primary px-6 py-3 text-xs font-bold uppercase tracking-[0.12em] text-primary-foreground transition-transform hover:-translate-y-0.5"
+                <MessageCircle size={14} /> WhatsApp Us
+              </a>
+              <a className="mw-sell-ghost-btn" href={PHONE_HREF}>
+                <Phone size={14} /> Call {PHONE_DISPLAY}
+              </a>
+            </div>
+            <div className="mw-sell-steps" aria-label="Sell flow steps">
+              {STEPS.map((label, i) => (
+                <span
+                  key={label}
+                  className={`mw-sell-step${i === stepIndex ? " mw-sell-step--active" : ""}`}
                 >
-                  Continue
-                </button>
-                <a
-                  href={whatsappLink("Hi Motor Wallah, I want a valuation for my car.")}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 border border-border px-6 py-3 text-xs font-bold uppercase tracking-[0.12em] transition-colors hover:border-primary hover:text-primary"
-                >
-                  <MessageCircle className="h-4 w-4" /> WhatsApp Us
-                </a>
-                <a
-                  href={PHONE_HREF}
-                  className="inline-flex items-center justify-center gap-2 border border-border px-6 py-3 text-xs font-bold uppercase tracking-[0.12em] transition-colors hover:border-primary hover:text-primary"
-                >
-                  <Phone className="h-4 w-4" /> Call {PHONE_DISPLAY}
-                </a>
-              </div>
+                  {i + 1}. {label}
+                </span>
+              ))}
             </div>
           </div>
         </section>
 
-        {step === 1 && (
-          <section id="sell-form" className="py-12 lg:py-16">
-            <div className="mx-auto max-w-[1000px] px-4 lg:px-8">
-              <form onSubmit={onSubmit} className="grid gap-6">
-                <div className="border border-border bg-card p-5 sm:p-7">
-                  <h2 className="font-display text-xl font-bold uppercase">
-                    Car <span className="text-primary">Information</span>
-                  </h2>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {selection.year !== ANY ? `${selection.year} ` : ""}
-                    {selection.brand} {selection.model}
-                    {selection.variant ? ` ${selection.variant}` : ""}
-                  </p>
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                    {VEHICLE_FIELDS.map((f) => (
-                      <FieldInput key={f.name} f={f} />
-                    ))}
-                  </div>
-                </div>
+        {/* ---------------- Step A: category bento grid ---------------- */}
+        {step === "category" && (
+          <section
+            id="sell-categories"
+            className="mw-sell-section"
+            aria-labelledby="sell-cats-title"
+          >
+            <div className="home-container">
+              <p className="mw-sell-kicker">
+                <span aria-hidden="true" /> Choose vehicle category
+              </p>
+              <h2 id="sell-cats-title" className="mw-sell-title">
+                What are you <span>selling?</span>
+              </h2>
+              <p className="mw-sell-text">
+                Explore 8 categories — each card opens its own form with the correct brands,
+                models and fields for that vehicle type.
+              </p>
 
-                <PhotoUploader photos={photos} onChange={setPhotos} />
+              <div className="mw-sell-grid">
+                {BUY_CATEGORY_LIST.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    data-category={item.id}
+                    className="mw-sell-cat"
+                    onClick={() => pickCategory(item.id)}
+                    aria-label={`Sell ${item.singular}`}
+                  >
+                    <span className="mw-sell-cat-media">
+                      <img
+                        src={item.image}
+                        alt={`${item.label} illustrative vehicle photograph`}
+                        width={720}
+                        height={450}
+                        loading="lazy"
+                      />
+                    </span>
+                    <span className="mw-sell-cat-body">
+                      <span className="mw-sell-cat-name">{item.label}</span>
+                      <span className="mw-sell-cat-blurb">{item.blurb}</span>
+                    </span>
+                    <span className="mw-sell-cat-arrow" aria-hidden="true">
+                      <ArrowRight size={15} />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
-                <div className="border border-border bg-card p-5 sm:p-7">
-                  <h3 className="font-display text-lg font-bold uppercase">
-                    Vehicle <span className="text-primary">Documents</span>
-                  </h3>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <DocumentUploader
-                      label="RC"
-                      subtext="Upload a clear photo or scan of your vehicle Registration Certificate."
-                      required
-                      file={rc}
-                      onChange={setRc}
-                    />
-                    <DocumentUploader
-                      label="Insurance Policy"
-                      subtext="Optional — Upload your current insurance policy if available."
-                      file={insurance}
-                      onChange={setInsurance}
-                    />
-                    <DocumentUploader
-                      label="PUC"
-                      subtext="Optional — Pollution Under Control certificate."
-                      file={puc}
-                      onChange={setPuc}
-                    />
-                    <DocumentUploader
-                      label="Service History"
-                      subtext="Optional — Service book or workshop records."
-                      file={serviceDoc}
-                      onChange={setServiceDoc}
-                    />
-                    <DocumentUploader
-                      label="Previous Service Bills"
-                      subtext="Optional — Recent repair or service invoices."
-                      file={bills}
-                      onChange={setBills}
-                    />
-                    <DocumentUploader
-                      label="Loan NOC / Closure"
-                      subtext="Optional — Only if the car was financed."
-                      file={noc}
-                      onChange={setNoc}
-                    />
-                  </div>
-                  {!insurance && (
-                    <p className="mt-3 text-[0.7rem] text-muted-foreground">
-                      Insurance document not provided. The estimate can still be generated, but
-                      document verification may be required before the final purchase offer.
-                    </p>
-                  )}
-                </div>
-
-                <div className="border border-border bg-card p-5 sm:p-7">
-                  <h3 className="font-display text-lg font-bold uppercase">
-                    Customer <span className="text-primary">Information</span>
-                  </h3>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {CUSTOMER_FIELDS.map((f) => (
-                      <FieldInput key={f.name} f={f} />
-                    ))}
-                  </div>
-                </div>
-
-                {error && <p className="text-xs font-semibold text-primary">{error}</p>}
-
-                <button
-                  type="submit"
-                  className="bg-primary px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-primary-foreground transition-transform hover:-translate-y-0.5"
-                >
-                  Get My Car Valued
+        {/* ---------------- Step B: dynamic glass form ---------------- */}
+        {step === "form" && category && (
+          <section id="sell-form" className="mw-sell-form-section" aria-labelledby="sell-form-title">
+            <div className="home-container">
+              <div className="mw-sell-form-head">
+                <button type="button" className="mw-sell-back" onClick={backToCategories}>
+                  <ArrowLeft size={14} /> Change category
                 </button>
-                <p className="text-[0.7rem] text-muted-foreground">
-                  Your final valuation is confirmed after a Motor Wallah evaluation at our centre.
+                <span className="mw-sell-chip">
+                  <img src={category.image} alt="" aria-hidden="true" width={34} height={24} />
+                  <span>
+                    Selling <small>{category.label}</small>
+                  </span>
+                </span>
+              </div>
+
+              <form className="mw-sell-form" onSubmit={onSubmit}>
+                <h2 id="sell-form-title" className="mw-sell-form-title">
+                  Tell us about your <span>{category.singular}</span>
+                </h2>
+                <p className="mw-sell-form-sub">
+                  Brands and models come straight from our {category.label} catalogue — active
+                  and discontinued models included. Fields marked * are required.
                 </p>
+
+                <div className="mw-sell-fields">
+                  <label className="mw-sell-field">
+                    <span className="mw-sell-field-label">Brand *</span>
+                    <select
+                      name="brand"
+                      required
+                      className="mw-sell-input"
+                      value={safeBrand}
+                      onChange={(event) => {
+                        setBrand(event.target.value);
+                        setModel("");
+                      }}
+                    >
+                      <option value="">Select brand</option>
+                      {brands.map((b) => (
+                        <option key={b.brand} value={b.brand}>
+                          {b.brand}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="mw-sell-field">
+                    <span className="mw-sell-field-label">Model *</span>
+                    <select
+                      name="model"
+                      required
+                      className="mw-sell-input"
+                      value={safeModel}
+                      disabled={!safeBrand}
+                      onChange={(event) => setModel(event.target.value)}
+                    >
+                      <option value="">{safeBrand ? "Select model" : "Select a brand first"}</option>
+                      {models.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="mw-sell-field">
+                    <span className="mw-sell-field-label">
+                      Year <small>({BUY_YEAR_MIN}–{BUY_YEAR_MAX})</small> *
+                    </span>
+                    <select name="year" required defaultValue="" className="mw-sell-input">
+                      <option value="">Select year</option>
+                      {YEARS.map((y) => (
+                        <option key={y} value={y}>
+                          {y}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="mw-sell-field">
+                    <span className="mw-sell-field-label">Fuel *</span>
+                    <select
+                      name="fuel"
+                      required
+                      className="mw-sell-input"
+                      value={safeFuel}
+                      onChange={(event) => setFuel(event.target.value)}
+                    >
+                      <option value="">Select fuel</option>
+                      {fuels.map((f) => (
+                        <option key={f} value={f}>
+                          {f}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="mw-sell-field">
+                    <span className="mw-sell-field-label">Transmission *</span>
+                    <select name="transmission" required defaultValue="" className="mw-sell-input">
+                      <option value="">Select transmission</option>
+                      {TRANSMISSION_OPTIONS[category.id].map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="mw-sell-field">
+                    <span className="mw-sell-field-label">Kilometres Driven *</span>
+                    <input
+                      className="mw-sell-input"
+                      type="number"
+                      name="kilometres"
+                      min={0}
+                      max={2000000}
+                      required
+                      inputMode="numeric"
+                      placeholder="e.g. 18500"
+                    />
+                  </label>
+
+                  <label className="mw-sell-field">
+                    <span className="mw-sell-field-label">Expected Price (₹) *</span>
+                    <input
+                      className="mw-sell-input"
+                      type="number"
+                      name="expectedPrice"
+                      min={1}
+                      required
+                      inputMode="numeric"
+                      placeholder="e.g. 650000"
+                    />
+                  </label>
+
+                  <label className="mw-sell-field">
+                    <span className="mw-sell-field-label">Location *</span>
+                    <select name="location" required defaultValue="" className="mw-sell-input">
+                      <option value="">Select location</option>
+                      {locations.map((city) => (
+                        <option key={city} value={city}>
+                          {city}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="mw-sell-photos">
+                    <span className="mw-sell-field-label">
+                      Photo Upload <small>— multiple images, up to 8 MB each</small>
+                    </span>
+                    <div className="mw-sell-photo-actions">
+                      <button
+                        type="button"
+                        className="mw-sell-photo-add"
+                        onClick={() => photoRef.current?.click()}
+                      >
+                        <ImagePlus size={15} /> Add Photos
+                      </button>
+                      <span className="mw-sell-photo-hint">
+                        {photos.length > 0
+                          ? `${photos.length} photo${photos.length === 1 ? "" : "s"} attached`
+                          : "No photos yet — clear photos help your listing sell faster."}
+                      </span>
+                    </div>
+                    <input
+                      ref={photoRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      hidden
+                      onChange={(event) => {
+                        void addPhotos(event.target.files);
+                        event.target.value = "";
+                      }}
+                    />
+                    {photos.length > 0 && (
+                      <div className="mw-sell-photo-list">
+                        {photos.map((photo) => (
+                          <figure key={photo.id} className="mw-sell-photo">
+                            <img src={photo.dataUrl} alt={photo.label} />
+                            <button
+                              type="button"
+                              className="mw-sell-photo-remove"
+                              aria-label={`Remove photo ${photo.name}`}
+                              onClick={() =>
+                                setPhotos((prev) => prev.filter((x) => x.id !== photo.id))
+                              }
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </figure>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <label className="mw-sell-field">
+                    <span className="mw-sell-field-label">Seller Name *</span>
+                    <input
+                      className="mw-sell-input"
+                      type="text"
+                      name="name"
+                      required
+                      maxLength={80}
+                      placeholder="Your full name"
+                    />
+                  </label>
+
+                  <label className="mw-sell-field">
+                    <span className="mw-sell-field-label">Mobile Number *</span>
+                    <input
+                      className="mw-sell-input"
+                      type="tel"
+                      name="mobile"
+                      required
+                      maxLength={15}
+                      pattern="[0-9+ ]{10,15}"
+                      placeholder="10-digit mobile"
+                    />
+                  </label>
+                </div>
+
+                {error && (
+                  <p className="mw-sell-error" role="alert">
+                    {error}
+                  </p>
+                )}
+
+                <div className="mw-sell-form-foot">
+                  <button type="submit" className="mw-sell-submit">
+                    Submit Listing
+                  </button>
+                  <p className="mw-sell-form-note">
+                    Your submission is saved to Motor Wallah's lead queue so the sell team
+                    can follow up — connect your CRM endpoint (VITE_LEAD_ENDPOINT) and it is
+                    also delivered there automatically.
+                  </p>
+                </div>
               </form>
             </div>
           </section>
         )}
 
-        {step === 2 && valuation && (
-          <section id="sell-estimate" className="py-12 lg:py-16">
-            <div className="mx-auto max-w-[900px] px-4 lg:px-8">
-              <div className="border border-border bg-card p-6 text-center sm:p-10">
-                <ShieldCheck className="mx-auto h-10 w-10 text-primary" strokeWidth={1.5} />
-                <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                  Your Estimated Market Value
-                </p>
-                <p className="mt-3 font-display text-3xl font-bold uppercase sm:text-4xl">
-                  {formatINR(valuation.low)} <span className="text-primary">–</span>{" "}
-                  {formatINR(valuation.high)}
-                </p>
-                <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-primary">
-                  {valuation.label}
-                </p>
-                <p className="mt-3 text-sm text-muted-foreground">
-                  Indicative estimate based on the information and market data available.
-                </p>
-
-                {valuation.notes.length > 0 && (
-                  <ul className="mx-auto mt-4 max-w-xl space-y-1 text-left text-[0.72rem] text-muted-foreground">
-                    {valuation.notes.map((n) => (
-                      <li key={n}>• {n}</li>
-                    ))}
-                  </ul>
-                )}
-
-                {finalOffer ? (
-                  <div className="mt-7 border border-border bg-background p-5">
-                    <CheckCircle2 className="mx-auto h-8 w-8 text-primary" strokeWidth={1.5} />
-                    <p className="mt-3 font-display text-xl uppercase">Request Received</p>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Our Motor Wallah team will contact you to schedule the inspection and share your
-                      final purchase offer.
-                    </p>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await submitLead({
-                        type: "sell_car",
-                        source: "sell-your-car-final-offer",
-                        vehicleName: `${selection.brand} ${selection.model}`.trim(),
-                        fields: selectionToFields(selection),
-                      });
-                      setFinalOffer(true);
-                    }}
-                    className="mt-7 bg-primary px-8 py-4 text-xs font-bold uppercase tracking-[0.12em] text-primary-foreground transition-transform hover:-translate-y-0.5"
-                  >
-                    Get Final Offer
-                  </button>
-                )}
-
-                <p className="mt-4 text-[0.7rem] text-muted-foreground">
-                  Final purchase offer is subject to physical inspection, document verification and
-                  vehicle evaluation by MOTOR WALLAH.
-                </p>
+        {/* ---------------- Step C: success ---------------- */}
+        {step === "done" && category && submission && (
+          <section id="sell-done" className="home-container">
+            <div className="mw-sell-done">
+              <CheckCircle2 className="mw-sell-done-icon" size={44} strokeWidth={1.6} aria-hidden="true" />
+              <h2 className="mw-sell-done-title">Listing Submitted Successfully</h2>
+              <p className="mw-sell-done-text">
+                Thanks {submission.name} — your {submission.categoryLabel} details are saved
+                with the Motor Wallah sell team. Our team will contact you on{" "}
+                {submission.mobile} to verify the vehicle and share the next steps.
+              </p>
+              <div className="mw-sell-done-summary">
+                <span>{submission.categoryLabel}</span>
+                <span>{submission.vehicle}</span>
+                <span>₹{Number(submission.expectedPrice).toLocaleString("en-IN")}</span>
+              </div>
+              <p className="mw-sell-done-note">
+                Saved to this project's lead queue — when your CRM endpoint
+                (VITE_LEAD_ENDPOINT) is connected, every submission is delivered to your team
+                automatically. Want a faster reply now? Use WhatsApp or call us directly.
+              </p>
+              <div className="mw-sell-done-actions">
+                <button type="button" className="mw-sell-submit" onClick={restart}>
+                  Sell Another Vehicle
+                </button>
+                <a
+                  className="mw-sell-ghost-btn"
+                  href={whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MessageCircle size={14} /> WhatsApp
+                </a>
+                <a className="mw-sell-ghost-btn" href={PHONE_HREF}>
+                  <Phone size={14} /> Call {PHONE_DISPLAY}
+                </a>
               </div>
             </div>
           </section>

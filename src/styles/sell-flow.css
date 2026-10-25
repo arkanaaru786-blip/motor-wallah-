@@ -1,0 +1,625 @@
+/* ==========================================================================
+   SELL flow (.mw-sell) — light theme, glassmorphism form, bento category
+   grid. Same premium light language as the BUY marketplace (.mw-buy) and the
+   homepage (.mw-home): off-white page, white cards, red accents, translucent
+   white panels with backdrop blur(10px). Scoped so every other route keeps
+   its existing appearance.
+   ========================================================================== */
+/* Doubled selector: the off-white shell must win over the shared
+   `.mw-home, .mw-buy, .mw-sell` token reset (background: var(--background))
+   declared later in styles.css. */
+.mw-sell.mw-sell {
+  min-height: 100vh;
+  color: var(--foreground);
+  background:
+    radial-gradient(1200px 420px at 15% -10%, oklch(0.55 0.223 27.5 / 0.05), transparent 60%),
+    radial-gradient(900px 380px at 90% 0%, oklch(0.55 0.223 27.5 / 0.04), transparent 55%),
+    #f6f7f9;
+}
+.mw-sell h1,
+.mw-sell h2,
+.mw-sell h3 {
+  letter-spacing: 0;
+}
+.mw-sell :focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+/* --- Hero ---------------------------------------------------------------- */
+.mw-sell-hero {
+  padding: 34px 0 6px;
+}
+.mw-sell-hero-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+.mw-sell-hero-kicker span {
+  width: 26px;
+  height: 2px;
+  background: var(--primary);
+}
+.mw-sell-hero-title {
+  margin-top: 8px;
+  font-family: var(--font-display);
+  font-size: clamp(1.7rem, 3.4vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.mw-sell-hero-title em {
+  font-style: normal;
+  color: var(--primary);
+}
+.mw-sell-hero-text {
+  max-width: 56ch;
+  margin-top: 8px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: color-mix(in oklab, var(--foreground) 72%, transparent);
+}
+.mw-sell-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+.mw-sell-ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--home-line);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--foreground);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.mw-sell-ghost-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* --- Step strip ---------------------------------------------------------- */
+.mw-sell-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 16px 0 4px;
+}
+.mw-sell-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--home-line);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.mw-sell-step--active {
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+  background: color-mix(in srgb, var(--primary) 8%, #fff);
+  color: var(--primary);
+}
+
+/* --- Section head -------------------------------------------------------- */
+.mw-sell-section {
+  padding: 20px 0 44px;
+}
+.mw-sell-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+.mw-sell-kicker span {
+  width: 26px;
+  height: 2px;
+  background: var(--primary);
+}
+.mw-sell-title {
+  margin-top: 8px;
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.mw-sell-title span {
+  color: var(--primary);
+}
+.mw-sell-text {
+  margin-top: 6px;
+  font-size: 0.88rem;
+  color: var(--muted-foreground);
+}
+
+/* --- Bento category grid (mixed card sizes) ------------------------------ */
+.mw-sell-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 22px;
+}
+/* Mixed sizes that always pack full rows at 4 columns: (2+2)(1+1+1+1)(2+2). */
+.mw-sell-grid .mw-sell-cat:nth-child(1),
+.mw-sell-grid .mw-sell-cat:nth-child(2),
+.mw-sell-grid .mw-sell-cat:nth-child(7),
+.mw-sell-grid .mw-sell-cat:nth-child(8) {
+  grid-column: span 2;
+}
+
+.mw-sell-cat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  overflow: hidden;
+  cursor: pointer;
+  /* Soft resting shadow so the bento cards lift off the light page. */
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 0.05),
+    0 10px 26px -18px oklch(0 0 0 / 0.35);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+}
+.mw-sell-cat:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--color-border));
+  box-shadow: 0 20px 38px -22px rgb(15 15 15 / 0.4);
+}
+.mw-sell-cat:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.mw-sell-cat-media {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 10;
+  background: #eef0f3;
+  overflow: hidden;
+}
+.mw-sell-cat-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+.mw-sell-cat:hover .mw-sell-cat-media img {
+  transform: scale(1.04);
+}
+.mw-sell-cat-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 54px 16px 16px;
+}
+.mw-sell-cat-name {
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.mw-sell-cat-blurb {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--muted-foreground);
+}
+.mw-sell-cat-arrow {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary) 10%, #fff);
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, #fff);
+  color: var(--primary);
+}
+
+/* --- Form head ----------------------------------------------------------- */
+.mw-sell-form-section {
+  padding: 6px 0 48px;
+}
+.mw-sell-form-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 6px;
+}
+.mw-sell-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.mw-sell-back:hover {
+  color: var(--primary);
+}
+.mw-sell-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 5px;
+  border-radius: 999px;
+  border: 1px solid var(--home-line);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.mw-sell-chip img {
+  width: 34px;
+  height: 24px;
+  object-fit: cover;
+  border-radius: 999px;
+}
+.mw-sell-chip small {
+  color: var(--primary);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+/* --- Glassmorphism form -------------------------------------------------- */
+.mw-sell-form {
+  margin-top: 18px;
+  padding: 22px;
+  border-radius: 18px;
+  border: 1px solid rgb(255 255 255 / 0.8);
+  /* Glassmorphism: semi-transparent white + backdrop blur(10px). */
+  background: rgb(255 255 255 / 0.72);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 2px 4px oklch(0 0 0 / 0.05),
+    0 20px 42px -22px oklch(0 0 0 / 0.4);
+}
+.mw-sell-form-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.mw-sell-form-title span {
+  color: var(--primary);
+}
+.mw-sell-form-sub {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+.mw-sell-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  margin-top: 18px;
+}
+.mw-sell-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.mw-sell-field-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.mw-sell-field-label small {
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.mw-sell-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--home-line);
+  background: rgb(255 255 255 / 0.85);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--foreground);
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.mw-sell-input::placeholder {
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+.mw-sell-input:focus {
+  border-color: color-mix(in srgb, var(--primary) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
+}
+.mw-sell-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+select.mw-sell-input {
+  cursor: pointer;
+}
+
+/* --- Photo upload (multiple images) -------------------------------------- */
+.mw-sell-photos {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--primary) 30%, var(--color-border));
+  background: rgb(255 255 255 / 0.6);
+}
+.mw-sell-photo-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.mw-sell-photo-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--home-line);
+  background: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--foreground);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.mw-sell-photo-add:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.mw-sell-photo-hint {
+  font-size: 0.7rem;
+  color: var(--muted-foreground);
+}
+.mw-sell-photo-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.mw-sell-photo {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--home-line);
+  background: #eef0f3;
+}
+.mw-sell-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mw-sell-photo-remove {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.92);
+  border: 1px solid var(--home-line);
+  color: var(--ink);
+  cursor: pointer;
+}
+.mw-sell-photo-remove:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* --- Error + submit ------------------------------------------------------ */
+.mw-sell-error {
+  margin-top: 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+.mw-sell-form-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+.mw-sell-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 26px;
+  border-radius: 10px;
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 12px 24px -16px oklch(0.55 0.223 27 / 0.9);
+  transition: transform 0.15s ease;
+}
+.mw-sell-submit:hover {
+  transform: translateY(-1px);
+}
+.mw-sell-form-note {
+  flex-basis: 100%;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+/* --- Success (Step C) ---------------------------------------------------- */
+.mw-sell-done {
+  margin: 34px auto 56px;
+  max-width: 720px;
+  padding: 30px 26px;
+  text-align: center;
+  border-radius: 18px;
+  border: 1px solid rgb(255 255 255 / 0.8);
+  background: rgb(255 255 255 / 0.72);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 2px 4px oklch(0 0 0 / 0.05),
+    0 20px 42px -22px oklch(0 0 0 / 0.4);
+}
+.mw-sell-done-icon {
+  color: var(--primary);
+  margin: 0 auto;
+}
+.mw-sell-done-title {
+  margin-top: 12px;
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.mw-sell-done-text {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--muted-foreground);
+}
+.mw-sell-done-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+.mw-sell-done-summary span {
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--home-line);
+  background: rgb(255 255 255 / 0.8);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--foreground);
+}
+.mw-sell-done-note {
+  margin-top: 16px;
+  padding: 11px 13px;
+  text-align: left;
+  border-radius: 12px;
+  border: 1px solid var(--home-line);
+  background: rgb(255 255 255 / 0.6);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+.mw-sell-done-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+/* --- Responsive ---------------------------------------------------------- */
+@media (max-width: 1280px) {
+  .mw-sell-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  /* (2+1)(1+1+1)(1+1+1) = 9 cells — rows always pack full. */
+  .mw-sell-grid .mw-sell-cat:nth-child(2),
+  .mw-sell-grid .mw-sell-cat:nth-child(7),
+  .mw-sell-grid .mw-sell-cat:nth-child(8) {
+    grid-column: span 1;
+  }
+}
+@media (max-width: 720px) {
+  .mw-sell-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mw-sell-grid .mw-sell-cat:nth-child(n) {
+    grid-column: span 1;
+  }
+}
+@media (min-width: 640px) {
+  .mw-sell-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mw-sell-field--full {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 640px) {
+  .mw-sell-form {
+    padding: 16px;
+  }
+  .mw-sell-photo-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mw-sell-done {
+    padding: 24px 16px;
+  }
+}

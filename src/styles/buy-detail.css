@@ -368,7 +368,10 @@
   padding: 16px;
   border-radius: 18px 18px 0 0;
   border: 1px solid var(--home-line);
-  background: var(--card);
+  /* Glassmorphism: semi-transparent white surface + backdrop blur. */
+  background: rgb(255 255 255 / 0.82);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   box-shadow: var(--home-shadow-lift);
 }
 .buy-modal-head {
