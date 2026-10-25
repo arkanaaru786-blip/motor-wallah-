@@ -61,6 +61,27 @@ page.on("console", (msg) => {
 });
 page.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));
 
+/**
+ * The dev server proxies brand artwork to an external host that is slow from
+ * this sandbox, so networkidle can exceed its timeout even though the page
+ * itself has rendered. Give navigation a bounded quiet window and fall back to
+ * domcontentloaded + load; every section below still gates on its own
+ * waitForSelector, so all readiness assertions are unchanged.
+ */
+const hardenGoto = (p) => {
+  const raw = p.goto.bind(p);
+  p.goto = async (url, opts = {}) => {
+    try {
+      return await raw(url, { ...opts, waitUntil: "networkidle", timeout: 30000 });
+    } catch {
+      await raw(url, { ...opts, waitUntil: "domcontentloaded", timeout: 30000 });
+      await p.waitForLoadState("load", { timeout: 12000 }).catch(() => {});
+      return null;
+    }
+  };
+};
+hardenGoto(page);
+
 /** Force lazy images eager, then wait until every match is decoded. */
 const eagerImages = (selector) =>
   page.evaluate((sel) => {
@@ -1208,6 +1229,339 @@ check(
 );
 await page.screenshot({ path: `${SHOTS}/exchange-flow.png`, fullPage: true });
 
+/* ================================================================== */
+/* COMPARE FLOW — grid → same-category pickers → side-by-side verdict  */
+/* ================================================================== */
+await page.goto(`${BASE}/compare`, { waitUntil: "networkidle" });
+await page.waitForSelector(".mw-sell-grid");
+check(
+  "COMPARE opens with the category grid FIRST (no form)",
+  (await page.locator(".mw-sell-cat").count()) === 8 &&
+    (await page.locator("#compare-form").count()) === 0,
+);
+check("COMPARE header nav link exists", (await page.locator('header a[href="/compare"]').count()) >= 1);
+const cmpBg = await page.evaluate(() =>
+  getComputedStyle(document.querySelector(".mw-sell")).backgroundColor,
+);
+check("COMPARE light theme (off-white background)", isOffWhite(cmpBg), cmpBg);
+
+await page.locator('[data-category="cars"]').click();
+await page.waitForSelector("#compare-form");
+const cmpGlass = await page.locator(".mw-sell-form").evaluate((el) => {
+  const s = getComputedStyle(el);
+  return { bg: s.backgroundColor, blur: s.backdropFilter || s.webkitBackdropFilter };
+});
+check(
+  "COMPARE form: glassmorphism (translucent white + blur(10px))",
+  alphaOf(cmpGlass.bg) < 1 && /blur\(\s*10px\s*\)/.test(cmpGlass.blur),
+  `${cmpGlass.bg} / ${cmpGlass.blur}`,
+);
+
+/* Step 2 — two CLOSED pickers: native selects, listing data only. */
+const pickTags = await page.evaluate(() => [
+  document.querySelector('select[name="vehicle1"]')?.tagName,
+  document.querySelector('select[name="vehicle2"]')?.tagName,
+]);
+check(
+  "COMPARE pickers are dropdowns (no free typing of custom vehicles)",
+  pickTags[0] === "SELECT" && pickTags[1] === "SELECT",
+  pickTags.join(","),
+);
+const cmpOpts = await page.locator('select[name="vehicle1"] option').evaluateAll((opts) =>
+  opts.map((o) => ({ v: o.value, t: (o.textContent ?? "").trim() })),
+);
+check(
+  "COMPARE cars dropdown pulls from existing listings (Nexon, Swift…)",
+  cmpOpts.length > 5 &&
+    cmpOpts.some((o) => /nexon/i.test(o.t)) &&
+    cmpOpts.some((o) => /swift/i.test(o.t)),
+  `${cmpOpts.length} options`,
+);
+check(
+  "COMPARE dropdown options carry a ₹ price from the listing data",
+  cmpOpts.filter((o) => o.v && /₹[\d,]+/.test(o.t)).length >= cmpOpts.length - 1,
+);
+
+/* Pick two real cars → the comparison renders. */
+const pickA = cmpOpts.find((o) => o.v && /nexon/i.test(o.t)) ?? cmpOpts[1];
+const pickB =
+  cmpOpts.find((o) => o.v && o.v !== pickA.v && /swift/i.test(o.t)) ??
+  cmpOpts.find((o) => o.v && o.v !== pickA.v);
+await page.selectOption('select[name="vehicle1"]', pickA.v);
+await page.selectOption('select[name="vehicle2"]', pickB.v);
+await page.waitForSelector("#compare-result");
+
+const cmpRows = await page.evaluate(() =>
+  [...document.querySelectorAll(".mw-cmp-row")].map((row) => ({
+    label: (row.querySelector(".mw-cmp-label")?.textContent ?? "").trim(),
+    a: (row.querySelector('[data-side="a"]')?.textContent ?? "").trim(),
+    b: (row.querySelector('[data-side="b"]')?.textContent ?? "").trim(),
+    aBetter: row.querySelector('[data-side="a"]')?.classList.contains("mw-cmp-cell--better") ?? false,
+    bBetter: row.querySelector('[data-side="b"]')?.classList.contains("mw-cmp-cell--better") ?? false,
+  })),
+);
+check(
+  "COMPARE shows the 6 required spec rows in order",
+  cmpRows.length === 6 &&
+    ["Price", "Year", "Km Driven", "Fuel Type", "Transmission", "Location"].every(
+      (label, i) => cmpRows[i].label === label,
+    ),
+  cmpRows.map((r) => r.label).join(", "),
+);
+check(
+  "COMPARE both columns render real values (₹ price + 4-digit year)",
+  cmpRows.every((r) => r.a.length > 0 && r.b.length > 0) &&
+    /^₹[\d,]+$/.test(cmpRows[0].a) &&
+    /^₹[\d,]+$/.test(cmpRows[0].b) &&
+    /^\d{4}$/.test(cmpRows[1].a) &&
+    /^\d{4}$/.test(cmpRows[1].b),
+  `${cmpRows[0].a} vs ${cmpRows[0].b}`,
+);
+
+/* Step 4 — verdict recomputed in the test from the rendered row values. */
+const num = (s) => Number(((s ?? "").match(/[\d,]+/g)?.[0] ?? "").replace(/,/g, ""));
+const rowOf = (label) => cmpRows.find((r) => r.label === label);
+let aWins = 0;
+let bWins = 0;
+const pA = num(rowOf("Price").a);
+const pB = num(rowOf("Price").b);
+const yA = num(rowOf("Year").a);
+const yB = num(rowOf("Year").b);
+const kmA = /not listed/i.test(rowOf("Km Driven").a) ? null : num(rowOf("Km Driven").a);
+const kmB = /not listed/i.test(rowOf("Km Driven").b) ? null : num(rowOf("Km Driven").b);
+if (pA < pB) aWins++;
+else if (pB < pA) bWins++;
+if (yA > yB) aWins++;
+else if (yB > yA) bWins++;
+if (kmA !== null && kmB !== null) {
+  if (kmA < kmB) aWins++;
+  else if (kmB < kmA) bWins++;
+}
+const expectedWinner =
+  aWins >= 2 && aWins > bWins ? "a" : bWins >= 2 && bWins > aWins ? "b" : "none";
+const actualWinner = await page.locator("#compare-result").getAttribute("data-winner");
+check(
+  "COMPARE verdict follows the simple rule (price + year + km, no AI)",
+  actualWinner === expectedWinner,
+  `${aWins}\u2013${bWins} → expected ${expectedWinner}, got ${actualWinner}`,
+);
+const badgeCounts = {
+  excellent: await page.locator('.mw-cmp-badge[data-badge="excellent"]').count(),
+  good: await page.locator('.mw-cmp-badge[data-badge="good"]').count(),
+};
+check(
+  "COMPARE badges: Excellent Vehicle on the clear winner, Good Choice otherwise",
+  expectedWinner === "none"
+    ? badgeCounts.excellent === 0 && badgeCounts.good === 2
+    : badgeCounts.excellent === 1 && badgeCounts.good === 1,
+  `winner=${expectedWinner} ${JSON.stringify(badgeCounts)}`,
+);
+const cmpHighlights = await page.evaluate(() => ({
+  a: document.querySelectorAll('.mw-cmp-cell--better[data-side="a"]').length,
+  b: document.querySelectorAll('.mw-cmp-cell--better[data-side="b"]').length,
+}));
+const expectedHighlights =
+  expectedWinner === "none"
+    ? { a: 0, b: 0 }
+    : expectedWinner === "a"
+      ? { a: aWins, b: 0 }
+      : { a: 0, b: bWins };
+check(
+  "COMPARE only the winner's winning values are highlighted",
+  cmpHighlights.a === expectedHighlights.a && cmpHighlights.b === expectedHighlights.b,
+  `expected ${JSON.stringify(expectedHighlights)}, got ${JSON.stringify(cmpHighlights)}`,
+);
+const cmpVerdictTitle = await txt(page.locator(".mw-cmp-verdict-title"));
+check(
+  "COMPARE verdict headline states Excellent Vehicle / Good Choice",
+  expectedWinner === "none"
+    ? /good choice/i.test(cmpVerdictTitle)
+    : /excellent vehicle/i.test(cmpVerdictTitle) && cmpVerdictTitle.length > 20,
+  cmpVerdictTitle,
+);
+await page.screenshot({ path: `${SHOTS}/compare-flow.png`, fullPage: true });
+
+/* Same vehicle twice → hint, no comparison. */
+await page.selectOption('select[name="vehicle2"]', pickA.v);
+await page.waitForTimeout(250);
+check(
+  "COMPARE same vehicle twice → warning, comparison hidden",
+  (await page.locator(".mw-cmp-hint").count()) === 1 &&
+    (await page.locator("#compare-result").count()) === 0 &&
+    /same vehicle twice/i.test(await txt(page.locator(".mw-cmp-hint"))),
+);
+
+/* Category isolation — bikes can only be compared with bikes. */
+await page.locator("#compare-form .mw-sell-back").click();
+await page.waitForSelector(".mw-sell-grid");
+await page.locator('[data-category="bikes"]').click();
+await page.waitForSelector("#compare-form");
+const bikeOpts = (await txts(page.locator('select[name="vehicle1"] option'))).filter(Boolean);
+check(
+  "COMPARE bikes category lists ONLY bikes (no cars mixed in)",
+  bikeOpts.length > 3 &&
+    !bikeOpts.some((o) => /nexon|swift|harrier|tiago/i.test(o)) &&
+    bikeOpts.some((o) => /hero|honda|bajaj|tvs|yamaha|royal enfield|suzuki/i.test(o)),
+  `${bikeOpts.length} options`,
+);
+check(
+  "COMPARE header link returns to the category grid from inside the form",
+  (await page.locator('#compare-form .mw-sell-back').count()) === 1,
+);
+
+/* ================================================================== */
+/* SCRAP FLOW — grid → lead-only form (NO price) → success             */
+/* ================================================================== */
+await page.goto(`${BASE}/scrap`, { waitUntil: "networkidle" });
+await page.waitForSelector(".mw-sell-grid");
+check(
+  "SCRAP opens with the category grid FIRST (no form)",
+  (await page.locator(".mw-sell-cat").count()) === 8 &&
+    (await page.locator("#scrap-form").count()) === 0,
+);
+check("SCRAP header nav link exists", (await page.locator('header a[href="/scrap"]').count()) >= 1);
+const scrBg = await page.evaluate(() =>
+  getComputedStyle(document.querySelector(".mw-sell")).backgroundColor,
+);
+check("SCRAP light theme (off-white background)", isOffWhite(scrBg), scrBg);
+
+await page.locator('[data-category="bikes"]').click();
+await page.waitForSelector("#scrap-form");
+const scrGlass = await page.locator(".mw-sell-form").evaluate((el) => {
+  const s = getComputedStyle(el);
+  return { bg: s.backgroundColor, blur: s.backdropFilter || s.webkitBackdropFilter };
+});
+check(
+  "SCRAP form: glassmorphism (translucent white + blur(10px))",
+  alphaOf(scrGlass.bg) < 1 && /blur\(\s*10px\s*\)/.test(scrGlass.blur),
+  `${scrGlass.bg} / ${scrGlass.blur}`,
+);
+
+const scrFields = await page.evaluate(() => ({
+  brand: document.querySelector('select[name="brand"]')?.tagName,
+  model: `${document.querySelector('input[name="model"]')?.tagName}:${document.querySelector('input[name="model"]')?.type}`,
+  year: document.querySelector('select[name="year"]')?.tagName,
+  location: document.querySelector('select[name="location"]')?.tagName,
+  name: document.querySelector('input[name="name"]')?.type,
+  mobile: document.querySelector('input[name="mobile"]')?.type,
+  photos: document.querySelectorAll('#scrap-form input[type="file"][multiple]').length,
+  submit: (document.querySelector("#scrap-form .mw-sell-submit")?.textContent ?? "").trim(),
+}));
+check(
+  "SCRAP form has brand, model, year, location, photo upload, name, mobile",
+  scrFields.brand === "SELECT" &&
+    scrFields.model === "INPUT:text" &&
+    scrFields.year === "SELECT" &&
+    scrFields.location === "SELECT" &&
+    scrFields.name === "text" &&
+    scrFields.mobile === "tel" &&
+    scrFields.photos === 1,
+  JSON.stringify(scrFields),
+);
+check(
+  "SCRAP submit button label",
+  /submit scrap request/i.test(scrFields.submit),
+  scrFields.submit,
+);
+const scrYearOpts = (await txts(page.locator('select[name="year"] option'))).map((y) => y.trim());
+check(
+  "SCRAP year dropdown spans 1992-2026",
+  scrYearOpts.includes("1992") && scrYearOpts.includes("2026"),
+  `${scrYearOpts[1]}..${scrYearOpts[scrYearOpts.length - 1]}`,
+);
+const scrBrands = (await txts(page.locator('select[name="brand"] option'))).map((b) => b.trim());
+check("SCRAP brand dropdown comes from the bikes catalogue", scrBrands.length > 3, scrBrands.slice(0, 6).join(", "));
+
+/* MANDATORY: no price / no estimate anywhere in the scrap flow. */
+const scrText = await txt(page.locator("#scrap-form"));
+const scrHero = await txt(page.locator(".mw-sell-hero"));
+const scrPricing = `${scrText} ${scrHero}`;
+check(
+  "SCRAP rule: NO price, estimate or value shown anywhere",
+  !/₹/.test(scrPricing) &&
+    !/estimated|price|₹|difference/i.test(scrText) &&
+    (await page.locator(".mw-ex-estimate, .mw-ex-calc, [class*=estimate]").count()) === 0,
+  scrPricing.slice(0, 120),
+);
+
+/* Fill and submit the lead. */
+const scrBrand = scrBrands.find((b) => /^hero$/i.test(b)) ?? scrBrands.find((b) => b && !/^select/i.test(b));
+await page.selectOption('select[name="brand"]', scrBrand);
+await page.fill('input[name="model"]', "Splendor Plus");
+await page.selectOption('select[name="year"]', "2015");
+const scrCity = (await txts(page.locator('select[name="location"] option')))
+  .map((c) => c.trim())
+  .find((c) => c && !/^select/i.test(c));
+await page.selectOption('select[name="location"]', scrCity);
+await page.setInputFiles('#scrap-form input[type="file"][multiple]', {
+  name: "scrap-bike.png",
+  mimeType: "image/png",
+  buffer: Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+    "base64",
+  ),
+});
+await page.waitForTimeout(400);
+check("SCRAP photo thumbnail renders", (await page.locator(".mw-sell-photo").count()) === 1);
+await page.fill('input[name="name"]', "Arkan");
+await page.fill('input[name="mobile"]', "9876543210");
+await page.locator("#scrap-form .mw-sell-submit").click();
+await page.waitForSelector("#scrap-done", { timeout: 5000 });
+const scrDoneTitle = await txt(page.locator(".mw-sell-done-title"));
+check(
+  "SCRAP success message matches the required copy",
+  /request received\. our team will contact you shortly for scrap evaluation\./i.test(scrDoneTitle),
+  scrDoneTitle,
+);
+const scrLead = await page.evaluate(() => {
+  try {
+    const queue = JSON.parse(localStorage.getItem("mw_lead_queue") ?? "[]");
+    return queue[queue.length - 1] ?? null;
+  } catch {
+    return null;
+  }
+});
+check(
+  "SCRAP submission saved as a lead with brand/model/year/location/contact",
+  Boolean(
+    scrLead &&
+      scrLead.type === "scrap_vehicle" &&
+      scrLead.fields?.category === "Bikes" &&
+      /hero/i.test(scrLead.fields?.brand ?? "") &&
+      scrLead.fields?.model === "Splendor Plus" &&
+      scrLead.fields?.year === "2015" &&
+      scrLead.fields?.location &&
+      scrLead.name === "Arkan" &&
+      scrLead.mobile === "9876543210" &&
+      Array.isArray(scrLead.photos) &&
+      scrLead.photos.length === 1,
+  ),
+  JSON.stringify({ type: scrLead?.type, brand: scrLead?.fields?.brand, model: scrLead?.fields?.model }),
+);
+check(
+  "SCRAP lead carries no price/estimate payload",
+  !/(price|estimate|value|difference)/i.test(JSON.stringify(scrLead?.fields ?? {})),
+  JSON.stringify(Object.keys(scrLead?.fields ?? {})),
+);
+await page.screenshot({ path: `${SHOTS}/scrap-flow.png`, fullPage: true });
+
+await page.locator(".mw-sell-done-actions .mw-sell-submit").click();
+await page.waitForSelector(".mw-sell-grid", { timeout: 3000 });
+check(
+  "SCRAP 'Scrap Another Vehicle' returns to the category grid",
+  (await page.locator(".mw-sell-cat").count()) === 8,
+);
+await page.locator('[data-category="cars"]').click();
+await page.waitForSelector("#scrap-form");
+await page.locator('header a[href="/scrap"]').first().click();
+await page.waitForSelector(".mw-sell-grid", { timeout: 5000 });
+check(
+  "SCRAP header link returns to the category grid from inside the form",
+  (await page.locator(".mw-sell-cat").count()) === 8 &&
+    (await page.locator("#scrap-form").count()) === 0,
+  page.url(),
+);
+
 const mobile = await browser.newContext({
   viewport: { width: 360, height: 780 },
   isMobile: true,
@@ -1218,6 +1572,7 @@ mpage.on("console", (msg) => {
   if (msg.type() === "error") errors.push(`mobile console: ${msg.text()}`);
 });
 mpage.on("pageerror", (error) => errors.push(`mobile pageerror: ${error.message}`));
+hardenGoto(mpage);
 await mpage.goto(`${BASE}/buy?category=bikes`, { waitUntil: "networkidle" });
 await mpage.waitForSelector(".mw-bento");
 const mWidth = await mpage.evaluate(() => ({
@@ -1260,6 +1615,41 @@ check(
   "no horizontal overflow on mobile exchange form",
   exMobile.scroll <= exMobile.client + 1,
   JSON.stringify(exMobile),
+);
+
+/* COMPARE + SCRAP must also fit a phone without sideways scrolling. */
+await mpage.goto(`${BASE}/compare`, { waitUntil: "networkidle" });
+await mpage.waitForSelector(".mw-sell-grid");
+await mpage.locator('[data-category="cars"]').click();
+await mpage.waitForSelector("#compare-form");
+const cmpMobileOpts = await mpage.locator('select[name="vehicle1"] option').evaluateAll((opts) =>
+  opts.map((o) => o.value).filter(Boolean),
+);
+await mpage.selectOption('select[name="vehicle1"]', cmpMobileOpts[0]);
+await mpage.selectOption('select[name="vehicle2"]', cmpMobileOpts[1]);
+await mpage.waitForSelector("#compare-result");
+const cmpMobile = await mpage.evaluate(() => ({
+  scroll: document.documentElement.scrollWidth,
+  client: document.documentElement.clientWidth,
+}));
+check(
+  "no horizontal overflow on mobile compare view",
+  cmpMobile.scroll <= cmpMobile.client + 1,
+  JSON.stringify(cmpMobile),
+);
+await mpage.screenshot({ path: `${SHOTS}/mobile-compare.png`, fullPage: true });
+await mpage.goto(`${BASE}/scrap`, { waitUntil: "networkidle" });
+await mpage.waitForSelector(".mw-sell-grid");
+await mpage.locator('[data-category="cars"]').click();
+await mpage.waitForSelector("#scrap-form");
+const scrMobile = await mpage.evaluate(() => ({
+  scroll: document.documentElement.scrollWidth,
+  client: document.documentElement.clientWidth,
+}));
+check(
+  "no horizontal overflow on mobile scrap form",
+  scrMobile.scroll <= scrMobile.client + 1,
+  JSON.stringify(scrMobile),
 );
 
 console.log("ERRORS:", errors.length ? errors.join("\n") : "none");

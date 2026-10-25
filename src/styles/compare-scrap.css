@@ -1,0 +1,238 @@
+/* ==========================================================================
+   COMPARE (.mw-cmp) and SCRAP (.mw-scr) flows — both build on the shared
+   .mw-sell light theme, glassmorphism and bento category grid. Compare adds
+   only what is unique: the two-vehicle pickers, the verdict bar and the
+   side-by-side glass comparison table. Scrap reuses the sell styles as-is.
+   Scoped so Buy/Sell/Exchange/homepage stay untouched.
+   ========================================================================== */
+
+/* Inline hint when the same vehicle is picked twice. */
+.mw-cmp-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, #fff);
+  background: color-mix(in srgb, var(--primary) 6%, rgb(255 255 255 / 0.8));
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--foreground);
+}
+
+/* ---------------- Step 3: comparison result ---------------- */
+.mw-cmp-result {
+  margin-top: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Verdict bar — rule-based recommendation on top of the comparison. */
+.mw-cmp-verdict {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid rgb(255 255 255 / 0.85);
+  background: rgb(255 255 255 / 0.78);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 2px 4px oklch(0 0 0 / 0.05),
+    0 20px 42px -22px oklch(0 0 0 / 0.4);
+}
+.mw-cmp-verdict-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 12%, #fff);
+  color: var(--primary);
+}
+.mw-cmp-verdict-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+.mw-cmp-verdict-text {
+  margin-top: 4px;
+  font-size: 0.76rem;
+  line-height: 1.55;
+  color: var(--muted-foreground);
+}
+
+/* Side-by-side table — one glass panel, three aligned columns. */
+.mw-cmp-table {
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid rgb(255 255 255 / 0.85);
+  background: rgb(255 255 255 / 0.78);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 2px 4px oklch(0 0 0 / 0.05),
+    0 20px 42px -22px oklch(0 0 0 / 0.4);
+}
+.mw-cmp-headrow,
+.mw-cmp-row {
+  display: grid;
+  grid-template-columns: minmax(72px, 0.55fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+.mw-cmp-headrow {
+  align-items: stretch;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--ink);
+}
+.mw-cmp-row {
+  padding: 11px 0;
+  border-bottom: 1px dashed var(--home-line);
+}
+.mw-cmp-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 2px;
+}
+
+.mw-cmp-headcell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  min-width: 0;
+}
+.mw-cmp-headcell--label {
+  justify-content: flex-end;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* Vehicle card inside each comparison column (bento feel). */
+.mw-cmp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid rgb(255 255 255 / 0.9);
+  background: rgb(255 255 255 / 0.7);
+  box-shadow: 0 12px 26px -20px oklch(0 0 0 / 0.45);
+}
+.mw-cmp-card img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 10px;
+  background: #f4f4f5;
+}
+.mw-cmp-card-name {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--foreground);
+  overflow-wrap: anywhere;
+}
+.mw-cmp-card-price {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Verdict badges — Excellent Vehicle (winner) vs Good Choice (both decent). */
+.mw-cmp-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.mw-cmp-badge[data-badge="excellent"] {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 8px 18px -10px color-mix(in srgb, var(--primary) 70%, transparent);
+}
+.mw-cmp-badge[data-badge="good"] {
+  background: color-mix(in srgb, var(--ink) 8%, #fff);
+  border: 1px solid color-mix(in srgb, var(--ink) 18%, #fff);
+  color: var(--ink);
+}
+
+/* Spec rows: label on the left, the two values side by side. */
+.mw-cmp-label {
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.mw-cmp-cell {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.mw-cmp-cell--better {
+  font-weight: 800;
+  color: var(--primary);
+}
+.mw-cmp-cell--better::after {
+  content: " ✓";
+  font-size: 0.7rem;
+}
+
+.mw-cmp-note {
+  margin: 0;
+  text-align: center;
+  font-size: 0.68rem;
+  line-height: 1.55;
+  color: var(--muted-foreground);
+}
+
+@media (max-width: 640px) {
+  .mw-cmp-table {
+    padding: 12px;
+  }
+  .mw-cmp-headrow,
+  .mw-cmp-row {
+    grid-template-columns: minmax(58px, 0.5fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: 6px;
+  }
+  .mw-cmp-card {
+    padding: 7px;
+  }
+  .mw-cmp-card-name {
+    font-size: 0.72rem;
+  }
+  .mw-cmp-card-price {
+    font-size: 0.8rem;
+  }
+  .mw-cmp-badge {
+    font-size: 0.5rem;
+    padding: 3px 7px;
+  }
+  .mw-cmp-cell {
+    font-size: 0.72rem;
+  }
+  .mw-cmp-label {
+    font-size: 0.56rem;
+  }
+}

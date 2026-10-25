@@ -14,6 +14,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AccessoriesRouteImport } from './routes/accessories'
 import { Route as BookServiceRouteImport } from './routes/book-service'
 import { Route as CareersRouteImport } from './routes/careers'
+import { Route as CompareRouteImport } from './routes/compare'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as ExchangeRouteImport } from './routes/exchange'
 import { Route as FaqRouteImport } from './routes/faq'
@@ -24,6 +25,7 @@ import { Route as InsuranceRouteImport } from './routes/insurance'
 import { Route as LocationsRouteImport } from './routes/locations'
 import { Route as RoadsideAssistanceRouteImport } from './routes/roadside-assistance'
 import { Route as RtoRouteImport } from './routes/rto'
+import { Route as ScrapRouteImport } from './routes/scrap'
 import { Route as SellYourCarRouteImport } from './routes/sell-your-car'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as WarrantyRouteImport } from './routes/warranty'
@@ -66,6 +68,11 @@ const BookServiceRoute = BookServiceRouteImport.update({
 const CareersRoute = CareersRouteImport.update({
   id: '/careers',
   path: '/careers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompareRoute = CompareRouteImport.update({
+  id: '/compare',
+  path: '/compare',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -116,6 +123,11 @@ const RoadsideAssistanceRoute = RoadsideAssistanceRouteImport.update({
 const RtoRoute = RtoRouteImport.update({
   id: '/rto',
   path: '/rto',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScrapRoute = ScrapRouteImport.update({
+  id: '/scrap',
+  path: '/scrap',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SellYourCarRoute = SellYourCarRouteImport.update({
@@ -215,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/accessories': typeof AccessoriesRoute
   '/book-service': typeof BookServiceRoute
   '/careers': typeof CareersRoute
+  '/compare': typeof CompareRoute
   '/contact': typeof ContactRoute
   '/exchange': typeof ExchangeRoute
   '/faq': typeof FaqRoute
@@ -225,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/locations': typeof LocationsRoute
   '/roadside-assistance': typeof RoadsideAssistanceRoute
   '/rto': typeof RtoRoute
+  '/scrap': typeof ScrapRoute
   '/sell-your-car': typeof SellYourCarRoute
   '/services': typeof ServicesRoute
   '/warranty': typeof WarrantyRoute
@@ -250,6 +264,7 @@ export interface FileRoutesByTo {
   '/accessories': typeof AccessoriesRoute
   '/book-service': typeof BookServiceRoute
   '/careers': typeof CareersRoute
+  '/compare': typeof CompareRoute
   '/contact': typeof ContactRoute
   '/exchange': typeof ExchangeRoute
   '/faq': typeof FaqRoute
@@ -260,6 +275,7 @@ export interface FileRoutesByTo {
   '/locations': typeof LocationsRoute
   '/roadside-assistance': typeof RoadsideAssistanceRoute
   '/rto': typeof RtoRoute
+  '/scrap': typeof ScrapRoute
   '/sell-your-car': typeof SellYourCarRoute
   '/services': typeof ServicesRoute
   '/warranty': typeof WarrantyRoute
@@ -286,6 +302,7 @@ export interface FileRoutesById {
   '/accessories': typeof AccessoriesRoute
   '/book-service': typeof BookServiceRoute
   '/careers': typeof CareersRoute
+  '/compare': typeof CompareRoute
   '/contact': typeof ContactRoute
   '/exchange': typeof ExchangeRoute
   '/faq': typeof FaqRoute
@@ -296,6 +313,7 @@ export interface FileRoutesById {
   '/locations': typeof LocationsRoute
   '/roadside-assistance': typeof RoadsideAssistanceRoute
   '/rto': typeof RtoRoute
+  '/scrap': typeof ScrapRoute
   '/sell-your-car': typeof SellYourCarRoute
   '/services': typeof ServicesRoute
   '/warranty': typeof WarrantyRoute
@@ -323,6 +341,7 @@ export interface FileRouteTypes {
     | '/accessories'
     | '/book-service'
     | '/careers'
+    | '/compare'
     | '/contact'
     | '/exchange'
     | '/faq'
@@ -333,6 +352,7 @@ export interface FileRouteTypes {
     | '/locations'
     | '/roadside-assistance'
     | '/rto'
+    | '/scrap'
     | '/sell-your-car'
     | '/services'
     | '/warranty'
@@ -358,6 +378,7 @@ export interface FileRouteTypes {
     | '/accessories'
     | '/book-service'
     | '/careers'
+    | '/compare'
     | '/contact'
     | '/exchange'
     | '/faq'
@@ -368,6 +389,7 @@ export interface FileRouteTypes {
     | '/locations'
     | '/roadside-assistance'
     | '/rto'
+    | '/scrap'
     | '/sell-your-car'
     | '/services'
     | '/warranty'
@@ -393,6 +415,7 @@ export interface FileRouteTypes {
     | '/accessories'
     | '/book-service'
     | '/careers'
+    | '/compare'
     | '/contact'
     | '/exchange'
     | '/faq'
@@ -403,6 +426,7 @@ export interface FileRouteTypes {
     | '/locations'
     | '/roadside-assistance'
     | '/rto'
+    | '/scrap'
     | '/sell-your-car'
     | '/services'
     | '/warranty'
@@ -429,6 +453,7 @@ export interface RootRouteChildren {
   AccessoriesRoute: typeof AccessoriesRoute
   BookServiceRoute: typeof BookServiceRoute
   CareersRoute: typeof CareersRoute
+  CompareRoute: typeof CompareRoute
   ContactRoute: typeof ContactRoute
   ExchangeRoute: typeof ExchangeRoute
   FaqRoute: typeof FaqRoute
@@ -439,6 +464,7 @@ export interface RootRouteChildren {
   LocationsRoute: typeof LocationsRoute
   RoadsideAssistanceRoute: typeof RoadsideAssistanceRoute
   RtoRoute: typeof RtoRoute
+  ScrapRoute: typeof ScrapRoute
   SellYourCarRoute: typeof SellYourCarRoute
   ServicesRoute: typeof ServicesRoute
   WarrantyRoute: typeof WarrantyRoute
@@ -493,6 +519,13 @@ declare module '@tanstack/react-router' {
       path: '/careers'
       fullPath: '/careers'
       preLoaderRoute: typeof CareersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compare': {
+      id: '/compare'
+      path: '/compare'
+      fullPath: '/compare'
+      preLoaderRoute: typeof CompareRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -563,6 +596,13 @@ declare module '@tanstack/react-router' {
       path: '/rto'
       fullPath: '/rto'
       preLoaderRoute: typeof RtoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/scrap': {
+      id: '/scrap'
+      path: '/scrap'
+      fullPath: '/scrap'
+      preLoaderRoute: typeof ScrapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sell-your-car': {
@@ -712,6 +752,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccessoriesRoute: AccessoriesRoute,
   BookServiceRoute: BookServiceRoute,
   CareersRoute: CareersRoute,
+  CompareRoute: CompareRoute,
   ContactRoute: ContactRoute,
   ExchangeRoute: ExchangeRoute,
   FaqRoute: FaqRoute,
@@ -722,6 +763,7 @@ const rootRouteChildren: RootRouteChildren = {
   LocationsRoute: LocationsRoute,
   RoadsideAssistanceRoute: RoadsideAssistanceRoute,
   RtoRoute: RtoRoute,
+  ScrapRoute: ScrapRoute,
   SellYourCarRoute: SellYourCarRoute,
   ServicesRoute: ServicesRoute,
   WarrantyRoute: WarrantyRoute,
