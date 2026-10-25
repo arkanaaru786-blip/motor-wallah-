@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, CheckCircle2, ImagePlus, MessageCircle, Phone, Trash2 } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -24,7 +24,26 @@ const TITLE = "Sell Your Vehicle — Car, Bike, Truck & Tractor | Motor Wallah";
 const DESCRIPTION =
   "Pick your vehicle category, share brand, model, year, fuel, price, location and photos, and submit your listing to the Motor Wallah sell team.";
 
+type SellSearch = {
+  /** URL-driven steps: /sell-your-car = category grid, ?view=form = form,
+   *  ?view=done = success. The header SELL link (no search) therefore always
+   *  lands back on the category grid, even mid-flow. */
+  view?: "form" | "done" | undefined;
+  cat?: BuyCategoryId | undefined;
+};
+
+const isCategoryId = (value: unknown): value is BuyCategoryId =>
+  typeof value === "string" && BUY_CATEGORY_LIST.some((c) => c.id === value);
+
 export const Route = createFileRoute("/sell-your-car")({
+  validateSearch: (search: Record<string, unknown>): SellSearch => {
+    const view = search["view"];
+    const cat = search["cat"];
+    return {
+      view: view === "form" || view === "done" ? view : undefined,
+      cat: isCategoryId(cat) ? cat : undefined,
+    };
+  },
   head: () => ({
     meta: [
       { title: TITLE },
@@ -71,8 +90,8 @@ type Submission = {
 };
 
 function Page() {
-  const [step, setStep] = useState<Step>("category");
-  const [categoryId, setCategoryId] = useState<BuyCategoryId | null>(null);
+  const navigate = useNavigate();
+  const { view, cat } = Route.useSearch();
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [fuel, setFuel] = useState("");
@@ -80,9 +99,32 @@ function Page() {
   const [error, setError] = useState<string | null>(null);
   const [submission, setSubmission] = useState<Submission | null>(null);
   const photoRef = useRef<HTMLInputElement>(null);
+  const pendingScroll = useRef<string | null>(null);
 
-  const category = categoryId ? getBuyCategory(categoryId) : null;
+  const category = getBuyCategory(cat) ?? null;
+  const step: Step =
+    view === "form" && category ? "form" : view === "done" && category ? "done" : "category";
   const stepIndex = step === "category" ? 0 : step === "form" ? 1 : 2;
+
+  // Deferred scroll: runs only after the step change has actually rendered.
+  useEffect(() => {
+    const id = pendingScroll.current;
+    if (!id) return;
+    pendingScroll.current = null;
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [step]);
+
+  // Defensive fallback: a URL pointing at form/done without the state behind
+  // it (stale bookmark, cleared storage) returns to the category grid after a
+  // short grace period — cancelled if the real submission state arrives first.
+  useEffect(() => {
+    const invalid = (view === "form" && !category) || (view === "done" && !submission);
+    if (!invalid) return;
+    const timer = window.setTimeout(() => {
+      navigate({ to: "/sell-your-car", search: {}, replace: true });
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [view, category, submission, navigate]);
 
   /* Derived, always-valid selections — the Brand -> Model -> Fuel chain can
      never hold a value that does not belong to the chosen category. */
@@ -101,31 +143,24 @@ function Page() {
       })()
     : [];
 
-  const scrollTo = (id: string) =>
-    requestAnimationFrame(() =>
-      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }),
-    );
-
-  const pickCategory = (id: BuyCategoryId) => {
-    setCategoryId(id);
+  const resetFormState = () => {
     setBrand("");
     setModel("");
     setFuel("");
     setPhotos([]);
     setError(null);
-    setStep("form");
-    scrollTo("sell-form");
+  };
+
+  const pickCategory = (id: BuyCategoryId) => {
+    resetFormState();
+    pendingScroll.current = "sell-form";
+    navigate({ to: "/sell-your-car", search: { view: "form", cat: id } });
   };
 
   const backToCategories = () => {
-    setCategoryId(null);
-    setBrand("");
-    setModel("");
-    setFuel("");
-    setPhotos([]);
-    setError(null);
-    setStep("category");
-    scrollTo("sell-categories");
+    resetFormState();
+    pendingScroll.current = "sell-categories";
+    navigate({ to: "/sell-your-car", search: {} });
   };
 
   const addPhotos = async (files: FileList | null) => {
@@ -148,7 +183,7 @@ function Page() {
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const activeCategory = categoryId ? getBuyCategory(categoryId) : null;
+    const activeCategory = category;
     if (!activeCategory) return;
 
     const data = new FormData(event.currentTarget);
@@ -197,20 +232,15 @@ function Page() {
       mobile: values.mobile,
       expectedPrice: values.expectedPrice,
     });
-    setStep("done");
-    scrollTo("sell-done");
+    pendingScroll.current = "sell-done";
+    navigate({ to: "/sell-your-car", search: { view: "done", cat: activeCategory.id } });
   };
 
   const restart = () => {
-    setStep("category");
-    setCategoryId(null);
-    setBrand("");
-    setModel("");
-    setFuel("");
-    setPhotos([]);
-    setError(null);
+    resetFormState();
     setSubmission(null);
-    scrollTo("sell-categories");
+    pendingScroll.current = "sell-categories";
+    navigate({ to: "/sell-your-car", search: {} });
   };
 
   const whatsapp = whatsappLink("Hi Motor Wallah, I want to sell my vehicle.");

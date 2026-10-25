@@ -915,6 +915,16 @@ check(
   truckBrands.includes("tata") && truckBrands.includes("ashok leyland"),
   truckBrands,
 );
+await page.locator(".mw-sell-back").click();
+await page.waitForSelector(".mw-sell-grid");
+await page.locator('[data-category="three-wheelers"]').click();
+await page.waitForSelector("#sell-form");
+const twBrands = (await txts(page.locator('select[name="brand"] option'))).join(" ").toLowerCase();
+check(
+  "SELL rule: 3-Wheeler form shows auto brands (Mahindra, Piaggio, Khalsa EV)",
+  twBrands.includes("mahindra") && twBrands.includes("piaggio") && twBrands.includes("khalsa ev"),
+  twBrands,
+);
 
 /* --- Step C: fill and submit the Bikes listing --- */
 await page.locator(".mw-sell-back").click();
@@ -1003,6 +1013,18 @@ check(
   (await page.locator(".mw-sell-cat").count()) === 8,
 );
 await page.screenshot({ path: `${SHOTS}/sell-flow.png`, fullPage: true });
+
+/* The header SELL link must return to the category grid even mid-flow. */
+await page.locator('[data-category="bikes"]').click();
+await page.waitForSelector("#sell-form");
+await page.locator('header a[href="/sell-your-car"]').first().click();
+await page.waitForSelector(".mw-sell-grid", { timeout: 5000 });
+check(
+  "SELL header link returns to the category grid from inside the form",
+  (await page.locator(".mw-sell-cat").count()) === 8 &&
+    (await page.locator("#sell-form").count()) === 0,
+  page.url(),
+);
 
 const mobile = await browser.newContext({
   viewport: { width: 360, height: 780 },
