@@ -1562,6 +1562,269 @@ check(
   page.url(),
 );
 
+/* ================================================================== */
+/* SERVICE BOOKING — grid → per-category service types → submit         */
+/* ================================================================== */
+const SVC_LISTS = {
+  cars: [
+    "Periodic/General Service",
+    "AC Repair & Gas Refill",
+    "Denting & Painting",
+    "Engine & Transmission Work",
+    "Suspension & Steering",
+    "Brakes & Tyres",
+    "Electrical & Battery",
+    "Detailing & Car Spa",
+  ],
+  bikes: [
+    "General Service",
+    "Engine Tuning & Overhauling",
+    "Clutch & Chain Sprocket",
+    "Brakes & Tyres",
+    "Electrical & Battery",
+    "Denting & Painting",
+    "Customization",
+  ],
+  "three-wheelers": [
+    "Motor & Controller Repair (EV)",
+    "General Service & Greasing",
+    "Suspension & Leaf Spring Work",
+    "Brakes & Clutch",
+    "Battery Replacement (EV)",
+    "Body & Canopy Repair",
+  ],
+  trucks: [
+    "Engine & Turbo Repair",
+    "Air Brake System",
+    "Suspension & Spring",
+    "Gearbox & Differential",
+    "Clutch & Pressure Plate",
+    "AC & Cabin Cooling",
+    "Tyre & Wheel Alignment",
+    "Fabrication & Body Repair",
+  ],
+  tractors: [
+    "Engine Overhauling",
+    "Hydraulics Repair",
+    "Clutch & Transmission",
+    "Steering & Brakes",
+    "Electrical & Alternator",
+    "Implement Repair",
+  ],
+};
+
+await page.goto(`${BASE}/services`, { waitUntil: "networkidle" });
+await page.waitForSelector(".mw-sell-grid");
+check(
+  "SERVICE opens with the category grid FIRST (no form)",
+  (await page.locator(".mw-sell-cat").count()) === 8 &&
+    (await page.locator("#service-form").count()) === 0,
+);
+check(
+  "SERVICE header nav link exists",
+  (await page.locator('header a[href="/services"]').count()) >= 1,
+);
+const srvBg = await page.evaluate(() =>
+  getComputedStyle(document.querySelector(".mw-sell")).backgroundColor,
+);
+check("SERVICE light theme (off-white background)", isOffWhite(srvBg), srvBg);
+
+await page.locator('[data-category="cars"]').click();
+await page.waitForSelector("#service-form");
+const srvGlass = await page.locator(".mw-sell-form").evaluate((el) => {
+  const s = getComputedStyle(el);
+  return { bg: s.backgroundColor, blur: s.backdropFilter || s.webkitBackdropFilter };
+});
+check(
+  "SERVICE form: glassmorphism (translucent white + blur(10px))",
+  alphaOf(srvGlass.bg) < 1 && /blur\(\s*10px\s*\)/.test(srvGlass.blur),
+  `${srvGlass.bg} / ${srvGlass.blur}`,
+);
+
+const readServiceTypes = async () =>
+  (await txts(page.locator('select[name="serviceType"] option')))
+    .map((s) => s.trim())
+    .filter((s) => s && !/^select service type$/i.test(s));
+
+/* CRITICAL — the dropdown must swap with the picked category. */
+const srvOptionsMatch = (actual, expected) =>
+  actual.length === expected.length && expected.every((label, i) => actual[i] === label);
+let srvActual = await readServiceTypes();
+check(
+  "SERVICE Type list for CARS matches the spec exactly",
+  srvOptionsMatch(srvActual, SVC_LISTS.cars),
+  srvActual.join(" | "),
+);
+
+const srvCategoryOptions = async (catId) => {
+  await page.locator('header a[href="/services"]').first().click();
+  await page.waitForSelector(".mw-sell-grid", { timeout: 5000 });
+  await page.locator(`[data-category="${catId}"]`).click();
+  await page.waitForSelector("#service-form");
+  return readServiceTypes();
+};
+
+srvActual = await srvCategoryOptions("bikes");
+check(
+  "SERVICE Type list for BIKES swaps correctly",
+  srvOptionsMatch(srvActual, SVC_LISTS.bikes),
+  srvActual.join(" | "),
+);
+srvActual = await srvCategoryOptions("three-wheelers");
+check(
+  "SERVICE Type list for 3-WHEELERS swaps correctly",
+  srvOptionsMatch(srvActual, SVC_LISTS["three-wheelers"]),
+  srvActual.join(" | "),
+);
+srvActual = await srvCategoryOptions("trucks");
+check(
+  "SERVICE Type list for TRUCKS matches the shared commercial list",
+  srvOptionsMatch(srvActual, SVC_LISTS.trucks),
+  srvActual.join(" | "),
+);
+srvActual = await srvCategoryOptions("tractors");
+check(
+  "SERVICE Type list for TRACTORS swaps correctly",
+  srvOptionsMatch(srvActual, SVC_LISTS.tractors),
+  srvActual.join(" | "),
+);
+
+/* Back to cars and check every required field, then submit. */
+await page.locator('header a[href="/services"]').first().click();
+await page.waitForSelector(".mw-sell-grid", { timeout: 5000 });
+await page.locator('[data-category="cars"]').click();
+await page.waitForSelector("#service-form");
+const srvFields = await page.evaluate(() => ({
+  serviceType: document.querySelector('select[name="serviceType"]')?.tagName,
+  brand: document.querySelector('select[name="brand"]')?.tagName,
+  model: `${document.querySelector('input[name="model"]')?.tagName}:${document.querySelector('input[name="model"]')?.type}`,
+  year: document.querySelector('select[name="year"]')?.tagName,
+  fuel: document.querySelector('select[name="fuel"]')?.tagName,
+  location: document.querySelector('input[name="location"]')?.type,
+  date: document.querySelector('input[name="date"]')?.type,
+  time: document.querySelector('select[name="time"]')?.tagName,
+  name: document.querySelector('input[name="name"]')?.type,
+  mobile: document.querySelector('input[name="mobile"]')?.type,
+  description: document.querySelector('textarea[name="description"]')?.tagName,
+  photos: document.querySelectorAll('#service-form input[type="file"][multiple]').length,
+  submit: (document.querySelector("#service-form .mw-sell-submit")?.textContent ?? "").trim(),
+}));
+check(
+  "SERVICE form has service type, brand, model, year, fuel, location, date, time, contact, issue box, photos",
+  srvFields.serviceType === "SELECT" &&
+    srvFields.brand === "SELECT" &&
+    srvFields.model === "INPUT:text" &&
+    srvFields.year === "SELECT" &&
+    srvFields.fuel === "SELECT" &&
+    srvFields.location === "text" &&
+    srvFields.date === "date" &&
+    srvFields.time === "SELECT" &&
+    srvFields.name === "text" &&
+    srvFields.mobile === "tel" &&
+    srvFields.description === "TEXTAREA" &&
+    srvFields.photos === 1,
+  JSON.stringify(srvFields),
+);
+check("SERVICE submit button label", /^book service$/i.test(srvFields.submit), srvFields.submit);
+const srvYearOpts = (await txts(page.locator('select[name="year"] option'))).map((y) => y.trim());
+check(
+  "SERVICE year dropdown spans 1992-2026",
+  srvYearOpts.includes("1992") && srvYearOpts.includes("2026"),
+  `${srvYearOpts[1]}..${srvYearOpts[srvYearOpts.length - 1]}`,
+);
+const srvSlots = (await txts(page.locator('select[name="time"] option')))
+  .map((s) => s.trim())
+  .filter((s) => s && !/^select time slot$/i.test(s));
+check("SERVICE preferred time slot dropdown is populated", srvSlots.length >= 3, srvSlots.join(" | "));
+
+/* Fill the booking and submit. */
+const srvService = SVC_LISTS.cars[1];
+await page.selectOption('select[name="serviceType"]', srvService);
+const srvBrands = (await txts(page.locator('select[name="brand"] option'))).map((b) => b.trim());
+const srvBrand = srvBrands.find((b) => /^hyundai$/i.test(b)) ?? srvBrands.find((b) => b && !/^select/i.test(b));
+await page.selectOption('select[name="brand"]', srvBrand);
+await page.fill('input[name="model"]', "Creta");
+await page.selectOption('select[name="year"]', "2021");
+const srvFuel = (await txts(page.locator('select[name="fuel"] option')))
+  .map((f) => f.trim())
+  .find((f) => f && !/^select/i.test(f));
+await page.selectOption('select[name="fuel"]', srvFuel);
+await page.fill('input[name="location"]', "HSR Layout, Bengaluru");
+const srvDate = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+await page.fill('input[name="date"]', srvDate);
+await page.selectOption('select[name="time"]', srvSlots[0]);
+await page.fill('textarea[name="description"]', "AC not cooling at idle.");
+await page.setInputFiles('#service-form input[type="file"][multiple]', {
+  name: "service-car.png",
+  mimeType: "image/png",
+  buffer: Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+    "base64",
+  ),
+});
+await page.waitForTimeout(400);
+check("SERVICE photo thumbnail renders", (await page.locator(".mw-sell-photo").count()) === 1);
+await page.fill('input[name="name"]', "Arkan");
+await page.fill('input[name="mobile"]', "9876543210");
+await page.locator("#service-form .mw-sell-submit").click();
+await page.waitForSelector("#service-done", { timeout: 5000 });
+const srvDoneTitle = await txt(page.locator(".mw-sell-done-title"));
+check(
+  "SERVICE success message matches the required copy",
+  /service request received! our team will contact you shortly to confirm the booking\./i.test(
+    srvDoneTitle,
+  ),
+  srvDoneTitle,
+);
+const srvLead = await page.evaluate(() => {
+  try {
+    const queue = JSON.parse(localStorage.getItem("mw_lead_queue") ?? "[]");
+    return queue[queue.length - 1] ?? null;
+  } catch {
+    return null;
+  }
+});
+check(
+  "SERVICE submission saved as a lead with service type, vehicle, slot and contact",
+  Boolean(
+    srvLead &&
+      srvLead.type === "service_booking" &&
+      srvLead.fields?.category === "Cars" &&
+      srvLead.fields?.serviceType === srvService &&
+      srvLead.fields?.brand === srvBrand &&
+      srvLead.fields?.model === "Creta" &&
+      srvLead.fields?.year === "2021" &&
+      srvLead.fields?.fuel === srvFuel &&
+      srvLead.fields?.location === "HSR Layout, Bengaluru" &&
+      srvLead.fields?.date === srvDate &&
+      srvLead.fields?.time === srvSlots[0] &&
+      srvLead.fields?.description === "AC not cooling at idle." &&
+      srvLead.name === "Arkan" &&
+      srvLead.mobile === "9876543210" &&
+      Array.isArray(srvLead.photos) &&
+      srvLead.photos.length === 1,
+  ),
+  JSON.stringify({ type: srvLead?.type, serviceType: srvLead?.fields?.serviceType, model: srvLead?.fields?.model }),
+);
+await page.screenshot({ path: `${SHOTS}/service-flow.png`, fullPage: true });
+
+await page.locator(".mw-sell-done-actions .mw-sell-submit").click();
+await page.waitForSelector(".mw-sell-grid", { timeout: 3000 });
+check(
+  "SERVICE 'Book Another Service' returns to the category grid",
+  (await page.locator(".mw-sell-cat").count()) === 8,
+);
+await page.locator('[data-category="cars"]').click();
+await page.waitForSelector("#service-form");
+await page.locator('header a[href="/services"]').first().click();
+await page.waitForSelector(".mw-sell-grid", { timeout: 5000 });
+check(
+  "SERVICE header link returns to the category grid from inside the form",
+  (await page.locator(".mw-sell-cat").count()) === 8 &&
+    (await page.locator("#service-form").count()) === 0,
+  page.url(),
+);
+
 const mobile = await browser.newContext({
   viewport: { width: 360, height: 780 },
   isMobile: true,
@@ -1650,6 +1913,19 @@ check(
   "no horizontal overflow on mobile scrap form",
   scrMobile.scroll <= scrMobile.client + 1,
   JSON.stringify(scrMobile),
+);
+await mpage.goto(`${BASE}/services`, { waitUntil: "networkidle" });
+await mpage.waitForSelector(".mw-sell-grid");
+await mpage.locator('[data-category="cars"]').click();
+await mpage.waitForSelector("#service-form");
+const srvMobile = await mpage.evaluate(() => ({
+  scroll: document.documentElement.scrollWidth,
+  client: document.documentElement.clientWidth,
+}));
+check(
+  "no horizontal overflow on mobile service form",
+  srvMobile.scroll <= srvMobile.client + 1,
+  JSON.stringify(srvMobile),
 );
 
 console.log("ERRORS:", errors.length ? errors.join("\n") : "none");

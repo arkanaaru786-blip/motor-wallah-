@@ -1,0 +1,18 @@
+/* ==========================================================================
+   SERVICE booking flow (.mw-srv) — builds on the shared .mw-sell light
+   theme, glassmorphism and bento category grid. Only adds what the unique
+   fields need: the optional issue textarea and the date picker. Scoped so
+   Buy/Sell/Exchange/Compare/Scrap/homepage stay untouched.
+   ========================================================================== */
+
+.mw-srv textarea.mw-sell-input {
+  resize: vertical;
+  min-height: 84px;
+  line-height: 1.5;
+  font-family: inherit;
+}
+
+.mw-srv input[type="date"].mw-sell-input {
+  cursor: pointer;
+  min-height: 42px;
+}

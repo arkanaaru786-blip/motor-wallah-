@@ -8,6 +8,7 @@
 @import "./styles/sell-flow.css";
 @import "./styles/exchange-flow.css";
 @import "./styles/compare-scrap.css";
+@import "./styles/service-flow.css";
 
 @custom-variant dark (&:is(.dark *));
 
