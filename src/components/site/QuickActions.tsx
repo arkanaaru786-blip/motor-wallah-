@@ -2,11 +2,11 @@ import { Link } from "@tanstack/react-router";
 import { Car, HandCoins, IndianRupee, Repeat, Wrench } from "lucide-react";
 
 const ACTIONS = [
-  { icon: Car, label: "Buy a Car", to: "/cars" },
+  { icon: Car, label: "Buy a Car", to: "/buy" },
   { icon: HandCoins, label: "Sell Your Car", to: "/sell-your-car" },
   { icon: Repeat, label: "Exchange", to: "/exchange" },
   { icon: IndianRupee, label: "Finance", to: "/finance" },
-  { icon: Wrench, label: "Book Service", to: "/book-service" },
+  { icon: Wrench, label: "Book Service", to: "/services" },
 ] as const;
 
 export function QuickActions() {

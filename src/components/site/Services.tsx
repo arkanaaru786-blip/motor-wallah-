@@ -19,11 +19,11 @@ const SERVICES = [
   { icon: IndianRupee, label: "Car\nFinance", to: "/finance" },
   { icon: Umbrella, label: "Insurance\nAssistance", to: "/insurance" },
   { icon: FileText, label: "RTO\nDocumentation", to: "/rto" },
-  { icon: CarFront, label: "Complete\nCar Care", to: "/workshop" },
-  { icon: Wrench, label: "Mechanical\nWorks", to: "/workshop" },
-  { icon: BatteryCharging, label: "Electrical\nWorks", to: "/workshop" },
-  { icon: PaintBucket, label: "Denting &\nPainting", to: "/workshop" },
-  { icon: Sparkles, label: "Detailing", to: "/workshop" },
+  { icon: CarFront, label: "Complete\nCar Care", to: "/services" },
+  { icon: Wrench, label: "Mechanical\nWorks", to: "/services" },
+  { icon: BatteryCharging, label: "Electrical\nWorks", to: "/services" },
+  { icon: PaintBucket, label: "Denting &\nPainting", to: "/services" },
+  { icon: Sparkles, label: "Detailing", to: "/services" },
   { icon: Sofa, label: "Car\nAccessories", to: "/accessories" },
   { icon: BadgeCheck, label: "Extended\nWarranty", to: "/warranty" },
   { icon: Truck, label: "Roadside\nAssistance", to: "/roadside-assistance" },
@@ -58,7 +58,7 @@ export function Services() {
             Explore All Services
           </Link>
           <Link
-            to="/book-service"
+            to="/services"
             className="inline-flex items-center justify-center gap-2 border border-border bg-card px-6 py-3 text-xs font-bold uppercase tracking-[0.1em] transition-colors hover:border-primary hover:text-primary"
           >
             Book Service

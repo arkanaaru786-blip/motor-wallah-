@@ -1,23 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PagePlaceholder } from "@/components/site/PagePlaceholder";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 
-const TITLE = "Book a Service | Motor Wallah";
-const DESCRIPTION = "Book a car service slot with the Motor Wallah workshop in Indore.";
-
+/**
+ * Legacy route kept for old links/bookmarks: "Book Service" now lives at
+ * /services (category grid first). Anything landing here is redirected so no
+ * user ever sees the old placeholder page again.
+ */
 export const Route = createFileRoute("/book-service")({
-  head: () => ({
-    meta: [
-      { title: TITLE },
-      { name: "description", content: DESCRIPTION },
-      { property: "og:title", content: TITLE },
-      { property: "og:description", content: DESCRIPTION },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  component: Page,
+  component: () => <Navigate to="/services" />,
 });
-
-function Page() {
-  return <PagePlaceholder title="Book a Service" description="Book a car service slot with the Motor Wallah workshop in Indore." />;
-}

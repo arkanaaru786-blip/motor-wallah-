@@ -85,13 +85,13 @@ const LISTINGS = [
 ];
 
 const ACTIONS = [
-  { label: "Buy", to: "/cars", icon: ShoppingBag, text: "Find your next ride" },
+  { label: "Buy", to: "/buy", icon: ShoppingBag, text: "Find your next ride" },
   { label: "Sell", to: "/sell-your-car", icon: Store, text: "Get the best value" },
   { label: "Exchange", to: "/exchange", icon: ArrowLeftRight, text: "Upgrade easily" },
   { label: "Value", to: "/sell-your-car", icon: Calculator, text: "Know your worth" },
-  { label: "Compare", to: "/cars", icon: GitCompareArrows, text: "Make the right choice" },
+  { label: "Compare", to: "/compare", icon: GitCompareArrows, text: "Make the right choice" },
   { label: "Service", to: "/services", icon: Wrench, text: "Keep it running" },
-  { label: "Scrap", to: "/contact", icon: Recycle, text: "Turn old into value" },
+  { label: "Scrap", to: "/scrap", icon: Recycle, text: "Turn old into value" },
 ] as const;
 
 const TRUST = [
