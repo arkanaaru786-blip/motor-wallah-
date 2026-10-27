@@ -1624,6 +1624,10 @@ check(
   "SERVICE header nav link exists",
   (await page.locator('header a[href="/services"]').count()) >= 1,
 );
+check(
+  "SERVICE hero offers a Track Service link",
+  (await page.locator('.mw-sell-hero a[href="/track"]').count()) >= 1,
+);
 const srvBg = await page.evaluate(() =>
   getComputedStyle(document.querySelector(".mw-sell")).backgroundColor,
 );
@@ -1806,9 +1810,31 @@ check(
   ),
   JSON.stringify({ type: srvLead?.type, serviceType: srvLead?.fields?.serviceType, model: srvLead?.fields?.model }),
 );
+
+/* Live tracking — the unique ID shown on the success screen. */
+const srvTrackId = await txt(page.locator('[data-testid="tracking-id"] .mw-srv-trackid-value'));
+check(
+  "SERVICE success shows a unique MW-SRV-##### tracking ID",
+  /^MW-SRV-\d{5}$/.test(srvTrackId),
+  srvTrackId,
+);
+check(
+  "SERVICE success tells the user to save the ID",
+  /save this id to track your service/i.test(await txt(page.locator(".mw-srv-trackid"))),
+  await txt(page.locator(".mw-srv-trackid")),
+);
+check(
+  "SERVICE lead stores the tracking ID",
+  srvLead?.fields?.trackingId === srvTrackId,
+  String(srvLead?.fields?.trackingId),
+);
+check(
+  "SERVICE success links to the Track page carrying the ID",
+  (await page.locator(`#service-done a[href*="id=${srvTrackId}"][href*="/track"]`).count()) >= 1,
+);
 await page.screenshot({ path: `${SHOTS}/service-flow.png`, fullPage: true });
 
-await page.locator(".mw-sell-done-actions .mw-sell-submit").click();
+await page.locator("#service-done .mw-sell-done-actions button.mw-sell-submit").click();
 await page.waitForSelector(".mw-sell-grid", { timeout: 3000 });
 check(
   "SERVICE 'Book Another Service' returns to the category grid",
@@ -1823,6 +1849,123 @@ check(
   (await page.locator(".mw-sell-cat").count()) === 8 &&
     (await page.locator("#service-form").count()) === 0,
   page.url(),
+);
+
+/* ================================================================== */
+/* TRACK SERVICE — ID + mobile → 5-stage glass progress bar (mocked)   */
+/* ================================================================== */
+await page.goto(`${BASE}/track?id=${srvTrackId}`, { waitUntil: "networkidle" });
+await page.waitForSelector("#track-panel");
+check(
+  "TRACK opens with the glass form",
+  (await page.locator(".mw-trk-form").count()) === 1,
+);
+const trkBg = await page.evaluate(() =>
+  getComputedStyle(document.querySelector(".mw-sell")).backgroundColor,
+);
+check("TRACK light theme (off-white background)", isOffWhite(trkBg), trkBg);
+const trkGlass = await page.locator(".mw-trk-form").evaluate((el) => {
+  const s = getComputedStyle(el);
+  return { bg: s.backgroundColor, blur: s.backdropFilter || s.webkitBackdropFilter };
+});
+check(
+  "TRACK form: glassmorphism (translucent white + blur(10px))",
+  alphaOf(trkGlass.bg) < 1 && /blur\(\s*10px\s*\)/.test(trkGlass.blur),
+  `${trkGlass.bg} / ${trkGlass.blur}`,
+);
+check(
+  "TRACK ID prefilled from the success-screen link",
+  (await page.inputValue('[data-testid="track-id-input"]')) === srvTrackId,
+);
+
+await page.fill('[data-testid="track-mobile-input"]', "9876543210");
+await page.locator(".mw-trk-form .mw-sell-submit").click();
+await page.waitForSelector("#track-result", { timeout: 5000 });
+const trkLabels = (await txts(page.locator(".mw-trk-stage .mw-trk-label"))).map((s) => s.trim());
+check(
+  "TRACK shows the 5 statuses in order",
+  trkLabels.join(",") === "Pending,Picked Up,In Service,Ready,Delivered",
+  trkLabels.join(","),
+);
+const trkStates = await page.locator(".mw-trk-stage").evaluateAll((els) =>
+  els.map((el) => el.getAttribute("data-state")),
+);
+check(
+  "TRACK fresh booking highlights Pending (current, 4 upcoming)",
+  trkStates[0] === "current" && trkStates.slice(1).every((s) => s === "next"),
+  trkStates.join(","),
+);
+check(
+  "TRACK current status line reads Pending — Request Received",
+  /current status:\s*pending\s*[—-]\s*request received/i.test(
+    await txt(page.locator('[data-testid="track-current"]')),
+  ),
+  await txt(page.locator('[data-testid="track-current"]')),
+);
+check(
+  "TRACK has a visual progress bar",
+  (await page.locator(".mw-trk-bar").count()) === 1 &&
+    (await page.locator(".mw-trk-bar-fill").count()) === 1,
+);
+const trkResultGlass = await page.locator(".mw-trk-result").evaluate((el) => {
+  const s = getComputedStyle(el);
+  return { bg: s.backgroundColor, blur: s.backdropFilter || s.webkitBackdropFilter };
+});
+check(
+  "TRACK result panel: glassmorphism",
+  alphaOf(trkResultGlass.bg) < 1 && /blur\(\s*10px\s*\)/.test(trkResultGlass.blur),
+  `${trkResultGlass.bg} / ${trkResultGlass.blur}`,
+);
+check(
+  "TRACK shows this booking's details (service + vehicle)",
+  /ac repair/i.test(await txt(page.locator(".mw-trk-booking"))) &&
+    /creta/i.test(await txt(page.locator(".mw-trk-booking"))),
+  await txt(page.locator(".mw-trk-booking")),
+);
+check(
+  "TRACK discloses that statuses are simulated",
+  /simulated for this preview/i.test(await txt(page.locator(".mw-trk-form"))),
+);
+await page.screenshot({ path: `${SHOTS}/track-flow.png`, fullPage: true });
+
+/* Wrong mobile for a real ID → clear error, no result. */
+await page.fill('[data-testid="track-mobile-input"]', "1111111111");
+await page.locator(".mw-trk-form .mw-sell-submit").click();
+await page.waitForSelector('[data-testid="track-error"]', { timeout: 3000 });
+check(
+  "TRACK wrong mobile → clear mismatch error",
+  /no service found for this tracking id and mobile number/i.test(
+    await txt(page.locator('[data-testid="track-error"]')),
+  ),
+  await txt(page.locator('[data-testid="track-error"]')),
+);
+check("TRACK error hides the stale result", (await page.locator("#track-result").count()) === 0);
+
+/* Malformed ID → blocked by the native MW-SRV-##### pattern validation,
+   so the form never reaches the lookup step. */
+await page.fill('[data-testid="track-id-input"]', "ABC-1");
+await page.fill('[data-testid="track-mobile-input"]', "9876543210");
+const trkInvalid = await page.$eval('[data-testid="track-id-input"]', (el) => ({
+  valid: el.checkValidity(),
+  message: el.validationMessage,
+}));
+await page.locator(".mw-trk-form .mw-sell-submit").click();
+await page.waitForTimeout(200);
+check(
+  "TRACK malformed ID → native format validation blocks the submit",
+  trkInvalid.valid === false && (await page.locator("#track-result").count()) === 0,
+  JSON.stringify(trkInvalid),
+);
+
+/* Unknown but well-formed ID → mock demo status still renders. */
+await page.fill('[data-testid="track-id-input"]', "MW-SRV-99999");
+await page.locator(".mw-trk-form .mw-sell-submit").click();
+await page.waitForSelector("#track-result", { timeout: 3000 });
+check(
+  "TRACK unknown ID falls back to mock demo data (5 stages)",
+  (await page.locator(".mw-trk-stage").count()) === 5 &&
+    /sample tracking data/i.test(await txt(page.locator(".mw-trk-mock"))),
+  await txt(page.locator(".mw-trk-mock")),
 );
 
 const mobile = await browser.newContext({
@@ -1927,6 +2070,21 @@ check(
   srvMobile.scroll <= srvMobile.client + 1,
   JSON.stringify(srvMobile),
 );
+await mpage.goto(`${BASE}/track?id=MW-SRV-12345`, { waitUntil: "networkidle" });
+await mpage.waitForSelector("#track-panel");
+await mpage.fill('[data-testid="track-mobile-input"]', "9876543210");
+await mpage.locator(".mw-trk-form .mw-sell-submit").click();
+await mpage.waitForSelector("#track-result", { timeout: 5000 });
+const trkMobile = await mpage.evaluate(() => ({
+  scroll: document.documentElement.scrollWidth,
+  client: document.documentElement.clientWidth,
+}));
+check(
+  "no horizontal overflow on mobile track result",
+  trkMobile.scroll <= trkMobile.client + 1,
+  JSON.stringify(trkMobile),
+);
+await mpage.screenshot({ path: `${SHOTS}/mobile-track.png`, fullPage: true });
 
 console.log("ERRORS:", errors.length ? errors.join("\n") : "none");
 const failed = results.filter((r) => !r.pass);

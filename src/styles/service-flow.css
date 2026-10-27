@@ -3,6 +3,8 @@
    theme, glassmorphism and bento category grid. Only adds what the unique
    fields need: the optional issue textarea and the date picker. Scoped so
    Buy/Sell/Exchange/Compare/Scrap/homepage stay untouched.
+   Also holds live tracking: the success-screen Tracking ID badge (.mw-srv-
+   trackid) and the Track Service page (.mw-trk). Statuses are mocked.
    ========================================================================== */
 
 .mw-srv textarea.mw-sell-input {
@@ -15,4 +17,252 @@
 .mw-srv input[type="date"].mw-sell-input {
   cursor: pointer;
   min-height: 42px;
+}
+
+/* --------------------------------------------------------------------------
+   Success screen — Tracking ID badge.
+   -------------------------------------------------------------------------- */
+.mw-srv-trackid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, #fff);
+  background: color-mix(in srgb, var(--primary) 6%, rgb(255 255 255 / 0.75));
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 28px -20px oklch(0 0 0 / 0.4);
+}
+.mw-srv-trackid-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.mw-srv-trackid-value {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 4vw, 2.1rem);
+  line-height: 1;
+  letter-spacing: 0.06em;
+  color: var(--primary);
+}
+.mw-srv-trackid-note {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+/* --------------------------------------------------------------------------
+   Track Service page (.mw-trk) — glass result panel + progress stepper.
+   -------------------------------------------------------------------------- */
+.mw-trk-result {
+  padding: 22px;
+  border-radius: 16px;
+  border: 1px solid rgb(255 255 255 / 0.85);
+  background: rgb(255 255 255 / 0.78);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 2px 4px oklch(0 0 0 / 0.05),
+    0 20px 42px -22px oklch(0 0 0 / 0.4);
+}
+.mw-trk-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.mw-trk-kicker {
+  font-size: 0.63rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.mw-trk-id {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 3.4vw, 2rem);
+  line-height: 1;
+  letter-spacing: 0.05em;
+  color: var(--primary);
+}
+.mw-trk-status-pill {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: oklch(1 0 0);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 10px 22px -14px var(--primary);
+}
+.mw-trk-current {
+  margin-top: 12px;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--muted-foreground);
+}
+.mw-trk-current strong {
+  color: var(--foreground);
+}
+.mw-trk-mock {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--primary) 7%, #fff);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+/* Slim visual progress bar above the stepper. */
+.mw-trk-bar {
+  position: relative;
+  height: 8px;
+  margin-top: 16px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 12%, #fff);
+  overflow: hidden;
+}
+.mw-trk-bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--primary) 75%, #fff), var(--primary));
+  transition: width 600ms ease;
+}
+
+/* Five-stage stepper (bento columns on desktop). */
+.mw-trk-stages {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+  padding: 0;
+  list-style: none;
+}
+.mw-trk-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+}
+.mw-trk-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: color-mix(in srgb, var(--foreground) 8%, #fff);
+  color: var(--muted-foreground);
+}
+.mw-trk-label {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.mw-trk-text {
+  font-size: 0.7rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+.mw-trk-stage[data-state="done"] .mw-trk-dot {
+  background: var(--primary);
+  color: oklch(1 0 0);
+}
+.mw-trk-stage[data-state="done"] .mw-trk-label {
+  color: var(--foreground);
+}
+.mw-trk-stage[data-state="current"] {
+  border-color: color-mix(in srgb, var(--primary) 25%, #fff);
+  background: color-mix(in srgb, var(--primary) 6%, rgb(255 255 255 / 0.75));
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 26px -20px oklch(0 0 0 / 0.4);
+}
+.mw-trk-stage[data-state="current"] .mw-trk-dot {
+  background: var(--primary);
+  color: oklch(1 0 0);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 45%, transparent);
+  animation: mw-trk-pulse 1.8s ease-out infinite;
+}
+.mw-trk-stage[data-state="current"] .mw-trk-label {
+  color: var(--primary);
+}
+.mw-trk-stage[data-state="current"] .mw-trk-text {
+  color: var(--foreground);
+}
+
+@keyframes mw-trk-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 40%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 9px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+/* Booking summary chips + actions. */
+.mw-trk-booking {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.mw-trk-booking span {
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--home-line);
+  background: rgb(255 255 255 / 0.7);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+.mw-trk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+@media (max-width: 760px) {
+  .mw-trk-result {
+    padding: 16px;
+  }
+  /* Vertical timeline on phones. */
+  .mw-trk-stages {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .mw-trk-stage {
+    flex-direction: row;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 10px;
+    border-radius: 12px;
+  }
+  .mw-trk-text {
+    flex: 1;
+  }
 }

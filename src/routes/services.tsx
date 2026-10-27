@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
   ArrowRight,
@@ -23,6 +23,7 @@ import {
   type BuyCategoryId,
 } from "@/lib/buy-catalog";
 import { submitLead } from "@/lib/leads";
+import { newTrackingId } from "@/lib/service-tracking";
 import { toUploadedFile, type UploadedFile } from "@/lib/uploads";
 import { PHONE_DISPLAY, PHONE_HREF, whatsappLink } from "@/lib/site";
 
@@ -147,6 +148,7 @@ type Submission = {
   slot: string;
   name: string;
   mobile: string;
+  trackingId: string;
 };
 
 function Page() {
@@ -255,6 +257,10 @@ function Page() {
     }
     setError(null);
 
+    // Unique Tracking ID (MW-SRV-12345) — generated once per booking, saved
+    // with the lead and shown on the success screen for live status tracking.
+    const trackingId = newTrackingId();
+
     // Persist through the project's lead capture — local lead queue first,
     // CRM endpoint (VITE_LEAD_ENDPOINT) second — so the team receives it.
     await submitLead({
@@ -274,6 +280,7 @@ function Page() {
         date,
         time,
         description,
+        trackingId,
         name,
         mobile,
       },
@@ -287,6 +294,7 @@ function Page() {
       slot: `${date} · ${time}`,
       name,
       mobile,
+      trackingId,
     });
     pendingScroll.current = "service-done";
     navigate({ to: "/services", search: { view: "done", cat: activeCategory.id } });
@@ -326,6 +334,9 @@ function Page() {
               <a className="mw-sell-ghost-btn" href={PHONE_HREF}>
                 <Phone size={14} /> Call {PHONE_DISPLAY}
               </a>
+              <Link className="mw-sell-ghost-btn" to="/track">
+                Track Service
+              </Link>
             </div>
             <div className="mw-sell-steps" aria-label="Service flow steps">
               {["Choose Category", "Service Details", "Submitted"].map((label, i) => (
@@ -661,12 +672,27 @@ function Page() {
                 <span>{submission.vehicle}</span>
                 <span>{submission.slot}</span>
               </div>
+
+              {/* Live tracking — unique ID for this booking. */}
+              <div className="mw-srv-trackid" data-testid="tracking-id">
+                <span className="mw-srv-trackid-label">Your Tracking ID</span>
+                <strong className="mw-srv-trackid-value">{submission.trackingId}</strong>
+                <p className="mw-srv-trackid-note">Save this ID to track your service.</p>
+              </div>
+
               <p className="mw-sell-done-note">
                 Saved to this project's lead queue — when your CRM endpoint
                 (VITE_LEAD_ENDPOINT) is connected, every submission is delivered to your team
                 automatically. Want a faster reply now? Use WhatsApp or call us directly.
               </p>
               <div className="mw-sell-done-actions">
+                <Link
+                  className="mw-sell-submit"
+                  to="/track"
+                  search={{ id: submission.trackingId }}
+                >
+                  Track My Service
+                </Link>
                 <button type="button" className="mw-sell-submit" onClick={restart}>
                   Book Another Service
                 </button>

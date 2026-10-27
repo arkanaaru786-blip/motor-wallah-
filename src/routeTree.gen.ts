@@ -28,6 +28,7 @@ import { Route as RtoRouteImport } from './routes/rto'
 import { Route as ScrapRouteImport } from './routes/scrap'
 import { Route as SellYourCarRouteImport } from './routes/sell-your-car'
 import { Route as ServicesRouteImport } from './routes/services'
+import { Route as TrackRouteImport } from './routes/track'
 import { Route as WarrantyRouteImport } from './routes/warranty'
 import { Route as WorkshopRouteImport } from './routes/workshop'
 import { Route as BuyIndexRouteImport } from './routes/buy.index'
@@ -140,6 +141,11 @@ const ServicesRoute = ServicesRouteImport.update({
   path: '/services',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TrackRoute = TrackRouteImport.update({
+  id: '/track',
+  path: '/track',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WarrantyRoute = WarrantyRouteImport.update({
   id: '/warranty',
   path: '/warranty',
@@ -241,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/scrap': typeof ScrapRoute
   '/sell-your-car': typeof SellYourCarRoute
   '/services': typeof ServicesRoute
+  '/track': typeof TrackRoute
   '/warranty': typeof WarrantyRoute
   '/workshop': typeof WorkshopRoute
   '/buy/bikes': typeof BuyBikesRoute
@@ -278,6 +285,7 @@ export interface FileRoutesByTo {
   '/scrap': typeof ScrapRoute
   '/sell-your-car': typeof SellYourCarRoute
   '/services': typeof ServicesRoute
+  '/track': typeof TrackRoute
   '/warranty': typeof WarrantyRoute
   '/workshop': typeof WorkshopRoute
   '/buy/bikes': typeof BuyBikesRoute
@@ -316,6 +324,7 @@ export interface FileRoutesById {
   '/scrap': typeof ScrapRoute
   '/sell-your-car': typeof SellYourCarRoute
   '/services': typeof ServicesRoute
+  '/track': typeof TrackRoute
   '/warranty': typeof WarrantyRoute
   '/workshop': typeof WorkshopRoute
   '/buy/bikes': typeof BuyBikesRoute
@@ -355,6 +364,7 @@ export interface FileRouteTypes {
     | '/scrap'
     | '/sell-your-car'
     | '/services'
+    | '/track'
     | '/warranty'
     | '/workshop'
     | '/buy/bikes'
@@ -392,6 +402,7 @@ export interface FileRouteTypes {
     | '/scrap'
     | '/sell-your-car'
     | '/services'
+    | '/track'
     | '/warranty'
     | '/workshop'
     | '/buy/bikes'
@@ -429,6 +440,7 @@ export interface FileRouteTypes {
     | '/scrap'
     | '/sell-your-car'
     | '/services'
+    | '/track'
     | '/warranty'
     | '/workshop'
     | '/buy/bikes'
@@ -467,6 +479,7 @@ export interface RootRouteChildren {
   ScrapRoute: typeof ScrapRoute
   SellYourCarRoute: typeof SellYourCarRoute
   ServicesRoute: typeof ServicesRoute
+  TrackRoute: typeof TrackRoute
   WarrantyRoute: typeof WarrantyRoute
   WorkshopRoute: typeof WorkshopRoute
   BuyBikesRoute: typeof BuyBikesRoute
@@ -619,6 +632,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServicesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/track': {
+      id: '/track'
+      path: '/track'
+      fullPath: '/track'
+      preLoaderRoute: typeof TrackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/warranty': {
       id: '/warranty'
       path: '/warranty'
@@ -766,6 +786,7 @@ const rootRouteChildren: RootRouteChildren = {
   ScrapRoute: ScrapRoute,
   SellYourCarRoute: SellYourCarRoute,
   ServicesRoute: ServicesRoute,
+  TrackRoute: TrackRoute,
   WarrantyRoute: WarrantyRoute,
   WorkshopRoute: WorkshopRoute,
   BuyBikesRoute: BuyBikesRoute,
