@@ -1,0 +1,68 @@
+/* ==========================================================================
+   AUTO PARTS flow (.mw-parts) — builds on the shared .mw-sell light theme,
+   glassmorphism and bento category grid. The parts categories have no photo
+   set, so their grid cards use an icon tile instead of a vehicle image.
+   Scoped so Buy/Sell/Exchange/Compare/Scrap/Service/homepage stay untouched.
+   ========================================================================== */
+
+.mw-parts-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 720px) {
+  .mw-parts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Icon tile standing in for the vehicle photo on parts category cards. */
+.mw-sell-cat-media.mw-parts-media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.85),
+    rgba(255, 255, 255, 0.45)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  color: var(--primary, #e11d2e);
+  backdrop-filter: blur(10px);
+}
+
+.mw-parts-grid .mw-sell-cat:hover .mw-parts-media {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 40px rgba(17, 24, 39, 0.12);
+}
+
+/* Guidance strip under the parts category grid. */
+.mw-parts-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 26px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 10px 30px rgba(17, 24, 39, 0.07);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #374151;
+}
+
+.mw-parts-note svg {
+  flex: none;
+  color: var(--primary, #e11d2e);
+}
+
+.mw-parts-note-link {
+  color: var(--primary, #e11d2e);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

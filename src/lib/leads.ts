@@ -17,6 +17,7 @@ export type LeadType =
   | "exchange_vehicle"
   | "scrap_vehicle"
   | "service_booking"
+  | "parts_enquiry"
   | "listing_enquiry"
   | "listing_offer"
   | "listing_report"

@@ -9,6 +9,7 @@
 @import "./styles/exchange-flow.css";
 @import "./styles/compare-scrap.css";
 @import "./styles/service-flow.css";
+@import "./styles/parts-flow.css";
 
 @custom-variant dark (&:is(.dark *));
 
