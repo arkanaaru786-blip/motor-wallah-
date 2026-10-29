@@ -16,6 +16,7 @@ import { Route as BookServiceRouteImport } from './routes/book-service'
 import { Route as CareersRouteImport } from './routes/careers'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as DecorRouteImport } from './routes/decor'
 import { Route as ExchangeRouteImport } from './routes/exchange'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as FinanceRouteImport } from './routes/finance'
@@ -79,6 +80,11 @@ const CompareRoute = CompareRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DecorRoute = DecorRouteImport.update({
+  id: '/decor',
+  path: '/decor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExchangeRoute = ExchangeRouteImport.update({
@@ -235,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/careers': typeof CareersRoute
   '/compare': typeof CompareRoute
   '/contact': typeof ContactRoute
+  '/decor': typeof DecorRoute
   '/exchange': typeof ExchangeRoute
   '/faq': typeof FaqRoute
   '/finance': typeof FinanceRoute
@@ -273,6 +280,7 @@ export interface FileRoutesByTo {
   '/careers': typeof CareersRoute
   '/compare': typeof CompareRoute
   '/contact': typeof ContactRoute
+  '/decor': typeof DecorRoute
   '/exchange': typeof ExchangeRoute
   '/faq': typeof FaqRoute
   '/finance': typeof FinanceRoute
@@ -312,6 +320,7 @@ export interface FileRoutesById {
   '/careers': typeof CareersRoute
   '/compare': typeof CompareRoute
   '/contact': typeof ContactRoute
+  '/decor': typeof DecorRoute
   '/exchange': typeof ExchangeRoute
   '/faq': typeof FaqRoute
   '/finance': typeof FinanceRoute
@@ -352,6 +361,7 @@ export interface FileRouteTypes {
     | '/careers'
     | '/compare'
     | '/contact'
+    | '/decor'
     | '/exchange'
     | '/faq'
     | '/finance'
@@ -390,6 +400,7 @@ export interface FileRouteTypes {
     | '/careers'
     | '/compare'
     | '/contact'
+    | '/decor'
     | '/exchange'
     | '/faq'
     | '/finance'
@@ -428,6 +439,7 @@ export interface FileRouteTypes {
     | '/careers'
     | '/compare'
     | '/contact'
+    | '/decor'
     | '/exchange'
     | '/faq'
     | '/finance'
@@ -467,6 +479,7 @@ export interface RootRouteChildren {
   CareersRoute: typeof CareersRoute
   CompareRoute: typeof CompareRoute
   ContactRoute: typeof ContactRoute
+  DecorRoute: typeof DecorRoute
   ExchangeRoute: typeof ExchangeRoute
   FaqRoute: typeof FaqRoute
   FinanceRoute: typeof FinanceRoute
@@ -546,6 +559,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/decor': {
+      id: '/decor'
+      path: '/decor'
+      fullPath: '/decor'
+      preLoaderRoute: typeof DecorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/exchange': {
@@ -774,6 +794,7 @@ const rootRouteChildren: RootRouteChildren = {
   CareersRoute: CareersRoute,
   CompareRoute: CompareRoute,
   ContactRoute: ContactRoute,
+  DecorRoute: DecorRoute,
   ExchangeRoute: ExchangeRoute,
   FaqRoute: FaqRoute,
   FinanceRoute: FinanceRoute,

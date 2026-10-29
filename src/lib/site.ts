@@ -16,6 +16,7 @@ export const MAIN_NAV = [
   { label: "Compare", to: "/compare" },
   { label: "Service", to: "/services" },
   { label: "Scrap", to: "/scrap" },
+  { label: "Decor", to: "/decor" },
   { label: "Franchise", to: "/franchise" },
 ] as const;
 

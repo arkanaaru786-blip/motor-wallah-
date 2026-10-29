@@ -10,6 +10,7 @@ import {
   GitCompareArrows,
   Wrench,
   Recycle,
+  Sparkles,
 } from "lucide-react";
 import { BUY_CATEGORIES, MAIN_NAV } from "@/lib/site";
 import { BrandLogo } from "@/components/site/BrandLogo";
@@ -23,6 +24,7 @@ const NAV_ICONS = [
   GitCompareArrows,
   Wrench,
   Recycle,
+  Sparkles,
   Store,
 ];
 
