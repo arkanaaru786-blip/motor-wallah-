@@ -28,11 +28,12 @@ import {
 } from "@/lib/buy-catalog";
 import { submitLead } from "@/lib/leads";
 import {
-  DECOR_CATEGORY_LIST,
   buildDecorProducts,
+  decorCategoriesFor,
+  decorCategoryFor,
+  decorIconFor,
   cartCount,
   cartTotal,
-  getDecorCategory,
   newDecorOrderId,
   readDecorCart,
   rupees,
@@ -140,7 +141,9 @@ function Page() {
   const vehicle = getBuyCategory(cat) ?? null;
   // Without an explicit step the first screen is ALWAYS the vehicle grid.
   const activeStep: Step = step ?? "vehicle";
-  const decorCat = getDecorCategory(dec);
+  // Only categories actually offered for this vehicle (Bikes/Tractors differ).
+  const vehicleDecorCategories = vehicle ? decorCategoriesFor(vehicle.id) : [];
+  const decorCat = decorCategoryFor(vehicle?.id, dec) ?? null;
 
   const products = useMemo(
     () =>
@@ -499,11 +502,20 @@ function Page() {
                 </span>
               </div>
 
+              {/* Glass breadcrumb — Bug 1: always name the selected vehicle. */}
+              <nav className="mw-parts-crumbs" aria-label="Store path" data-testid="decor-breadcrumb">
+                <button type="button" onClick={() => go({})}>
+                  Vehicle: {vehicle.label}
+                </button>
+                <ChevronRight size={13} aria-hidden="true" />
+                <span aria-current="page">Choose Decor Category</span>
+              </nav>
+
               <p className="mw-sell-kicker">
                 <span aria-hidden="true" /> Step 2 · Choose a decor category
               </p>
-              <h2 id="decor-cat-title" className="mw-sell-title">
-                Pick your <span>decor style</span>
+              <h2 id="decor-cat-title" className="mw-sell-title" data-testid="decor-heading">
+                Pick your decor style <span>for {vehicle.label}</span>
               </h2>
               <p className="mw-sell-text">
                 Every category opens a storefront of products for {vehicle.label} — with
@@ -511,8 +523,8 @@ function Page() {
               </p>
 
               <div className="mw-parts-cats" data-testid="decor-category-grid">
-                {DECOR_CATEGORY_LIST.map((item) => {
-                  const Icon = item.icon;
+                {vehicleDecorCategories.map((item) => {
+                  const Icon = decorIconFor(item, vehicle.id);
                   return (
                     <button
                       key={item.id}
@@ -539,11 +551,11 @@ function Page() {
           <section id="decor-step" className="mw-sell-section" aria-labelledby="decor-shop-title">
             <div className="home-container">
               {/* Glass breadcrumb — every earlier step is one click away. */}
-              <nav className="mw-parts-crumbs" aria-label="Store path">
-                <button type="button" onClick={() => go({})}>Vehicle</button>
+              <nav className="mw-parts-crumbs" aria-label="Store path" data-testid="decor-breadcrumb">
+                <button type="button" onClick={() => go({})}>Vehicle: {vehicle.label}</button>
                 <ChevronRight size={13} aria-hidden="true" />
                 <button type="button" onClick={() => go({ step: "decor", cat: cat! })}>
-                  {vehicle.label}
+                  Choose Decor Category
                 </button>
                 <ChevronRight size={13} aria-hidden="true" />
                 <span aria-current="page">{decorCat.label}</span>
@@ -617,7 +629,7 @@ function Page() {
               ) : (
                 <div className="mw-parts-products" data-testid="product-grid">
                   {shownProducts.map((product) => {
-                    const Icon = decorCat.icon;
+                    const Icon = decorIconFor(decorCat, vehicle.id);
                     return (
                       <article key={product.id} className="mw-parts-product" data-testid="product-card">
                         <div className="mw-parts-product-media" aria-hidden="true">

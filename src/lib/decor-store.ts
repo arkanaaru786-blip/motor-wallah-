@@ -16,16 +16,39 @@
  */
 import {
   Armchair,
+  Bike,
+  Bus,
+  Car,
   CarFront,
+  Gauge,
+  HardHat,
   Lightbulb,
   SprayCan,
   Speaker,
+  Tractor,
+  Truck,
   type LucideIcon,
 } from "lucide-react";
+
+/**
+ * Vehicle-context icons — the Exterior Styling card (and any vehicle-specific
+ * card) must show the vehicle being decorated, never a Car icon everywhere.
+ */
+export const VEHICLE_DECOR_ICON: Record<string, LucideIcon> = {
+  cars: Car,
+  taxi: Car,
+  bikes: Bike,
+  "three-wheelers": Bike,
+  scv: Truck,
+  trucks: Truck,
+  buses: Bus,
+  tractors: Tractor,
+};
 
 export type DecorCategory = {
   id: string;
   label: string;
+  /** Fallback icon; vehicle-specific cards override via decorIconFor(). */
   icon: LucideIcon;
   blurb: string;
   /** Seller / brand names used in generated product names. */
@@ -124,7 +147,102 @@ export const DECOR_CATEGORY_LIST: DecorCategory[] = [
     min: 249,
     max: 5999,
   },
+  {
+    id: "bike-styling",
+    label: "Bike Styling",
+    icon: Bike,
+    blurb: "Graphics & wraps for your bike",
+    brands: ["Stylo", "Autofy", "Zext", "Mobo", "3M"],
+    items: [
+      "Full Body Graphic Kit",
+      "Tank Pad Set",
+      "Vinyl Wrap Roll 2x5m",
+      "Decal Sticker Set",
+      "Fairing Graphics Kit",
+      "Swingarm Sticker Pack",
+    ],
+    min: 299,
+    max: 6999,
+  },
+  {
+    id: "rider-gear",
+    label: "Rider Gear",
+    icon: HardHat,
+    blurb: "Helmets, gloves & guards",
+    brands: ["Studds", "Steelbird", "Axor", "ViaTerra", "MT helmets"],
+    items: [
+      "Full Face Helmet",
+      "Riding Gloves",
+      "Armoured Riding Jacket",
+      "Knee & Elbow Guards",
+      "Riding Boots",
+      "Bike Cover",
+    ],
+    min: 699,
+    max: 9999,
+  },
+  {
+    id: "performance",
+    label: "Performance Parts",
+    icon: Gauge,
+    blurb: "Exhausts & upgrades",
+    brands: ["Akrapovic", "Yoshimura", "LeoVince", "BMC", "RK"],
+    items: [
+      "Slip-On Exhaust",
+      "Full System Exhaust",
+      "Free-Flow Silencer",
+      "Performance Air Filter",
+      "Sprocket & Chain Kit",
+      "Racing Spark Plug",
+    ],
+    min: 1499,
+    max: 24999,
+  },
 ];
+
+/* -------------------------------------------------------------------------- */
+/* Vehicle-specific decor categories (Bug 2):                                 */
+/*   cars / trucks / buses (+ unspecified) → all five                         */
+/*   tractors                          → no Interior Decor                    */
+/*   bikes                             → no Interior Decor, no Audio;         */
+/*                                     adds Bike Styling / Rider Gear /       */
+/*                                     Performance Parts                      */
+/* -------------------------------------------------------------------------- */
+const DEFAULT_DECOR_IDS = ["interior", "exterior", "lighting", "audio", "utility"];
+
+const VEHICLE_DECOR_IDS: Record<string, string[]> = {
+  tractors: ["exterior", "lighting", "audio", "utility"],
+  bikes: ["bike-styling", "rider-gear", "performance", "lighting", "utility"],
+};
+
+/** Decor categories available for a vehicle, in display order. */
+export const decorCategoriesFor = (vehicleId: string | undefined | null): DecorCategory[] => {
+  const ids = (vehicleId && VEHICLE_DECOR_IDS[vehicleId]) || DEFAULT_DECOR_IDS;
+  return ids
+    .map((id) => DECOR_CATEGORY_LIST.find((c) => c.id === id))
+    .filter((c): c is DecorCategory => Boolean(c));
+};
+
+/**
+ * Resolves a decor category only if it is actually offered for this vehicle,
+ * so a stale URL can never show Interior Decor on a bike.
+ */
+export const decorCategoryFor = (
+  vehicleId: string | undefined | null,
+  categoryId: string | undefined | null,
+): DecorCategory | undefined =>
+  categoryId
+    ? decorCategoriesFor(vehicleId).find((c) => c.id === categoryId)
+    : undefined;
+
+/** Icon for a category in a given vehicle context (bike/tractor/etc.). */
+export const decorIconFor = (
+  category: DecorCategory,
+  vehicleId: string | undefined | null,
+): LucideIcon =>
+  category.id === "exterior" && vehicleId
+    ? (VEHICLE_DECOR_ICON[vehicleId] ?? category.icon)
+    : category.icon;
 
 export const getDecorCategory = (id: string | undefined | null) =>
   DECOR_CATEGORY_LIST.find((c) => c.id === id);
