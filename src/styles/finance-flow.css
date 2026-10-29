@@ -1,0 +1,463 @@
+/* ==========================================================================
+   VEHICLE FINANCE flow (.mw-fin) — builds on the shared .mw-sell light theme,
+   glassmorphism and bento category grid. Adds only what is unique here: the
+   discontinued-brand warning, the EMI calculator, the Banks/NBFC tabs and the
+   searchable "View All Finance Partners" modal. Scoped so every other route
+   keeps its finalized appearance.
+   ========================================================================== */
+
+/* Staged sections inside the one glass form. */
+.mw-fin-block {
+  margin-top: 26px;
+}
+.mw-fin-block:first-of-type {
+  margin-top: 0;
+}
+
+/* Smart backend logic #1 — discontinued brand (Chevrolet / Datsun). */
+.mw-fin-warn {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, #d97706 35%, #fff);
+  background: color-mix(in srgb, #f59e0b 10%, rgb(255 255 255 / 0.8));
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: #92400e;
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+.mw-fin-warn svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* ------------------------------ Done view ------------------------------ */
+
+.mw-fin-done {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-top: 34px;
+  padding-bottom: 46px;
+}
+
+/* Small uppercase label reused across the calculator + partner cards. */
+.mw-fin-label {
+  font-size: 0.63rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.mw-fin-note {
+  font-size: 0.72rem;
+  line-height: 1.55;
+  color: var(--muted-foreground);
+}
+
+/* --------------------------- Step 3: EMI calc --------------------------- */
+
+.mw-fin-emi {
+  padding: 22px;
+  border-radius: 16px;
+  border: 1px solid rgb(255 255 255 / 0.85);
+  background: rgb(255 255 255 / 0.78);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow:
+    0 2px 4px oklch(0 0 0 / 0.05),
+    0 24px 48px -28px oklch(0 0 0 / 0.4);
+}
+.mw-fin-emi-head {
+  margin-bottom: 6px;
+}
+.mw-fin-emi-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+.mw-fin-emi-outputs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+.mw-fin-emi-primary {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, #fff);
+  background: color-mix(in srgb, var(--primary) 7%, rgb(255 255 255 / 0.85));
+}
+.mw-fin-emi-primary strong {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  line-height: 1;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+.mw-fin-emi-primary small {
+  font-size: 0.72rem;
+  color: var(--muted-foreground);
+}
+.mw-fin-emi-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--home-line, #e6e8ec);
+  background: rgb(255 255 255 / 0.7);
+}
+.mw-fin-emi-cell strong {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------------------- Step 4: partners (two tabs) --------------------- */
+
+.mw-fin-partners {
+  padding: 22px;
+  border-radius: 16px;
+  border: 1px solid rgb(255 255 255 / 0.85);
+  background: rgb(255 255 255 / 0.75);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow:
+    0 2px 4px oklch(0 0 0 / 0.05),
+    0 24px 48px -28px oklch(0 0 0 / 0.4);
+}
+
+.mw-fin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0 16px;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid var(--home-line, #e6e8ec);
+  background: rgb(255 255 255 / 0.7);
+}
+.mw-fin-tab {
+  position: relative;
+  flex: 1 1 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 12px 16px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+.mw-fin-tab small {
+  font-family: var(--font-sans);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.mw-fin-tab:hover {
+  color: var(--foreground);
+}
+.mw-fin-tab--active {
+  border-color: color-mix(in srgb, var(--primary) 35%, #fff);
+  background: color-mix(in srgb, var(--primary) 8%, rgb(255 255 255 / 0.9));
+  color: var(--primary);
+  box-shadow: 0 12px 26px -20px oklch(0 0 0 / 0.5);
+}
+/* Smart backend logic #2 — poor/no score highlights the NBFC tab. */
+.mw-fin-tab--reco {
+  border-color: color-mix(in srgb, var(--primary) 55%, #fff);
+}
+.mw-fin-reco {
+  position: absolute;
+  top: -9px;
+  right: 12px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 6px 14px -8px oklch(0 0 0 / 0.6);
+}
+
+.mw-fin-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+.mw-fin-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgb(255 255 255 / 0.9);
+  background: rgb(255 255 255 / 0.85);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 14px 30px -24px oklch(0 0 0 / 0.5);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.mw-fin-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 34px -24px oklch(0 0 0 / 0.55);
+}
+.mw-fin-card-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.mw-fin-card-body h3 {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+.mw-fin-card-body p {
+  font-size: 0.7rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+.mw-fin-tick {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: var(--primary);
+  opacity: 0.75;
+}
+
+.mw-fin-kind {
+  align-self: flex-start;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, #fff);
+  background: color-mix(in srgb, var(--primary) 8%, #fff);
+  color: var(--primary);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.mw-fin-kind--nbfc {
+  border-color: color-mix(in srgb, #0ea5e9 35%, #fff);
+  background: color-mix(in srgb, #0ea5e9 10%, #fff);
+  color: #0369a1;
+}
+
+/* Lender artwork — official marks with a typographic fallback. */
+.mw-fin-logo {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 74px;
+  height: 46px;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--home-line, #eef0f3);
+  background: #fff;
+  overflow: hidden;
+}
+.mw-fin-logo--small {
+  width: 54px;
+  height: 34px;
+  padding: 4px;
+}
+.mw-fin-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.mw-fin-wordmark {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.mw-fin-logo--small .mw-fin-wordmark {
+  font-size: 0.72rem;
+}
+
+.mw-fin-empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px dashed color-mix(in srgb, var(--primary) 30%, #fff);
+  background: color-mix(in srgb, var(--primary) 5%, rgb(255 255 255 / 0.7));
+}
+.mw-fin-empty p {
+  flex: 1 1 320px;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+
+/* Step 5 — the full partner list. */
+.mw-fin-all {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--home-line, #e6e8ec);
+}
+
+.mw-fin-actions {
+  margin-top: 4px;
+}
+
+/* ----------------------- Step 5: partners modal ----------------------- */
+
+.mw-fin-modal {
+  max-width: 720px;
+  max-height: 84vh;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px;
+  border: 1px solid rgb(255 255 255 / 0.9);
+  border-radius: 18px;
+  background: rgb(255 255 255 / 0.92);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+.mw-fin-modal-title {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.mw-fin-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--home-line, #e6e8ec);
+  background: #fff;
+  color: var(--muted-foreground);
+}
+.mw-fin-search:focus-within {
+  border-color: color-mix(in srgb, var(--primary) 45%, #fff);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
+}
+/* Only our custom clear button — the native search "x" would duplicate it. */
+.mw-fin-search input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+.mw-fin-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 0.85rem;
+  color: var(--foreground);
+}
+.mw-fin-search-clear {
+  display: inline-flex;
+  padding: 4px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.mw-fin-search-clear:hover {
+  background: var(--home-line, #eef0f3);
+}
+
+.mw-fin-list {
+  list-style: none;
+  margin: 0;
+  padding: 2px 2px 4px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  max-height: 48vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.mw-fin-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--home-line, #eef0f3);
+  background: rgb(255 255 255 / 0.9);
+}
+.mw-fin-row-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mw-fin-list .mw-fin-empty {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 720px) {
+  .mw-fin-emi-controls,
+  .mw-fin-emi-outputs {
+    grid-template-columns: 1fr;
+  }
+  .mw-fin-emi,
+  .mw-fin-partners {
+    padding: 16px;
+  }
+  .mw-fin-modal {
+    padding: 18px;
+    max-height: 88vh;
+  }
+  .mw-fin-list {
+    grid-template-columns: 1fr;
+  }
+}
