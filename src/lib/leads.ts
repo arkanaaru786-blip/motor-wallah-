@@ -21,6 +21,7 @@ export type LeadType =
   | "decor_fitter"
   | "decor_partner"
   | "decor_order"
+  | "franchise_enquiry"
   | "listing_enquiry"
   | "listing_offer"
   | "listing_report"
