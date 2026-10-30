@@ -12,6 +12,7 @@
 @import "./styles/parts-flow.css";
 @import "./styles/decor-flow.css";
 @import "./styles/finance-flow.css";
+@import "./styles/insurance-flow.css";
 
 @custom-variant dark (&:is(.dark *));
 
