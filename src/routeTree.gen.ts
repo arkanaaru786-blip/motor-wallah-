@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AccessoriesRouteImport } from './routes/accessories'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as BookServiceRouteImport } from './routes/book-service'
 import { Route as CareersRouteImport } from './routes/careers'
 import { Route as CompareRouteImport } from './routes/compare'
@@ -24,6 +25,7 @@ import { Route as FranchiseRouteImport } from './routes/franchise'
 import { Route as InspectionRouteImport } from './routes/inspection'
 import { Route as InsuranceRouteImport } from './routes/insurance'
 import { Route as LocationsRouteImport } from './routes/locations'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as RoadsideAssistanceRouteImport } from './routes/roadside-assistance'
 import { Route as RtoRouteImport } from './routes/rto'
 import { Route as ScrapRouteImport } from './routes/scrap'
@@ -60,6 +62,11 @@ const AboutRoute = AboutRouteImport.update({
 const AccessoriesRoute = AccessoriesRouteImport.update({
   id: '/accessories',
   path: '/accessories',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BookServiceRoute = BookServiceRouteImport.update({
@@ -120,6 +127,11 @@ const InsuranceRoute = InsuranceRouteImport.update({
 const LocationsRoute = LocationsRouteImport.update({
   id: '/locations',
   path: '/locations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RoadsideAssistanceRoute = RoadsideAssistanceRouteImport.update({
@@ -237,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/accessories': typeof AccessoriesRoute
+  '/account': typeof AccountRoute
   '/book-service': typeof BookServiceRoute
   '/careers': typeof CareersRoute
   '/compare': typeof CompareRoute
@@ -249,6 +262,7 @@ export interface FileRoutesByFullPath {
   '/inspection': typeof InspectionRoute
   '/insurance': typeof InsuranceRoute
   '/locations': typeof LocationsRoute
+  '/login': typeof LoginRoute
   '/roadside-assistance': typeof RoadsideAssistanceRoute
   '/rto': typeof RtoRoute
   '/scrap': typeof ScrapRoute
@@ -276,6 +290,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/accessories': typeof AccessoriesRoute
+  '/account': typeof AccountRoute
   '/book-service': typeof BookServiceRoute
   '/careers': typeof CareersRoute
   '/compare': typeof CompareRoute
@@ -288,6 +303,7 @@ export interface FileRoutesByTo {
   '/inspection': typeof InspectionRoute
   '/insurance': typeof InsuranceRoute
   '/locations': typeof LocationsRoute
+  '/login': typeof LoginRoute
   '/roadside-assistance': typeof RoadsideAssistanceRoute
   '/rto': typeof RtoRoute
   '/scrap': typeof ScrapRoute
@@ -316,6 +332,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/accessories': typeof AccessoriesRoute
+  '/account': typeof AccountRoute
   '/book-service': typeof BookServiceRoute
   '/careers': typeof CareersRoute
   '/compare': typeof CompareRoute
@@ -328,6 +345,7 @@ export interface FileRoutesById {
   '/inspection': typeof InspectionRoute
   '/insurance': typeof InsuranceRoute
   '/locations': typeof LocationsRoute
+  '/login': typeof LoginRoute
   '/roadside-assistance': typeof RoadsideAssistanceRoute
   '/rto': typeof RtoRoute
   '/scrap': typeof ScrapRoute
@@ -357,6 +375,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/accessories'
+    | '/account'
     | '/book-service'
     | '/careers'
     | '/compare'
@@ -369,6 +388,7 @@ export interface FileRouteTypes {
     | '/inspection'
     | '/insurance'
     | '/locations'
+    | '/login'
     | '/roadside-assistance'
     | '/rto'
     | '/scrap'
@@ -396,6 +416,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/accessories'
+    | '/account'
     | '/book-service'
     | '/careers'
     | '/compare'
@@ -408,6 +429,7 @@ export interface FileRouteTypes {
     | '/inspection'
     | '/insurance'
     | '/locations'
+    | '/login'
     | '/roadside-assistance'
     | '/rto'
     | '/scrap'
@@ -435,6 +457,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/accessories'
+    | '/account'
     | '/book-service'
     | '/careers'
     | '/compare'
@@ -447,6 +470,7 @@ export interface FileRouteTypes {
     | '/inspection'
     | '/insurance'
     | '/locations'
+    | '/login'
     | '/roadside-assistance'
     | '/rto'
     | '/scrap'
@@ -475,6 +499,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AccessoriesRoute: typeof AccessoriesRoute
+  AccountRoute: typeof AccountRoute
   BookServiceRoute: typeof BookServiceRoute
   CareersRoute: typeof CareersRoute
   CompareRoute: typeof CompareRoute
@@ -487,6 +512,7 @@ export interface RootRouteChildren {
   InspectionRoute: typeof InspectionRoute
   InsuranceRoute: typeof InsuranceRoute
   LocationsRoute: typeof LocationsRoute
+  LoginRoute: typeof LoginRoute
   RoadsideAssistanceRoute: typeof RoadsideAssistanceRoute
   RtoRoute: typeof RtoRoute
   ScrapRoute: typeof ScrapRoute
@@ -531,6 +557,13 @@ declare module '@tanstack/react-router' {
       path: '/accessories'
       fullPath: '/accessories'
       preLoaderRoute: typeof AccessoriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/book-service': {
@@ -615,6 +648,13 @@ declare module '@tanstack/react-router' {
       path: '/locations'
       fullPath: '/locations'
       preLoaderRoute: typeof LocationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/roadside-assistance': {
@@ -790,6 +830,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AccessoriesRoute: AccessoriesRoute,
+  AccountRoute: AccountRoute,
   BookServiceRoute: BookServiceRoute,
   CareersRoute: CareersRoute,
   CompareRoute: CompareRoute,
@@ -802,6 +843,7 @@ const rootRouteChildren: RootRouteChildren = {
   InspectionRoute: InspectionRoute,
   InsuranceRoute: InsuranceRoute,
   LocationsRoute: LocationsRoute,
+  LoginRoute: LoginRoute,
   RoadsideAssistanceRoute: RoadsideAssistanceRoute,
   RtoRoute: RtoRoute,
   ScrapRoute: ScrapRoute,

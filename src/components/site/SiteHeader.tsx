@@ -59,7 +59,7 @@ function BuyPillHeader() {
           <Link to="/cars" aria-label="View favorites" className="mw-buy-header-action">
             <Heart className="mb-0.5 h-4 w-4" /> Favorites
           </Link>
-          <Link to="/contact" aria-label="My account" className="mw-buy-header-action">
+          <Link to="/account" aria-label="My account" className="mw-buy-header-action">
             <UserRound className="mb-0.5 h-4 w-4" /> My Account
           </Link>
           <Button
@@ -156,7 +156,7 @@ export function SiteHeader({
             <Heart className="mb-0.5 h-4 w-4" /> Favorites
           </Link>
           <Link
-            to="/contact"
+            to="/account"
             aria-label="My account"
             className="flex flex-col items-center text-[0.55rem] text-ink-foreground/70 hover:text-primary"
           >
