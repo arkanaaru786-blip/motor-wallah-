@@ -163,6 +163,7 @@ function Page() {
   const addFiles = async (list: FileList | null) => {
     if (!list?.length) return;
     setUploadError(null);
+    setError(null);
     try {
       const added: UploadedFile[] = [];
       for (const file of Array.from(list).slice(0, 3)) {
@@ -486,7 +487,12 @@ function Page() {
                 </span>
               </div>
 
-              <form className="mw-sell-form" onSubmit={onSubmit} noValidate>
+              <form
+                className="mw-sell-form"
+                onSubmit={onSubmit}
+                onChange={() => setError(null)}
+                noValidate
+              >
                 <h2 id="franchise-form-title" className="mw-sell-form-title">
                   Franchise <span>Application</span>
                 </h2>
@@ -600,7 +606,10 @@ function Page() {
                             className={`mw-fr-seg-btn${
                               premises === option.id ? " mw-fr-seg-btn--active" : ""
                             }`}
-                            onClick={() => setPremises(option.id)}
+                            onClick={() => {
+                              setPremises(option.id);
+                              setError(null);
+                            }}
                           >
                             {option.label}
                             <small>{option.hint}</small>
