@@ -17,6 +17,8 @@ const SHORTLIST_KEY = "mw_buy_shortlist";
 const CHAT_KEY = "mw_listing_chat";
 /** Dashboard-only status overrides for a customer's own SELL submissions. */
 const LISTING_STATUS_KEY = "mw_my_listing_status";
+/** Same key as src/lib/leads.ts (the shared lead queue). */
+const LEAD_QUEUE_KEY = "mw_lead_queue";
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -129,6 +131,69 @@ export function ownListings(): OwnListing[] {
     .reverse();
 }
 
+export type OwnListingEdit = { name: string; price: string; city: string; category: string };
+
+function writeLeadQueue(leads: Lead[]): boolean {
+  try {
+    window.localStorage.setItem(LEAD_QUEUE_KEY, JSON.stringify(leads));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Edit the title, price, city or category of one of the customer's own ads. */
+export function updateOwnListing(
+  id: string,
+  edit: OwnListingEdit,
+): { ok: boolean; error?: string } {
+  const title = edit.name.trim();
+  const price = edit.price.trim();
+  if (!title) return { ok: false, error: "Give your ad a title before saving." };
+  if (edit.price && !/^\d{1,3}(,\d{3})*$|^\d+$/.test(price))
+    return { ok: false, error: "Enter the price in digits, for example 525000." };
+
+  const queue = readLeadQueue();
+  let found = false;
+  const next = queue.map((lead) => {
+    if (lead.type !== "sell_vehicle" || lead.createdAt !== id) return lead;
+    found = true;
+    return {
+      ...lead,
+      vehicleName: title,
+      location: edit.city.trim() || lead.location,
+      fields: {
+        ...(lead.fields ?? {}),
+        expectedPrice: price,
+        city: edit.city.trim(),
+        category: edit.category.trim() || lead.fields?.["category"] || "",
+      },
+    };
+  });
+  if (!found) return { ok: false, error: "This ad could not be found on this device." };
+  if (!writeLeadQueue(next))
+    return { ok: false, error: "This browser blocked local storage, so the ad was not saved." };
+  return { ok: true };
+}
+
+/** Remove one of the customer's own ads from this device. */
+export function deleteOwnListing(id: string): { ok: boolean; error?: string } {
+  const queue = readLeadQueue();
+  const next = queue.filter((lead) => !(lead.type === "sell_vehicle" && lead.createdAt === id));
+  if (next.length === queue.length)
+    return { ok: false, error: "This ad could not be found on this device." };
+  if (!writeLeadQueue(next))
+    return { ok: false, error: "This browser blocked local storage, so the ad was not removed." };
+  const statuses = readListingStatuses();
+  delete statuses[id];
+  try {
+    window.localStorage.setItem(LISTING_STATUS_KEY, JSON.stringify(statuses));
+  } catch {
+    /* the ad itself is already gone; a stale status key is harmless */
+  }
+  return { ok: true };
+}
+
 export function setOwnListingStatus(
   id: string,
   status: OwnListingStatus,
@@ -208,13 +273,13 @@ export function trackedLeads(): TrackedLead[] {
       const reference = leadReference(lead);
       const fields = lead.fields ?? {};
       const recordedStatus = fields["status"];
-      const progress =
+      // Simple two-state status the dashboard shows: Pending until the record
+      // itself says it was approved (or the service timeline completes).
+      const approved =
         lead.type === "service_booking"
-          ? serviceProgress(lead)
-          : {
-              status: recordedStatus ?? "Submitted",
-              tone: (recordedStatus ? "progress" : "pending") as LeadTone,
-            };
+          ? serviceProgress(lead).tone === "done"
+          : /approv|sanction|confirm/i.test(recordedStatus ?? "");
+      const status = approved ? "Approved" : "Pending";
 
       const title =
         lead.vehicleName ||
@@ -246,8 +311,8 @@ export function trackedLeads(): TrackedLead[] {
         title,
         detail: detailBits.slice(0, 2).join(" · "),
         reference,
-        status: progress.status,
-        tone: progress.tone,
+        status,
+        tone: (approved ? "done" : "pending") as LeadTone,
         createdAt: lead.createdAt,
         href,
       };

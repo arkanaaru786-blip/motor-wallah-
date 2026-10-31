@@ -561,7 +561,7 @@
   color: oklch(1 0 0);
 }
 .mw-acct-nav-text {
-  display: none;
+  display: block;
   min-width: 0;
 }
 @media (min-width: 1024px) {
@@ -1106,6 +1106,81 @@
     font-size: 0.58rem;
   }
 }
+
+/* ------------------------------------------- OLX-style simplified dashboard */
+@media (max-width: 1023px) {
+  .mw-acct-nav {
+    padding: 6px;
+    gap: 4px;
+  }
+  .mw-acct-nav-btn {
+    min-height: 40px;
+    padding: 8px 11px;
+  }
+  .mw-acct-nav-blurb {
+    display: none;
+  }
+  .mw-acct-nav-label {
+    font-size: 0.74rem;
+  }
+  .mw-acct-nav-icon {
+    width: 24px;
+    height: 24px;
+  }
+  .mw-acct-nav-count {
+    padding: 1px 6px;
+  }
+}
+.mw-acct-edit {
+  flex: 1 1 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  min-width: 0;
+}
+@media (min-width: 720px) {
+  .mw-acct-edit {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.mw-acct-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+.mw-acct-confirm {
+  display: inline-flex;
+  gap: 6px;
+}
+.mw-acct-ghostbtn--danger {
+  border-color: color-mix(in oklab, var(--primary) 42%, transparent);
+  color: var(--primary);
+}
+.mw-acct-ghostbtn--danger:hover {
+  background: color-mix(in oklab, var(--primary) 10%, transparent);
+  border-color: var(--primary);
+}
+.mw-acct-section {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--home-line);
+}
+.mw-acct-section-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--foreground) 68%, transparent);
+}
+.mw-acct-section-title svg {
+  color: var(--primary);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mw-acct *,
   .mw-acct *::before,

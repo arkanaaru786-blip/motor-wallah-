@@ -10,9 +10,12 @@ import {
   Inbox,
   LogOut,
   MessageSquare,
+  Pencil,
   Send,
   Store,
+  Trash2,
   UserRound,
+  X,
 } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -23,9 +26,11 @@ import {
   appendChatMessage,
   chatThreads,
   dashboardCounts,
+  deleteOwnListing,
   ownListings,
   setOwnListingStatus,
   trackedLeads,
+  updateOwnListing,
   type ChatThread,
   type OwnListing,
   type TrackedLead,
@@ -34,21 +39,28 @@ import { listOffers, type ListingOffer, type OfferStatus } from "@/lib/listing-o
 import { useShortlist } from "@/lib/shortlist";
 import { buyListingName, getBuyListing, lakhLabel, rupees } from "@/lib/buy-catalog";
 
-const TITLE = "My Dashboard — Saved Vehicles, Offers & Leads | Motor Wallah";
+const TITLE = "My Dashboard — Ads, Favorites & Requests | Motor Wallah";
 const DESCRIPTION =
-  "Your Motor Wallah dashboard: profile, saved vehicles, seller chats, offers, your own listings and every finance, insurance, service or franchise application.";
+  "Your Motor Wallah dashboard: edit your profile, see favourites, seller chats, your ads for sale and every finance, insurance, service or franchise request with its reference ID.";
 
 const TABS = [
   { id: "profile", label: "My Profile", blurb: "Name, email, city, mobile", icon: UserRound },
-  { id: "saved", label: "Saved Vehicles", blurb: "Vehicles you hearted", icon: Heart },
+  { id: "favorites", label: "My Favorites", blurb: "Vehicles you hearted", icon: Heart },
   { id: "chats", label: "My Chats", blurb: "Seller conversations", icon: MessageSquare },
-  { id: "offers", label: "My Offers", blurb: "Offers you have made", icon: BadgeIndianRupee },
-  { id: "listings", label: "My Listings", blurb: "Vehicles you listed", icon: Store },
-  { id: "leads", label: "My Leads", blurb: "Applications & references", icon: ClipboardList },
+  { id: "ads", label: "My Ads", blurb: "Vehicles you listed", icon: Store },
+  { id: "requests", label: "My Requests", blurb: "Forms & reference IDs", icon: ClipboardList },
 ] as const;
 
 type AccountTab = (typeof TABS)[number]["id"];
 const TAB_IDS = TABS.map((tab) => tab.id) as string[];
+
+/** Old tab ids keep working so existing links do not break. */
+const LEGACY_TABS: Record<string, AccountTab> = {
+  saved: "favorites",
+  listings: "ads",
+  leads: "requests",
+  offers: "requests",
+};
 
 type AccountSearch = { tab?: AccountTab | undefined; chat?: string | undefined };
 
@@ -65,7 +77,9 @@ export const Route = createFileRoute("/account")({
   }),
   validateSearch: (search: Record<string, unknown>): AccountSearch => {
     const raw = search["tab"];
-    const tab = typeof raw === "string" && TAB_IDS.includes(raw) ? (raw as AccountTab) : undefined;
+    const mapped = typeof raw === "string" ? (LEGACY_TABS[raw] ?? raw) : undefined;
+    const tab =
+      typeof mapped === "string" && TAB_IDS.includes(mapped) ? (mapped as AccountTab) : undefined;
     const chat = typeof search["chat"] === "string" ? search["chat"] : undefined;
     return { tab, chat };
   },
@@ -84,6 +98,9 @@ const formatWhen = (iso: string) => {
   });
 };
 
+const priceLabel = (value: string) =>
+  /^\d+$/.test(value) ? `₹${Number(value).toLocaleString("en-IN")}` : `₹${value}`;
+
 const OFFER_CLASS: Record<OfferStatus, string> = {
   Pending: "buy-offer-badge buy-offer-badge--pending",
   "Counter Offer": "buy-offer-badge buy-offer-badge--counter",
@@ -95,7 +112,13 @@ function AccountPage() {
   const { ready, customer } = useCustomerSession();
   const { tab: tabParam, chat } = Route.useSearch();
   const tab = tabParam ?? "profile";
-  const [counts, setCounts] = useState({ saved: 0, chats: 0, offers: 0, listings: 0, leads: 0 });
+  const [counts, setCounts] = useState({
+    saved: 0,
+    chats: 0,
+    offers: 0,
+    listings: 0,
+    leads: 0,
+  });
 
   useEffect(() => {
     setCounts(dashboardCounts());
@@ -121,6 +144,13 @@ function AccountPage() {
   if (!customer) return <Navigate to="/login" replace />;
 
   const firstName = customer.name.split(" ")[0] ?? customer.name;
+  const countFor = (id: AccountTab) => {
+    if (id === "favorites") return counts.saved;
+    if (id === "ads") return counts.listings;
+    if (id === "requests") return counts.leads;
+    if (id === "chats") return counts.chats;
+    return null;
+  };
 
   return (
     <div className="mw-sell mw-acct">
@@ -136,8 +166,7 @@ function AccountPage() {
                 Hello, <em>{firstName}</em>
               </h1>
               <p className="mw-acct-hero-sub">
-                {maskMobile(customer.mobile)} · {customer.city} — everything you have done on Motor
-                Wallah in one place.
+                {maskMobile(customer.mobile)} · {customer.city}
               </p>
             </div>
             <button
@@ -154,7 +183,7 @@ function AccountPage() {
             <nav className="mw-acct-nav" aria-label="Dashboard sections">
               {TABS.map((item) => {
                 const Icon = item.icon;
-                const count = item.id === "profile" ? null : counts[item.id];
+                const count = countFor(item.id);
                 return (
                   <Link
                     key={item.id}
@@ -193,11 +222,10 @@ function AccountPage() {
 
             <section className="mw-acct-panel" data-testid="account-panel" data-panel={tab}>
               {tab === "profile" && <ProfileTab customer={customer} />}
-              {tab === "saved" && <SavedTab />}
+              {tab === "favorites" && <FavoritesTab />}
               {tab === "chats" && <ChatsTab selectedId={chat} />}
-              {tab === "offers" && <OffersTab />}
-              {tab === "listings" && <ListingsTab />}
-              {tab === "leads" && <LeadsTab />}
+              {tab === "ads" && <AdsTab />}
+              {tab === "requests" && <RequestsTab />}
             </section>
           </div>
         </div>
@@ -247,10 +275,9 @@ function ProfileTab({ customer }: { customer: CustomerProfile }) {
         <div>
           <h2 className="mw-acct-panel-title">My Profile</h2>
           <p className="mw-acct-panel-sub">
-            These details are used on every enquiry you send from this device.
+            Your name, email, city and mobile number — used on everything you send us.
           </p>
         </div>
-        <span className="mw-acct-pill">Customer account</span>
       </div>
 
       <form className="mw-acct-form" onSubmit={submit} noValidate>
@@ -348,17 +375,17 @@ function ProfileTab({ customer }: { customer: CustomerProfile }) {
   );
 }
 
-/* --------------------------------------------------------------- tab: saved */
+/* ----------------------------------------------------------- tab: favorites */
 
-function SavedTab() {
+function FavoritesTab() {
   const { ids, ready, toggle } = useShortlist();
 
   return (
     <>
       <div className="mw-acct-panel-head">
         <div>
-          <h2 className="mw-acct-panel-title">Saved Vehicles</h2>
-          <p className="mw-acct-panel-sub">Every listing you hearted on the Buy page.</p>
+          <h2 className="mw-acct-panel-title">My Favorites</h2>
+          <p className="mw-acct-panel-sub">Every vehicle you hearted on the Buy page.</p>
         </div>
         <Link to="/buy" className="mw-acct-inline-link">
           Browse vehicles <ChevronRight size={15} aria-hidden="true" />
@@ -366,21 +393,20 @@ function SavedTab() {
       </div>
 
       {!ready ? (
-        <p className="mw-acct-note">Loading your saved vehicles…</p>
+        <p className="mw-acct-note">Loading your favorites…</p>
       ) : ids.length === 0 ? (
-        <div className="mw-acct-empty" data-testid="saved-empty">
+        <div className="mw-acct-empty" data-testid="favorites-empty">
           <Heart size={26} aria-hidden="true" />
-          <p className="mw-acct-empty-title">No saved vehicles yet</p>
+          <p className="mw-acct-empty-title">No favorites yet</p>
           <p className="mw-acct-empty-text">
-            Tap the heart on any listing and it will appear here — ready to compare or make an
-            offer.
+            Tap the heart on any listing and it appears here — ready to compare or make an offer.
           </p>
           <Link to="/buy" className="mw-acct-cta mw-acct-cta--inline">
             Explore the marketplace <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </div>
       ) : (
-        <ul className="mw-acct-rows" data-testid="saved-list">
+        <ul className="mw-acct-rows" data-testid="favorites-list">
           {ids.map((id) => {
             const listing = getBuyListing(id);
             return (
@@ -426,10 +452,10 @@ function SavedTab() {
                     className="mw-acct-iconbtn"
                     aria-label={
                       listing
-                        ? `Remove ${buyListingName(listing)} from saved vehicles`
-                        : "Remove saved vehicle"
+                        ? `Remove ${buyListingName(listing)} from favorites`
+                        : "Remove favourite"
                     }
-                    data-testid="saved-remove"
+                    data-testid="favorites-remove"
                     onClick={() => toggle(id)}
                   >
                     <Heart size={16} fill="currentColor" aria-hidden="true" />
@@ -588,240 +614,400 @@ function ChatsTab({ selectedId }: { selectedId?: string | undefined }) {
   );
 }
 
-/* -------------------------------------------------------------- tab: offers */
+/* ----------------------------------------------------------------- tab: ads */
 
-function OffersTab() {
-  const [offers, setOffers] = useState<ListingOffer[]>([]);
-  useEffect(() => {
-    setOffers(listOffers());
-  }, []);
+const EMPTY_EDIT = { name: "", price: "", city: "", category: "" };
 
-  return (
-    <>
-      <div className="mw-acct-panel-head">
-        <div>
-          <h2 className="mw-acct-panel-title">My Offers</h2>
-          <p className="mw-acct-panel-sub">Every offer you have made, with its current status.</p>
-        </div>
-        <Link to="/buy/offers" className="mw-acct-inline-link">
-          Offer tracking <ChevronRight size={15} aria-hidden="true" />
-        </Link>
-      </div>
-
-      {offers.length === 0 ? (
-        <div className="mw-acct-empty" data-testid="offers-empty">
-          <BadgeIndianRupee size={26} aria-hidden="true" />
-          <p className="mw-acct-empty-title">No offers yet</p>
-          <p className="mw-acct-empty-text">
-            Use “Make an offer” on any listing. Your offers land here with a Pending, Counter Offer
-            or Accepted badge.
-          </p>
-          <Link to="/buy" className="mw-acct-cta mw-acct-cta--inline">
-            Find your next vehicle <ArrowRight size={16} aria-hidden="true" />
-          </Link>
-        </div>
-      ) : (
-        <ul className="mw-acct-rows" data-testid="offers-list">
-          {offers.map((offer) => (
-            <li key={offer.id} className="mw-acct-row" data-offer-id={offer.id}>
-              <span className="mw-acct-row-main">
-                <span className="mw-acct-row-title">
-                  {offer.listingName}
-                  <span className={OFFER_CLASS[offer.status]} data-testid="offer-status">
-                    {offer.status}
-                  </span>
-                </span>
-                <span className="mw-acct-row-meta">
-                  {rupees(offer.amount)} · asking {lakhLabel(offer.askingLakh)} ·{" "}
-                  {offer.categoryLabel} · {offer.city}
-                </span>
-                <span className="mw-acct-row-note">Offered on {formatWhen(offer.createdAt)}</span>
-              </span>
-              <span className="mw-acct-row-actions">
-                <Link
-                  to="/buy/vehicle/$id"
-                  params={{ id: offer.listingId }}
-                  className="mw-acct-row-link"
-                >
-                  View <ChevronRight size={15} aria-hidden="true" />
-                </Link>
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </>
-  );
-}
-
-/* ------------------------------------------------------------ tab: listings */
-
-function ListingsTab() {
-  const [listings, setListings] = useState<OwnListing[]>([]);
+function AdsTab() {
+  const [ads, setAds] = useState<OwnListing[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState(EMPTY_EDIT);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const refresh = () => setAds(ownListings());
 
   useEffect(() => {
-    setListings(ownListings());
+    refresh();
   }, []);
 
-  const toggleStatus = (listing: OwnListing) => {
-    const next = listing.status === "Active" ? "Sold" : "Active";
-    const result = setOwnListingStatus(listing.id, next);
+  const startEdit = (ad: OwnListing) => {
+    setEditingId(ad.id);
+    setDraft({
+      name: ad.name,
+      price: ad.expectedPrice,
+      city: ad.location,
+      category: ad.category,
+    });
+    setConfirmId(null);
+    setError(null);
+    setNotice(null);
+  };
+
+  const saveEdit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingId) return;
+    const result = updateOwnListing(editingId, draft);
+    if (!result.ok) {
+      setError(result.error ?? "Your changes could not be saved.");
+      return;
+    }
+    setEditingId(null);
+    setError(null);
+    setNotice("Ad updated.");
+    refresh();
+  };
+
+  const remove = (id: string) => {
+    const result = deleteOwnListing(id);
+    if (!result.ok) {
+      setError(result.error ?? "This ad could not be deleted.");
+      return;
+    }
+    setConfirmId(null);
+    setError(null);
+    setNotice("Ad deleted.");
+    refresh();
+  };
+
+  const toggleStatus = (ad: OwnListing) => {
+    const next = ad.status === "Active" ? "Sold" : "Active";
+    const result = setOwnListingStatus(ad.id, next);
     if (!result.ok) {
       setError(result.error ?? "The status could not be saved.");
       return;
     }
     setError(null);
-    setListings(ownListings());
+    refresh();
   };
 
   return (
     <>
       <div className="mw-acct-panel-head">
         <div>
-          <h2 className="mw-acct-panel-title">My Listings</h2>
-          <p className="mw-acct-panel-sub">Vehicles you submitted for sale from the Sell page.</p>
+          <h2 className="mw-acct-panel-title">My Ads</h2>
+          <p className="mw-acct-panel-sub">Vehicles you listed for sale from the Sell page.</p>
         </div>
         <Link to="/sell-your-car" className="mw-acct-inline-link">
-          List another vehicle <ChevronRight size={15} aria-hidden="true" />
+          Post an ad <ChevronRight size={15} aria-hidden="true" />
         </Link>
       </div>
 
-      {listings.length === 0 ? (
-        <div className="mw-acct-empty" data-testid="listings-empty">
+      {ads.length === 0 ? (
+        <div className="mw-acct-empty" data-testid="ads-empty">
           <Store size={26} aria-hidden="true" />
-          <p className="mw-acct-empty-title">No listings yet</p>
+          <p className="mw-acct-empty-title">No ads yet</p>
           <p className="mw-acct-empty-text">
-            Submit a vehicle on the Sell page — it will show here with its live status.
+            Post a vehicle on the Sell page — it shows here with its price and status.
           </p>
           <Link to="/sell-your-car" className="mw-acct-cta mw-acct-cta--inline">
             Sell a vehicle <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </div>
       ) : (
-        <ul className="mw-acct-rows" data-testid="listings-list">
-          {listings.map((listing) => (
-            <li key={listing.id} className="mw-acct-row" data-listing-id={listing.id}>
-              <span className="mw-acct-thumb">
-                {listing.photo ? (
-                  <img src={listing.photo} alt="" aria-hidden="true" loading="lazy" />
+        <ul className="mw-acct-rows" data-testid="ads-list">
+          {ads.map((ad) => {
+            const editing = editingId === ad.id;
+            const confirming = confirmId === ad.id;
+            return (
+              <li key={ad.id} className="mw-acct-row" data-ad-id={ad.id}>
+                <span className="mw-acct-thumb">
+                  {ad.photo ? (
+                    <img src={ad.photo} alt="" aria-hidden="true" loading="lazy" />
+                  ) : (
+                    <Store size={18} aria-hidden="true" />
+                  )}
+                </span>
+
+                {editing ? (
+                  <form className="mw-acct-edit" onSubmit={saveEdit} data-testid="ad-edit-form">
+                    <div className="mw-acct-field">
+                      <label className="mw-acct-label" htmlFor={`ad-title-${ad.id}`}>
+                        Title
+                      </label>
+                      <input
+                        id={`ad-title-${ad.id}`}
+                        className="mw-acct-input"
+                        data-testid="ad-edit-name"
+                        value={draft.name}
+                        onChange={(event) => setDraft({ ...draft, name: event.target.value })}
+                      />
+                    </div>
+                    <div className="mw-acct-field">
+                      <label className="mw-acct-label" htmlFor={`ad-price-${ad.id}`}>
+                        Price
+                      </label>
+                      <input
+                        id={`ad-price-${ad.id}`}
+                        className="mw-acct-input"
+                        data-testid="ad-edit-price"
+                        inputMode="numeric"
+                        value={draft.price}
+                        onChange={(event) => setDraft({ ...draft, price: event.target.value })}
+                      />
+                    </div>
+                    <div className="mw-acct-field">
+                      <label className="mw-acct-label" htmlFor={`ad-city-${ad.id}`}>
+                        City
+                      </label>
+                      <input
+                        id={`ad-city-${ad.id}`}
+                        className="mw-acct-input"
+                        data-testid="ad-edit-city"
+                        value={draft.city}
+                        onChange={(event) => setDraft({ ...draft, city: event.target.value })}
+                      />
+                    </div>
+                    <div className="mw-acct-field">
+                      <label className="mw-acct-label" htmlFor={`ad-category-${ad.id}`}>
+                        Category
+                      </label>
+                      <input
+                        id={`ad-category-${ad.id}`}
+                        className="mw-acct-input"
+                        data-testid="ad-edit-category"
+                        value={draft.category}
+                        onChange={(event) => setDraft({ ...draft, category: event.target.value })}
+                      />
+                    </div>
+                    <div className="mw-acct-edit-actions">
+                      <button
+                        type="submit"
+                        className="mw-acct-cta mw-acct-cta--inline"
+                        data-testid="ad-edit-save"
+                      >
+                        Save ad
+                      </button>
+                      <button
+                        type="button"
+                        className="mw-acct-ghostbtn mw-acct-ghostbtn--sm"
+                        data-testid="ad-edit-cancel"
+                        onClick={() => {
+                          setEditingId(null);
+                          setError(null);
+                        }}
+                      >
+                        <X size={14} aria-hidden="true" /> Cancel
+                      </button>
+                    </div>
+                  </form>
                 ) : (
-                  <Store size={18} aria-hidden="true" />
+                  <>
+                    <span className="mw-acct-row-main">
+                      <span className="mw-acct-row-title">
+                        {ad.name || "Vehicle"}
+                        <span
+                          className={`mw-acct-status mw-acct-status--${ad.status === "Sold" ? "done" : "progress"}`}
+                          data-testid="ad-status"
+                        >
+                          {ad.status}
+                        </span>
+                      </span>
+                      <span className="mw-acct-row-meta">
+                        {[ad.category, ad.year, ad.location].filter(Boolean).join(" · ")}
+                      </span>
+                      <span className="mw-acct-row-note">
+                        {ad.expectedPrice ? priceLabel(ad.expectedPrice) : "Price on request"} ·
+                        Posted {formatWhen(ad.createdAt)}
+                      </span>
+                    </span>
+                    <span className="mw-acct-row-actions">
+                      <button
+                        type="button"
+                        className="mw-acct-ghostbtn mw-acct-ghostbtn--sm"
+                        data-testid="ad-edit"
+                        onClick={() => startEdit(ad)}
+                      >
+                        <Pencil size={13} aria-hidden="true" /> Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="mw-acct-ghostbtn mw-acct-ghostbtn--sm"
+                        data-testid="ad-toggle-status"
+                        onClick={() => toggleStatus(ad)}
+                      >
+                        {ad.status === "Active" ? "Mark sold" : "Mark active"}
+                      </button>
+                      {confirming ? (
+                        <span className="mw-acct-confirm">
+                          <button
+                            type="button"
+                            className="mw-acct-ghostbtn mw-acct-ghostbtn--sm mw-acct-ghostbtn--danger"
+                            data-testid="ad-delete-confirm"
+                            onClick={() => remove(ad.id)}
+                          >
+                            <Trash2 size={13} aria-hidden="true" /> Delete
+                          </button>
+                          <button
+                            type="button"
+                            className="mw-acct-ghostbtn mw-acct-ghostbtn--sm"
+                            data-testid="ad-delete-cancel"
+                            onClick={() => setConfirmId(null)}
+                          >
+                            Keep
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="mw-acct-ghostbtn mw-acct-ghostbtn--sm"
+                          data-testid="ad-delete"
+                          onClick={() => {
+                            setConfirmId(ad.id);
+                            setError(null);
+                            setNotice(null);
+                          }}
+                        >
+                          <Trash2 size={13} aria-hidden="true" /> Delete
+                        </button>
+                      )}
+                    </span>
+                  </>
                 )}
-              </span>
-              <span className="mw-acct-row-main">
-                <span className="mw-acct-row-title">
-                  {listing.name || "Vehicle"}
-                  <span
-                    className={`mw-acct-status mw-acct-status--${listing.status === "Sold" ? "done" : "progress"}`}
-                    data-testid="listing-status"
-                  >
-                    {listing.status}
-                  </span>
-                </span>
-                <span className="mw-acct-row-meta">
-                  {[listing.category, listing.year, listing.location].filter(Boolean).join(" · ")}
-                </span>
-                <span className="mw-acct-row-note">
-                  {listing.expectedPrice ? `Expected ${listing.expectedPrice}` : "Price on request"}{" "}
-                  · Submitted {formatWhen(listing.createdAt)}
-                </span>
-              </span>
-              <span className="mw-acct-row-actions">
-                <button
-                  type="button"
-                  className="mw-acct-ghostbtn mw-acct-ghostbtn--sm"
-                  data-testid="toggle-listing-status"
-                  onClick={() => toggleStatus(listing)}
-                >
-                  {listing.status === "Active" ? "Mark as sold" : "Mark as active"}
-                </button>
-              </span>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
+
       {error && (
-        <p className="mw-acct-error" role="alert">
+        <p className="mw-acct-error" role="alert" data-testid="ads-error">
           {error}
+        </p>
+      )}
+      {notice && !error && (
+        <p className="mw-acct-success" role="status" data-testid="ads-notice">
+          {notice}
         </p>
       )}
     </>
   );
 }
 
-/* --------------------------------------------------------------- tab: leads */
+/* ------------------------------------------------------------ tab: requests */
 
-function LeadsTab() {
+function RequestsTab() {
   const [leads, setLeads] = useState<TrackedLead[]>([]);
+  const [offers, setOffers] = useState<ListingOffer[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
   useEffect(() => {
     setLeads(trackedLeads());
+    setOffers(listOffers());
+    setLoaded(true);
   }, []);
 
   return (
     <>
       <div className="mw-acct-panel-head">
         <div>
-          <h2 className="mw-acct-panel-title">My Leads</h2>
+          <h2 className="mw-acct-panel-title">My Requests</h2>
           <p className="mw-acct-panel-sub">
-            Finance, insurance, service and franchise applications — with their reference IDs.
+            Everything you have sent us — finance, insurance, service, franchise and offers — with
+            its reference ID and status.
           </p>
         </div>
       </div>
 
-      {leads.length === 0 ? (
-        <div className="mw-acct-empty" data-testid="leads-empty">
+      {!loaded ? (
+        <p className="mw-acct-note">Loading your requests…</p>
+      ) : leads.length === 0 && offers.length === 0 ? (
+        <div className="mw-acct-empty" data-testid="requests-empty">
           <ClipboardList size={26} aria-hidden="true" />
-          <p className="mw-acct-empty-title">No applications yet</p>
+          <p className="mw-acct-empty-title">No requests yet</p>
           <p className="mw-acct-empty-text">
-            Submit a finance, insurance, service or franchise request and its reference ID and
-            status will be tracked here.
+            Submit a finance, insurance, service or franchise form — its reference ID and status are
+            tracked here.
           </p>
           <Link to="/finance" className="mw-acct-cta mw-acct-cta--inline">
             Check finance eligibility <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </div>
       ) : (
-        <ul className="mw-acct-rows" data-testid="leads-list">
-          {leads.map((lead) => (
-            <li key={lead.id} className="mw-acct-row" data-lead-kind={lead.kind}>
-              <span className="mw-acct-row-main">
-                <span className="mw-acct-row-title">
-                  {lead.label}
-                  <span
-                    className={`mw-acct-status mw-acct-status--${lead.tone}`}
-                    data-testid="lead-status"
-                  >
-                    {lead.status}
+        <>
+          {leads.length > 0 && (
+            <ul className="mw-acct-rows" data-testid="requests-list">
+              {leads.map((lead) => (
+                <li key={lead.id} className="mw-acct-row" data-lead-kind={lead.kind}>
+                  <span className="mw-acct-row-main">
+                    <span className="mw-acct-row-title">
+                      {lead.label}
+                      <span
+                        className={`mw-acct-status mw-acct-status--${lead.status === "Approved" ? "done" : "pending"}`}
+                        data-testid="lead-status"
+                        data-status={lead.status}
+                      >
+                        {lead.status}
+                      </span>
+                    </span>
+                    <span className="mw-acct-row-meta">
+                      {[lead.title, lead.detail].filter(Boolean).join(" · ")}
+                    </span>
+                    <span className="mw-acct-row-note">
+                      {lead.reference ? (
+                        <>
+                          Reference <strong className="mw-acct-ref">{lead.reference}</strong>
+                        </>
+                      ) : (
+                        "Reference ID shared by our team"
+                      )}{" "}
+                      · {formatWhen(lead.createdAt)}
+                    </span>
                   </span>
-                </span>
-                <span className="mw-acct-row-meta">
-                  {[lead.title, lead.detail].filter(Boolean).join(" · ")}
-                </span>
-                <span className="mw-acct-row-note">
-                  {lead.reference ? (
-                    <>
-                      Reference <strong className="mw-acct-ref">{lead.reference}</strong>
-                    </>
-                  ) : (
-                    "Reference ID shared by our team"
-                  )}{" "}
-                  · {formatWhen(lead.createdAt)}
-                </span>
-              </span>
-              <span className="mw-acct-row-actions">
-                <a href={lead.href} className="mw-acct-row-link">
-                  Track <ChevronRight size={15} aria-hidden="true" />
-                </a>
-              </span>
-            </li>
-          ))}
-        </ul>
+                  <span className="mw-acct-row-actions">
+                    <a href={lead.href} className="mw-acct-row-link">
+                      Track <ChevronRight size={15} aria-hidden="true" />
+                    </a>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {offers.length > 0 && (
+            <div className="mw-acct-section">
+              <h3 className="mw-acct-section-title">
+                <BadgeIndianRupee size={16} aria-hidden="true" /> Offers you made
+              </h3>
+              <ul className="mw-acct-rows" data-testid="offers-list">
+                {offers.map((offer) => (
+                  <li key={offer.id} className="mw-acct-row" data-offer-id={offer.id}>
+                    <span className="mw-acct-row-main">
+                      <span className="mw-acct-row-title">
+                        {offer.listingName}
+                        <span className={OFFER_CLASS[offer.status]} data-testid="offer-status">
+                          {offer.status}
+                        </span>
+                      </span>
+                      <span className="mw-acct-row-meta">
+                        {rupees(offer.amount)} · asking {lakhLabel(offer.askingLakh)} ·{" "}
+                        {offer.categoryLabel} · {offer.city}
+                      </span>
+                      <span className="mw-acct-row-note">
+                        Offered on {formatWhen(offer.createdAt)}
+                      </span>
+                    </span>
+                    <span className="mw-acct-row-actions">
+                      <Link
+                        to="/buy/vehicle/$id"
+                        params={{ id: offer.listingId }}
+                        className="mw-acct-row-link"
+                      >
+                        View <ChevronRight size={15} aria-hidden="true" />
+                      </Link>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
       )}
 
       <p className="mw-acct-hint">
-        Statuses come from the records stored on this device. Service bookings advance on their own
-        mock timeline; our team confirms the rest when they contact you.
+        Statuses come from the records stored on this device. Service bookings move to Approved once
+        the mock timeline completes; our team confirms the rest when they contact you.
       </p>
     </>
   );
