@@ -35,3 +35,4 @@ dist-ssr
 # Local QA artifacts: preview screenshots, logs and scratch debug scripts
 artifacts/*
 !artifacts/buy-e2e.mjs
+!artifacts/admin-e2e.mjs

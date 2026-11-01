@@ -26,6 +26,7 @@ import { Route as InspectionRouteImport } from './routes/inspection'
 import { Route as InsuranceRouteImport } from './routes/insurance'
 import { Route as LocationsRouteImport } from './routes/locations'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MasterAdminRouteImport } from './routes/master-admin'
 import { Route as RoadsideAssistanceRouteImport } from './routes/roadside-assistance'
 import { Route as RtoRouteImport } from './routes/rto'
 import { Route as ScrapRouteImport } from './routes/scrap'
@@ -49,6 +50,9 @@ import { Route as CarsIndexRouteImport } from './routes/cars.index'
 import { Route as CarsIdRouteImport } from './routes/cars.$id'
 import { Route as FranchiseApplyRouteImport } from './routes/franchise.apply'
 import { Route as InternalEvaluationsRouteImport } from './routes/internal.evaluations'
+import { Route as MasterAdminIndexRouteImport } from './routes/master-admin.index'
+import { Route as MasterAdminTrackerRouteImport } from './routes/master-admin.tracker'
+import { Route as MasterAdminLoginRouteImport } from './routes/master-admin_.login'
 import { Route as BuyVehicleIdRouteImport } from './routes/buy.vehicle.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -134,6 +138,11 @@ const LocationsRoute = LocationsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MasterAdminRoute = MasterAdminRouteImport.update({
+  id: '/master-admin',
+  path: '/master-admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RoadsideAssistanceRoute = RoadsideAssistanceRouteImport.update({
@@ -251,6 +260,21 @@ const InternalEvaluationsRoute = InternalEvaluationsRouteImport.update({
   path: '/internal/evaluations',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MasterAdminIndexRoute = MasterAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MasterAdminRoute,
+} as any)
+const MasterAdminTrackerRoute = MasterAdminTrackerRouteImport.update({
+  id: '/tracker',
+  path: '/tracker',
+  getParentRoute: () => MasterAdminRoute,
+} as any)
+const MasterAdminLoginRoute = MasterAdminLoginRouteImport.update({
+  id: '/master-admin_/login',
+  path: '/master-admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BuyVehicleIdRoute = BuyVehicleIdRouteImport.update({
   id: '/buy/vehicle/$id',
   path: '/buy/vehicle/$id',
@@ -275,6 +299,7 @@ export interface FileRoutesByFullPath {
   '/insurance': typeof InsuranceRoute
   '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
+  '/master-admin': typeof MasterAdminRouteWithChildren
   '/roadside-assistance': typeof RoadsideAssistanceRoute
   '/rto': typeof RtoRoute
   '/scrap': typeof ScrapRoute
@@ -296,8 +321,11 @@ export interface FileRoutesByFullPath {
   '/cars/$id': typeof CarsIdRoute
   '/franchise/apply': typeof FranchiseApplyRoute
   '/internal/evaluations': typeof InternalEvaluationsRoute
+  '/master-admin/tracker': typeof MasterAdminTrackerRoute
+  '/master-admin/login': typeof MasterAdminLoginRoute
   '/buy/': typeof BuyIndexRoute
   '/cars/': typeof CarsIndexRoute
+  '/master-admin/': typeof MasterAdminIndexRoute
   '/buy/vehicle/$id': typeof BuyVehicleIdRoute
 }
 export interface FileRoutesByTo {
@@ -339,8 +367,11 @@ export interface FileRoutesByTo {
   '/cars/$id': typeof CarsIdRoute
   '/franchise/apply': typeof FranchiseApplyRoute
   '/internal/evaluations': typeof InternalEvaluationsRoute
+  '/master-admin/tracker': typeof MasterAdminTrackerRoute
+  '/master-admin/login': typeof MasterAdminLoginRoute
   '/buy': typeof BuyIndexRoute
   '/cars': typeof CarsIndexRoute
+  '/master-admin': typeof MasterAdminIndexRoute
   '/buy/vehicle/$id': typeof BuyVehicleIdRoute
 }
 export interface FileRoutesById {
@@ -362,6 +393,7 @@ export interface FileRoutesById {
   '/insurance': typeof InsuranceRoute
   '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
+  '/master-admin': typeof MasterAdminRouteWithChildren
   '/roadside-assistance': typeof RoadsideAssistanceRoute
   '/rto': typeof RtoRoute
   '/scrap': typeof ScrapRoute
@@ -383,8 +415,11 @@ export interface FileRoutesById {
   '/cars/$id': typeof CarsIdRoute
   '/franchise/apply': typeof FranchiseApplyRoute
   '/internal/evaluations': typeof InternalEvaluationsRoute
+  '/master-admin/tracker': typeof MasterAdminTrackerRoute
+  '/master-admin_/login': typeof MasterAdminLoginRoute
   '/buy/': typeof BuyIndexRoute
   '/cars/': typeof CarsIndexRoute
+  '/master-admin/': typeof MasterAdminIndexRoute
   '/buy/vehicle/$id': typeof BuyVehicleIdRoute
 }
 export interface FileRouteTypes {
@@ -407,6 +442,7 @@ export interface FileRouteTypes {
     | '/insurance'
     | '/locations'
     | '/login'
+    | '/master-admin'
     | '/roadside-assistance'
     | '/rto'
     | '/scrap'
@@ -428,8 +464,11 @@ export interface FileRouteTypes {
     | '/cars/$id'
     | '/franchise/apply'
     | '/internal/evaluations'
+    | '/master-admin/tracker'
+    | '/master-admin/login'
     | '/buy/'
     | '/cars/'
+    | '/master-admin/'
     | '/buy/vehicle/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -471,8 +510,11 @@ export interface FileRouteTypes {
     | '/cars/$id'
     | '/franchise/apply'
     | '/internal/evaluations'
+    | '/master-admin/tracker'
+    | '/master-admin/login'
     | '/buy'
     | '/cars'
+    | '/master-admin'
     | '/buy/vehicle/$id'
   id:
     | '__root__'
@@ -493,6 +535,7 @@ export interface FileRouteTypes {
     | '/insurance'
     | '/locations'
     | '/login'
+    | '/master-admin'
     | '/roadside-assistance'
     | '/rto'
     | '/scrap'
@@ -514,8 +557,11 @@ export interface FileRouteTypes {
     | '/cars/$id'
     | '/franchise/apply'
     | '/internal/evaluations'
+    | '/master-admin/tracker'
+    | '/master-admin_/login'
     | '/buy/'
     | '/cars/'
+    | '/master-admin/'
     | '/buy/vehicle/$id'
   fileRoutesById: FileRoutesById
 }
@@ -537,6 +583,7 @@ export interface RootRouteChildren {
   InsuranceRoute: typeof InsuranceRoute
   LocationsRoute: typeof LocationsRoute
   LoginRoute: typeof LoginRoute
+  MasterAdminRoute: typeof MasterAdminRouteWithChildren
   RoadsideAssistanceRoute: typeof RoadsideAssistanceRoute
   RtoRoute: typeof RtoRoute
   ScrapRoute: typeof ScrapRoute
@@ -557,6 +604,7 @@ export interface RootRouteChildren {
   BuyTrucksRoute: typeof BuyTrucksRoute
   CarsIdRoute: typeof CarsIdRoute
   InternalEvaluationsRoute: typeof InternalEvaluationsRoute
+  MasterAdminLoginRoute: typeof MasterAdminLoginRoute
   BuyIndexRoute: typeof BuyIndexRoute
   CarsIndexRoute: typeof CarsIndexRoute
   BuyVehicleIdRoute: typeof BuyVehicleIdRoute
@@ -681,6 +729,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/master-admin': {
+      id: '/master-admin'
+      path: '/master-admin'
+      fullPath: '/master-admin'
+      preLoaderRoute: typeof MasterAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/roadside-assistance': {
@@ -844,6 +899,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InternalEvaluationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/master-admin/': {
+      id: '/master-admin/'
+      path: '/'
+      fullPath: '/master-admin/'
+      preLoaderRoute: typeof MasterAdminIndexRouteImport
+      parentRoute: typeof MasterAdminRoute
+    }
+    '/master-admin/tracker': {
+      id: '/master-admin/tracker'
+      path: '/tracker'
+      fullPath: '/master-admin/tracker'
+      preLoaderRoute: typeof MasterAdminTrackerRouteImport
+      parentRoute: typeof MasterAdminRoute
+    }
+    '/master-admin_/login': {
+      id: '/master-admin_/login'
+      path: '/master-admin/login'
+      fullPath: '/master-admin/login'
+      preLoaderRoute: typeof MasterAdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/buy/vehicle/$id': {
       id: '/buy/vehicle/$id'
       path: '/buy/vehicle/$id'
@@ -866,6 +942,20 @@ const FranchiseRouteWithChildren = FranchiseRoute._addFileChildren(
   FranchiseRouteChildren,
 )
 
+interface MasterAdminRouteChildren {
+  MasterAdminTrackerRoute: typeof MasterAdminTrackerRoute
+  MasterAdminIndexRoute: typeof MasterAdminIndexRoute
+}
+
+const MasterAdminRouteChildren: MasterAdminRouteChildren = {
+  MasterAdminTrackerRoute: MasterAdminTrackerRoute,
+  MasterAdminIndexRoute: MasterAdminIndexRoute,
+}
+
+const MasterAdminRouteWithChildren = MasterAdminRoute._addFileChildren(
+  MasterAdminRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -884,6 +974,7 @@ const rootRouteChildren: RootRouteChildren = {
   InsuranceRoute: InsuranceRoute,
   LocationsRoute: LocationsRoute,
   LoginRoute: LoginRoute,
+  MasterAdminRoute: MasterAdminRouteWithChildren,
   RoadsideAssistanceRoute: RoadsideAssistanceRoute,
   RtoRoute: RtoRoute,
   ScrapRoute: ScrapRoute,
@@ -904,6 +995,7 @@ const rootRouteChildren: RootRouteChildren = {
   BuyTrucksRoute: BuyTrucksRoute,
   CarsIdRoute: CarsIdRoute,
   InternalEvaluationsRoute: InternalEvaluationsRoute,
+  MasterAdminLoginRoute: MasterAdminLoginRoute,
   BuyIndexRoute: BuyIndexRoute,
   CarsIndexRoute: CarsIndexRoute,
   BuyVehicleIdRoute: BuyVehicleIdRoute,
