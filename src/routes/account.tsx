@@ -11,7 +11,6 @@ import {
   LogOut,
   MessageSquare,
   Pencil,
-  Send,
   Store,
   Trash2,
   UserRound,
@@ -22,8 +21,9 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { StickyActions } from "@/components/site/StickyActions";
 import { useCustomerSession, maskMobile, signOut, updateProfile } from "@/lib/account-store";
 import type { CustomerProfile } from "@/lib/account-store";
+import { ChatThreadView, BUYER_QUICK_REPLIES } from "@/components/chat/ChatThreadView";
+import { subscribeToChat } from "@/lib/listing-chat";
 import {
-  appendChatMessage,
   chatThreads,
   dashboardCounts,
   deleteOwnListing,
@@ -474,31 +474,20 @@ function FavoritesTab() {
 
 function ChatsTab({ selectedId }: { selectedId?: string | undefined }) {
   const [threads, setThreads] = useState<ChatThread[]>([]);
-  const [draft, setDraft] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    setThreads(chatThreads());
-    setLoaded(true);
+    const sync = () => {
+      setThreads(chatThreads());
+      setLoaded(true);
+    };
+    sync();
+    return subscribeToChat(sync);
   }, []);
 
   const activeId = selectedId ?? threads[0]?.listingId ?? null;
   const active = threads.find((thread) => thread.listingId === activeId) ?? null;
   const listing = active ? getBuyListing(active.listingId) : undefined;
-
-  const send = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!active) return;
-    const result = appendChatMessage(active.listingId, draft);
-    if (!result.ok) {
-      setError(result.error ?? "Your message could not be saved.");
-      return;
-    }
-    setDraft("");
-    setError(null);
-    setThreads(chatThreads());
-  };
 
   return (
     <>
@@ -509,6 +498,13 @@ function ChatsTab({ selectedId }: { selectedId?: string | undefined }) {
             Conversations you started with sellers from a listing.
           </p>
         </div>
+        <Link
+          to="/seller"
+          className="mw-acct-cta mw-acct-cta--inline"
+          data-testid="chats-seller-desk"
+        >
+          Seller desk <ArrowRight size={16} aria-hidden="true" />
+        </Link>
       </div>
 
       {!loaded ? (
@@ -546,7 +542,8 @@ function ChatsTab({ selectedId }: { selectedId?: string | undefined }) {
                     <span className="mw-acct-chat-thread-main">
                       <span className="mw-acct-chat-name">{name}</span>
                       <span className="mw-acct-chat-preview">
-                        {thread.messages.at(-1)?.body ?? ""}
+                        {thread.lastMessage.role === "seller" ? "Seller: " : ""}
+                        {thread.lastMessage.body}
                       </span>
                     </span>
                     <span className="mw-acct-chat-time">{formatWhen(thread.lastAt)}</span>
@@ -565,47 +562,16 @@ function ChatsTab({ selectedId }: { selectedId?: string | undefined }) {
                 <span className="mw-acct-chat-name">
                   {listing ? buyListingName(listing) : "Seller"}
                 </span>
-                <span className="mw-acct-chat-status">Motor Wallah seller desk · demo chat</span>
+                <span className="mw-acct-chat-status">
+                  {listing ? `${listing.model} Seller · replies in a few seconds` : "Seller"}
+                </span>
               </span>
             </div>
 
-            <div className="mw-acct-chat-body">
-              {active?.messages.length ? (
-                active.messages.map((message) => (
-                  <p key={message.id} className="mw-acct-msg mw-acct-msg--customer">
-                    {message.body}
-                    <span className="mw-acct-msg-time">{formatWhen(message.createdAt)}</span>
-                  </p>
-                ))
-              ) : (
-                <p className="mw-acct-chat-hint">Start the conversation below.</p>
-              )}
-              <p className="mw-acct-chat-autoreply" data-testid="chat-autoreply">
-                This is a demo chat window. Messages are saved on this device only and no seller is
-                contacted.
-              </p>
-            </div>
-
-            <form className="mw-acct-composer" onSubmit={send}>
-              <input
-                className="mw-acct-input"
-                data-testid="chat-input"
-                placeholder="Write a message…"
-                value={draft}
-                onChange={(event) => {
-                  setDraft(event.target.value);
-                  setError(null);
-                }}
-                aria-label="Message"
-              />
-              <button type="submit" className="mw-acct-send" data-testid="chat-send">
-                <Send size={16} aria-hidden="true" /> Send
-              </button>
-            </form>
-            {error && (
-              <p className="mw-acct-error" role="alert">
-                {error}
-              </p>
+            {listing ? (
+              <ChatThreadView listing={listing} role="buyer" quickReplies={BUYER_QUICK_REPLIES} />
+            ) : (
+              <p className="mw-acct-chat-hint">Select a conversation to continue.</p>
             )}
           </div>
         </div>

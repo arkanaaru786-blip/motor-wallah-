@@ -16,6 +16,7 @@
 @import "./styles/franchise-flow.css";
 @import "./styles/account-flow.css";
 @import "./styles/search-flow.css";
+@import "./styles/chat-flow.css";
 
 @custom-variant dark (&:is(.dark *));
 

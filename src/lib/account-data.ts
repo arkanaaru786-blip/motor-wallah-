@@ -1,4 +1,9 @@
 import { readLeadQueue, type Lead } from "@/lib/leads";
+import {
+  chatThreads as readChatThreads,
+  sendChatMessage,
+  type ChatThread,
+} from "@/lib/listing-chat";
 import { listOffers, type ListingOffer, type OfferStatus } from "@/lib/listing-offers";
 import { SERVICE_STATUSES, liveStageIndex } from "@/lib/service-tracking";
 
@@ -13,8 +18,6 @@ import { SERVICE_STATUSES, liveStageIndex } from "@/lib/service-tracking";
 
 /** Same key as src/lib/shortlist.ts (the BUY wishlist). */
 const SHORTLIST_KEY = "mw_buy_shortlist";
-/** Same key + record shape as src/lib/listing-chat.ts. */
-const CHAT_KEY = "mw_listing_chat";
 /** Dashboard-only status overrides for a customer's own SELL submissions. */
 const LISTING_STATUS_KEY = "mw_my_listing_status";
 /** Same key as src/lib/leads.ts (the shared lead queue). */
@@ -39,51 +42,23 @@ export function savedVehicleIds(): string[] {
 
 /* ------------------------------------------------------------------ chats */
 
-export type ChatMessage = { id: string; listingId: string; body: string; createdAt: string };
-export type ChatThread = { listingId: string; messages: ChatMessage[]; lastAt: string };
+/** The buyer's side of the shared listing conversations. */
+export type { ChatThread };
 
 export function chatThreads(): ChatThread[] {
-  const raw = readJson<Record<string, ChatMessage[]>>(CHAT_KEY, {});
-  if (!raw || typeof raw !== "object") return [];
-  return Object.entries(raw)
-    .map(([listingId, messages]) => {
-      const list = Array.isArray(messages)
-        ? messages.filter((m) => typeof m?.body === "string")
-        : [];
-      return {
-        listingId,
-        messages: list,
-        lastAt: list.at(-1)?.createdAt ?? "",
-      };
-    })
-    .filter((thread) => thread.messages.length > 0)
-    .sort((a, b) => (a.lastAt < b.lastAt ? 1 : -1));
+  return readChatThreads("buyer");
 }
 
-/** Append one follow-up message to a thread, mirroring listing-chat.ts. */
+/** Append one follow-up buyer message to a thread. */
 export function appendChatMessage(
   listingId: string,
   body: string,
 ): { ok: boolean; error?: string } {
-  const text = body.trim();
-  if (!text) return { ok: false, error: "Type a message first." };
-  const threads = readJson<Record<string, ChatMessage[]>>(CHAT_KEY, {});
-  const message: ChatMessage = {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    listingId,
-    body: text.slice(0, 1000),
-    createdAt: new Date().toISOString(),
-  };
-  threads[listingId] = [...(threads[listingId] ?? []), message].slice(-50);
-  try {
-    window.localStorage.setItem(CHAT_KEY, JSON.stringify(threads));
-    return { ok: true };
-  } catch {
-    return {
-      ok: false,
-      error: "This browser blocked local storage, so your message was not saved.",
-    };
-  }
+  if (!body.trim()) return { ok: false, error: "Type a message first." };
+  const message = sendChatMessage(listingId, "buyer", body);
+  return message
+    ? { ok: true }
+    : { ok: false, error: "This browser blocked local storage, so your message was not saved." };
 }
 
 /* --------------------------------------------------------------- listings */

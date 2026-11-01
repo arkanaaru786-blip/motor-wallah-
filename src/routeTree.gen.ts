@@ -31,6 +31,7 @@ import { Route as RtoRouteImport } from './routes/rto'
 import { Route as ScrapRouteImport } from './routes/scrap'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SellYourCarRouteImport } from './routes/sell-your-car'
+import { Route as SellerRouteImport } from './routes/seller'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as WarrantyRouteImport } from './routes/warranty'
@@ -160,6 +161,11 @@ const SellYourCarRoute = SellYourCarRouteImport.update({
   path: '/sell-your-car',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SellerRoute = SellerRouteImport.update({
+  id: '/seller',
+  path: '/seller',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
   path: '/services',
@@ -274,6 +280,7 @@ export interface FileRoutesByFullPath {
   '/scrap': typeof ScrapRoute
   '/search': typeof SearchRoute
   '/sell-your-car': typeof SellYourCarRoute
+  '/seller': typeof SellerRoute
   '/services': typeof ServicesRoute
   '/track': typeof TrackRoute
   '/warranty': typeof WarrantyRoute
@@ -316,6 +323,7 @@ export interface FileRoutesByTo {
   '/scrap': typeof ScrapRoute
   '/search': typeof SearchRoute
   '/sell-your-car': typeof SellYourCarRoute
+  '/seller': typeof SellerRoute
   '/services': typeof ServicesRoute
   '/track': typeof TrackRoute
   '/warranty': typeof WarrantyRoute
@@ -359,6 +367,7 @@ export interface FileRoutesById {
   '/scrap': typeof ScrapRoute
   '/search': typeof SearchRoute
   '/sell-your-car': typeof SellYourCarRoute
+  '/seller': typeof SellerRoute
   '/services': typeof ServicesRoute
   '/track': typeof TrackRoute
   '/warranty': typeof WarrantyRoute
@@ -403,6 +412,7 @@ export interface FileRouteTypes {
     | '/scrap'
     | '/search'
     | '/sell-your-car'
+    | '/seller'
     | '/services'
     | '/track'
     | '/warranty'
@@ -445,6 +455,7 @@ export interface FileRouteTypes {
     | '/scrap'
     | '/search'
     | '/sell-your-car'
+    | '/seller'
     | '/services'
     | '/track'
     | '/warranty'
@@ -487,6 +498,7 @@ export interface FileRouteTypes {
     | '/scrap'
     | '/search'
     | '/sell-your-car'
+    | '/seller'
     | '/services'
     | '/track'
     | '/warranty'
@@ -530,6 +542,7 @@ export interface RootRouteChildren {
   ScrapRoute: typeof ScrapRoute
   SearchRoute: typeof SearchRoute
   SellYourCarRoute: typeof SellYourCarRoute
+  SellerRoute: typeof SellerRoute
   ServicesRoute: typeof ServicesRoute
   TrackRoute: typeof TrackRoute
   WarrantyRoute: typeof WarrantyRoute
@@ -705,6 +718,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SellYourCarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/seller': {
+      id: '/seller'
+      path: '/seller'
+      fullPath: '/seller'
+      preLoaderRoute: typeof SellerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/services': {
       id: '/services'
       path: '/services'
@@ -869,6 +889,7 @@ const rootRouteChildren: RootRouteChildren = {
   ScrapRoute: ScrapRoute,
   SearchRoute: SearchRoute,
   SellYourCarRoute: SellYourCarRoute,
+  SellerRoute: SellerRoute,
   ServicesRoute: ServicesRoute,
   TrackRoute: TrackRoute,
   WarrantyRoute: WarrantyRoute,

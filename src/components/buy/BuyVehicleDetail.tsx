@@ -145,7 +145,7 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
             {/* Mobile: keep the primary actions within reach, above the fold. */}
             <div className="buy-quick-actions">
               <button type="button" onClick={() => setContact(true)} className="buy-primary-button">
-                <MessageCircle size={16} /> Contact Seller
+                <MessageCircle size={16} /> Chat with Seller
               </button>
               <button
                 type="button"
@@ -255,7 +255,10 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
                 <Spec icon={<MapPin size={16} />} label="City" value={listing.city} />
               </div>
 
-              <section className="buy-panel buy-panel--location" aria-labelledby="buy-location-title">
+              <section
+                className="buy-panel buy-panel--location"
+                aria-labelledby="buy-location-title"
+              >
                 <h2 id="buy-location-title" className="buy-panel-title">
                   Location
                 </h2>
@@ -303,7 +306,7 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
                   onClick={() => setContact(true)}
                   className="buy-primary-button"
                 >
-                  <MessageCircle size={16} /> Contact Seller
+                  <MessageCircle size={16} /> Chat with Seller
                 </button>
                 <button
                   type="button"
