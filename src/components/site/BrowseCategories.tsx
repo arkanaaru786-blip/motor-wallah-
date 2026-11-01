@@ -107,15 +107,15 @@ export function BrandStrip() {
       ].map((brand) => (
         <Link
           key={brand}
-          to="/cars"
-          search={{ brand: brand === "Tata Motors" ? "Tata" : brand }}
+          to="/buy"
+          search={{ category: "cars" }}
           className="home-brand-wordmark"
-          aria-label={brand}
+          aria-label={`Browse ${brand} cars`}
         >
           <BrandArt src={BRAND_LOGOS[brand]} label={brand} width={66} height={34} />
         </Link>
       ))}
-      <Link to="/cars" className="home-brand-all">
+      <Link to="/buy" search={{ category: "cars" }} className="home-brand-all">
         View all brands <ArrowRight size={14} />
       </Link>
     </nav>
@@ -172,7 +172,7 @@ export function BrowseCategories() {
                 </h2>
                 <p>Find your perfect ride from our wide range of vehicle categories.</p>
               </div>
-              <Link to="/cars">
+              <Link to="/buy">
                 View all categories <ArrowRight size={14} />
               </Link>
             </div>
@@ -181,7 +181,12 @@ export function BrowseCategories() {
               {BUY_CATEGORIES.map((c, i) => {
                 const image = IMAGES[i];
                 return (
-                  <Link key={c.to} to={c.to} className="home-category-card">
+                  <Link
+                    key={c.category}
+                    to="/buy"
+                    search={{ category: c.category }}
+                    className="home-category-card"
+                  >
                     <span className="home-category-media">
                       {image ? (
                         <img

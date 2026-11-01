@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowLeftRight,
@@ -9,6 +10,7 @@ import {
   FileCheck2,
   GitCompareArrows,
   Handshake,
+  Heart,
   IndianRupee,
   MapPin,
   Package,
@@ -20,67 +22,23 @@ import {
   Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { VEHICLES, formatPrice, formatKm } from "@/lib/cars-data";
-import { CATEGORIES, CATEGORY_LISTINGS } from "@/lib/vehicle-categories";
+import { MakeOfferDialog } from "@/components/buy/MakeOfferDialog";
+import { useShortlist } from "@/lib/shortlist";
+import { BUY_CATEGORY_LIST, getBuyListing, lakhLabel, listingsInCategory } from "@/lib/buy-catalog";
 import franchiseShowroom from "@/assets/franchise-showroom.jpg";
 import businessSpotlight from "@/assets/business-spotlight.jpg";
 import carPhoto from "@/assets/homepage/Car.png";
-import BikePhoto from "@/assets/homepage/Bike.png";
-import threeWheelPhoto from "@/assets/homepage/3 wheeler.png";
-import SCVPhoto from "@/assets/homepage/SCV.png";
-import TruckPhoto from "@/assets/homepage/Truck.png";
-import BusPhoto from "@/assets/homepage/Bus.png";
-import TractorPhoto from "@/assets/homepage/Tractor.png";
-import TaxiPhoto from "@/assets/homepage/Taxi.png";
 
-// Presentation-only imagery: do not substitute unrelated models for demo listings.
-const CATEGORY_IMAGES: string[] = [
-  BikePhoto,
-  threeWheelPhoto,
-  SCVPhoto,
-  TruckPhoto,
-  BusPhoto,
-  TractorPhoto,
-  TaxiPhoto,
-];
-const car = VEHICLES.find((vehicle) => vehicle.status === "Available");
+// Every card opens the SAME unified BUY listing page — ids come straight from
+// the BUY catalogue, so there is no second listing design anywhere.
+const CAR_LISTING = listingsInCategory("cars").find(
+  (listing) => listing.demo && listing.status === "Available",
+);
 const LISTINGS = [
-  ...(car
-    ? [
-        {
-          name: `${car.make} ${car.model}`,
-          variant: car.variant,
-          year: car.year,
-          fuel: car.fuel,
-          km: formatKm(car.kilometres),
-          place: car.location,
-          price: formatPrice(car.price),
-          image: carPhoto,
-          to: "/cars/$id",
-          slug: car.slug,
-          badge: "Demo listing",
-        },
-      ]
-    : []),
-  ...CATEGORIES.flatMap((category, index) => {
-    const listing = CATEGORY_LISTINGS.find((item) => item.category === category.id);
-    return listing
-      ? [
-          {
-            name: `${listing.brand.replace(/\s*\([^)]*\)/g, "")} ${listing.model}`,
-            variant: category.title,
-            year: listing.year,
-            fuel: listing.fuel,
-            km: formatKm(listing.kilometres),
-            place: listing.location,
-            price: formatPrice(listing.price),
-            image: CATEGORY_IMAGES[index],
-            to: category.to,
-            slug: undefined,
-            badge: "Demo listing",
-          },
-        ]
-      : [];
+  ...(CAR_LISTING ? [{ listing: CAR_LISTING, image: carPhoto }] : []),
+  ...BUY_CATEGORY_LIST.filter((c) => c.id !== "cars").flatMap((category) => {
+    const listing = listingsInCategory(category.id)[0];
+    return listing ? [{ listing, image: category.image }] : [];
   }),
 ];
 
@@ -294,6 +252,10 @@ export function BusinessSpotlight() {
 }
 
 export function PopularVehicles() {
+  const shortlist = useShortlist();
+  const [offerId, setOfferId] = useState<string | null>(null);
+  const offerListing = offerId ? (getBuyListing(offerId) ?? null) : null;
+
   return (
     <section className="home-popular">
       <div className="home-container">
@@ -305,57 +267,75 @@ export function PopularVehicles() {
             </h2>
             <p>Top picks from our marketplace · Demo listings</p>
           </div>
-          <Link to="/cars">
+          <Link to="/buy" search={{ category: "cars" }}>
             View all <ArrowRight size={14} />
           </Link>
         </div>
         <div className="home-listing-grid">
-          {LISTINGS.map((item) => (
-            <article key={item.name} className="home-listing-card">
-              <div className={`home-listing-image ${item.slug ? "" : "home-category-preview"}`}>
-                {item.image ? (
+          {LISTINGS.map(({ listing, image }) => {
+            const name = `${listing.brand} ${listing.model}`;
+            const shortlisted = shortlist.has(listing.id);
+            return (
+              <article key={listing.id} className="home-listing-card">
+                <div className="home-listing-image">
                   <img
-                    src={item.image}
-                    alt={`${item.name} illustrative demo photograph`}
+                    src={image}
+                    alt={`${name} ${listing.categoryLabel} illustrative demo photograph`}
                     width={720}
                     height={450}
                     loading="lazy"
                   />
-                ) : (
-                  <span className="home-image-placeholder">
-                    <span>
-                      Vehicle photo<small>Coming soon</small>
-                    </span>
-                  </span>
-                )}
-                <span className="home-demo-badge">{item.badge}</span>
-              </div>
-              <div className="home-listing-body">
-                <p className="home-listing-brand">{item.name.split(" ")[0]}</p>
-                <h3>{item.name}</h3>
-                <p className="home-listing-variant">{item.variant}</p>
-                <p className="home-listing-meta">
-                  {item.year} · {item.fuel}
-                </p>
-                <p className="home-listing-meta">
-                  {item.km} · {item.place}
-                </p>
-                <p className="home-listing-price">{item.price}</p>
-                <Button asChild size="sm" className="home-listing-button">
-                  {item.slug ? (
-                    <Link to="/cars/$id" params={{ id: item.slug }}>
-                      View Details <ArrowRight size={12} />
-                    </Link>
-                  ) : (
-                    <Link to={item.to}>
-                      View Details <ArrowRight size={12} />
-                    </Link>
-                  )}
-                </Button>
-              </div>
-            </article>
-          ))}
+                  <span className="home-demo-badge">Demo listing</span>
+                  <button
+                    type="button"
+                    className="home-listing-fav"
+                    aria-label={shortlisted ? `Remove ${name} from shortlist` : `Shortlist ${name}`}
+                    aria-pressed={shortlisted}
+                    onClick={() => shortlist.toggle(listing.id)}
+                  >
+                    <Heart
+                      size={16}
+                      fill={shortlisted ? "currentColor" : "none"}
+                      aria-hidden="true"
+                    />
+                  </button>
+                </div>
+                <div className="home-listing-body">
+                  <p className="home-listing-brand">{listing.brand}</p>
+                  <h3>{name}</h3>
+                  <p className="home-listing-variant">{listing.categoryLabel}</p>
+                  <p className="home-listing-meta">
+                    {listing.year} · {listing.fuel}
+                  </p>
+                  <p className="home-listing-meta">
+                    {listing.kilometres !== null
+                      ? `${listing.kilometres.toLocaleString("en-IN")} km`
+                      : "Km on request"}{" "}
+                    · {listing.city}
+                  </p>
+                  <p className="home-listing-price">{lakhLabel(listing.priceLakh)}</p>
+                  <div className="home-listing-actions">
+                    <Button asChild size="sm" className="home-listing-button">
+                      <Link to="/buy/vehicle/$id" params={{ id: listing.id }}>
+                        View Details <ArrowRight size={12} />
+                      </Link>
+                    </Button>
+                    <button
+                      type="button"
+                      className="home-listing-offer"
+                      onClick={() => setOfferId(listing.id)}
+                    >
+                      Make an Offer
+                    </button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
+        {offerListing && (
+          <MakeOfferDialog listing={offerListing} open onClose={() => setOfferId(null)} />
+        )}
       </div>
     </section>
   );

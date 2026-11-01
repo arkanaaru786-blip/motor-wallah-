@@ -1,19 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { CategoryListingPage } from "@/components/site/CategoryListingPage";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-const TITLE = "Buy Pre-Owned Trucks in Madhya Pradesh | Motor Wallah";
-const DESCRIPTION = "Browse pre-owned light, medium and heavy trucks from Tata, Ashok Leyland, Eicher and BharatBenz.";
-
+/** Legacy Trucks page — Trucks now lives in the unified BUY catalogue. */
 export const Route = createFileRoute("/buy/trucks")({
-  head: () => ({
-    meta: [
-      { title: TITLE },
-      { name: "description", content: DESCRIPTION },
-      { property: "og:title", content: TITLE },
-      { property: "og:description", content: DESCRIPTION },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  component: () => <CategoryListingPage categoryId="trucks" />,
+  beforeLoad: () => {
+    throw redirect({ to: "/buy", search: { category: "trucks" }, replace: true });
+  },
 });
