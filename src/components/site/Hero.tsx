@@ -1,20 +1,17 @@
-import { useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   BadgeCheck,
   FileCheck2,
   IndianRupee,
-  Search,
   ShieldCheck,
   ShoppingBag,
   Store,
 } from "lucide-react";
 import marketplaceHero from "@/assets/marketplace-hero.jpg";
 import { Button } from "@/components/ui/button";
-import { CATEGORIES } from "@/lib/vehicle-categories";
-import { VEHICLES } from "@/lib/cars-data";
 import { BrandStrip } from "@/components/site/BrowseCategories";
+import { SmartSearch } from "@/components/site/SmartSearch";
 
 const TRUST_CHIPS = [
   { icon: BadgeCheck, label: "Verified Vehicles" },
@@ -24,36 +21,6 @@ const TRUST_CHIPS = [
 ] as const;
 
 export function Hero() {
-  const [query, setQuery] = useState("");
-  const navigate = useNavigate();
-
-  const search = () => {
-    const value = query.trim().toLowerCase();
-    if (!value) return;
-    const category = CATEGORIES.find((item) => {
-      const terms = [
-        item.title,
-        item.singular,
-        item.blurb,
-        ...Object.keys(item.catalog),
-        ...Object.values(item.catalog)
-          .flat()
-          .map(([model]) => model),
-      ];
-      return terms.some(
-        (term) => term.toLowerCase().includes(value) || value.includes(term.toLowerCase()),
-      );
-    });
-    if (category) {
-      navigate({ to: category.to });
-      return;
-    }
-    const car = VEHICLES.find((item) =>
-      `${item.make} ${item.model} ${item.variant} ${item.bodyType}`.toLowerCase().includes(value),
-    );
-    navigate({ to: "/cars", search: car ? { brand: car.make, model: car.model } : {} });
-  };
-
   return (
     <section className="home-hero-shell">
       <div className="home-hero relative isolate overflow-hidden">
@@ -93,27 +60,7 @@ export function Hero() {
                 </Link>
               </Button>
             </div>
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                search();
-              }}
-              className="home-search"
-            >
-              <label className="flex min-w-0 flex-1 items-center gap-2">
-                <Search className="h-4 w-4 shrink-0 text-ink-foreground/70" />
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search by brand, model or vehicle type"
-                  aria-label="Search vehicles"
-                  className="h-11 min-w-0 flex-1 bg-transparent text-sm text-ink-foreground outline-none placeholder:text-ink-foreground/55"
-                />
-              </label>
-              <Button type="submit" className="home-search-button">
-                Search <ArrowRight size={14} />
-              </Button>
-            </form>
+            <SmartSearch placeholder="Search by brand, model, part or decor" />
             <ul className="home-hero-trust">
               {TRUST_CHIPS.map(({ icon: Icon, label }) => (
                 <li key={label}>

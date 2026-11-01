@@ -15,6 +15,7 @@
 @import "./styles/insurance-flow.css";
 @import "./styles/franchise-flow.css";
 @import "./styles/account-flow.css";
+@import "./styles/search-flow.css";
 
 @custom-variant dark (&:is(.dark *));
 
