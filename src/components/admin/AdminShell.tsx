@@ -7,12 +7,20 @@ import {
   Building2,
   ClipboardList,
   LayoutDashboard,
+  ListChecks,
   LogOut,
   ShieldCheck,
+  ScrollText,
   Users,
   Wallet,
 } from "lucide-react";
-import { ADMIN_SOURCE_LABEL, signOutAdmin, type AdminSession } from "@/lib/admin-auth";
+import {
+  ADMIN_SOURCE_LABEL,
+  sessionRoleLabel,
+  signOutAdmin,
+  type AdminSession,
+} from "@/lib/admin-auth";
+import { actorFromSession, can } from "@/lib/admin-rbac";
 
 type NavItem = {
   to: string;
@@ -20,12 +28,12 @@ type NavItem = {
   icon: typeof LayoutDashboard;
   exact?: boolean;
   count?: number;
+  search?: { scope: "my" | "all" };
 };
 
 const LOCKED: { label: string; icon: typeof LayoutDashboard; phase: string }[] = [
-  { label: "Inventory & Listings", icon: Boxes, phase: "Phase 2" },
-  { label: "Finance Desk", icon: Wallet, phase: "Phase 2" },
-  { label: "Employees & Roles", icon: Users, phase: "Phase 3" },
+  { label: "Inventory & Listings", icon: Boxes, phase: "Phase 3" },
+  { label: "Finance Desk", icon: Wallet, phase: "Phase 3" },
   { label: "Reports & Analytics", icon: BarChart3, phase: "Phase 3" },
   { label: "Partners & Studios", icon: Building2, phase: "Phase 3" },
 ];
@@ -38,6 +46,8 @@ const initials = (name: string) =>
     .map((part) => part.charAt(0).toUpperCase())
     .join("");
 
+const navTestId = (label: string) => `admin-nav-${label.toLowerCase().replace(/\s+/g, "-")}`;
+
 export function AdminShell({
   session,
   title,
@@ -45,6 +55,8 @@ export function AdminShell({
   actions,
   children,
   openCount,
+  myCount,
+  employeeCount,
 }: {
   session: AdminSession;
   title: string;
@@ -52,7 +64,10 @@ export function AdminShell({
   actions?: ReactNode;
   children: ReactNode;
   openCount?: number;
+  myCount?: number;
+  employeeCount?: number;
 }) {
+  const actor = actorFromSession(session);
   const nav: NavItem[] = [
     { to: "/master-admin", label: "Overview", icon: LayoutDashboard, exact: true },
     {
@@ -61,7 +76,26 @@ export function AdminShell({
       icon: ClipboardList,
       ...(typeof openCount === "number" ? { count: openCount } : {}),
     },
+    {
+      to: "/master-admin/tracker",
+      label: "My Tasks",
+      icon: ListChecks,
+      search: { scope: "my" },
+      ...(typeof myCount === "number" ? { count: myCount } : {}),
+    },
   ];
+
+  if (can(actor, "employee.view")) {
+    nav.push({
+      to: "/master-admin/employees",
+      label: "Employees",
+      icon: Users,
+      ...(typeof employeeCount === "number" ? { count: employeeCount } : {}),
+    });
+  }
+  if (can(actor, "audit.view")) {
+    nav.push({ to: "/master-admin/audit", label: "Audit Log", icon: ScrollText });
+  }
 
   return (
     <div className="mw-admin mw-admin-shell">
@@ -74,16 +108,18 @@ export function AdminShell({
           </span>
         </Link>
 
-        <p className="mw-admin-navlabel">Phase 1 · Foundation</p>
+        <p className="mw-admin-navlabel">Control room</p>
         <nav className="mw-admin-nav" aria-label="Control room sections">
           {nav.map((item) => (
             <Link
-              key={item.to}
+              key={`${item.to}-${item.label}`}
               to={item.to}
+              {...(item.search ? { search: item.search } : {})}
               activeOptions={{ exact: item.exact ?? false }}
               className="mw-admin-navlink"
               activeProps={{ className: "mw-admin-navlink is-active", "aria-current": "page" }}
-              data-testid={`admin-nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+              inactiveProps={{ className: "mw-admin-navlink" }}
+              data-testid={navTestId(item.label)}
             >
               <item.icon size={17} />
               <span>{item.label}</span>
@@ -105,10 +141,10 @@ export function AdminShell({
           ))}
         </ul>
 
-        <div className="mw-admin-sidefoot">
+        <div className="mw-admin-sidefoot" data-testid="admin-role-foot">
           <ShieldCheck size={15} />
           <div>
-            <strong>{session.role === "owner" ? "Owner access" : session.role}</strong>
+            <strong>{sessionRoleLabel(session)}</strong>
             <span>{ADMIN_SOURCE_LABEL[session.source]}</span>
           </div>
         </div>
@@ -133,7 +169,7 @@ export function AdminShell({
               </span>
               <span className="mw-admin-usertext">
                 <strong>{session.name}</strong>
-                <small>{session.email}</small>
+                <small data-testid="admin-user-role">{sessionRoleLabel(session)}</small>
               </span>
             </div>
             <button

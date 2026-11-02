@@ -8,5 +8,6 @@ export const Route = createFileRoute("/master-admin/")({
 
 function MasterAdminOverview() {
   const { session } = useAdminSession();
-  return <AdminDashboard actor={session?.name ?? "Administrator"} />;
+  if (!session) return null;
+  return <AdminDashboard session={session} />;
 }

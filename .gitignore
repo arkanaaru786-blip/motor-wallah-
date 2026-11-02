@@ -36,3 +36,4 @@ dist-ssr
 artifacts/*
 !artifacts/buy-e2e.mjs
 !artifacts/admin-e2e.mjs
+!artifacts/rbac-e2e.mjs

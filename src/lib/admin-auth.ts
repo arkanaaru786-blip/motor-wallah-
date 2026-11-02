@@ -1,4 +1,14 @@
 import { useSyncExternalStore } from "react";
+import {
+  createPasswordCredential,
+  cryptoAvailable,
+  safeEqual,
+  sha256Hex,
+  validatePasswordStrength,
+  verifyPasswordCredential,
+} from "./admin-crypto";
+import { verifyEmployeeSignIn } from "./admin-crm";
+import { ROLES, ROLE_LABEL, type Department, type Role } from "./admin-rbac";
 
 /**
  * Master Admin authentication.
@@ -15,6 +25,10 @@ import { useSyncExternalStore } from "react";
  *      screen, stored as a salted PBKDF2-SHA256 hash (150k iterations). The
  *      plaintext password is never written anywhere.
  *
+ * Employees sign in with the work email and temporary password set for them in
+ * the directory; their session carries the employee id, role and department,
+ * which is what the RBAC policy in `admin-rbac.ts` checks on every write.
+ *
  * Honest limitation: this is a browser-side gate. It keeps the control room
  * behind a credential and out of the public nav, but it is not a substitute for
  * server-side authorization once the panel manages data other people can read.
@@ -27,17 +41,13 @@ const SESSION_KEY = "mw_admin_session";
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const IDLE_TTL_MS = 30 * 60 * 1000;
 
-const PBKDF2_ITERATIONS = 150_000;
 const MAX_ATTEMPTS = 5;
 const LOCK_MS = 60_000;
-const MIN_PASSWORD_LENGTH = 10;
-
-export type AdminRole = "owner" | "manager" | "agent";
 
 export type AdminAccount = {
   email: string;
   name: string;
-  role: AdminRole;
+  role: Role;
   /** base64 PBKDF2 salt */
   salt: string;
   /** base64 PBKDF2-SHA256 derived key */
@@ -48,11 +58,15 @@ export type AdminAccount = {
 };
 
 export type AdminSession = {
+  /** Employee id (EMP-1001) or OWNER-1 for the owner credential. */
+  employeeId: string;
   email: string;
   name: string;
-  role: AdminRole;
+  role: Role;
+  /** null only for a super admin, who works across every desk. */
+  department: Department | null;
   /** Where the credential that signed this session in came from. */
-  source: "environment" | "database";
+  source: "environment" | "database" | "employee";
   issuedAt: string;
   lastSeenAt: number;
   expiresAt: number;
@@ -99,7 +113,13 @@ function readAccounts(): Record<string, AdminAccount> {
   if (typeof window === "undefined") return {};
   try {
     const parsed = JSON.parse(window.localStorage.getItem(ACCOUNTS_KEY) ?? "{}");
-    return parsed && typeof parsed === "object" ? (parsed as Record<string, AdminAccount>) : {};
+    if (!parsed || typeof parsed !== "object") return {};
+    // Phase 1 accounts carried role "owner"; they are super admins now.
+    const accounts = parsed as Record<string, AdminAccount & { role: string }>;
+    for (const account of Object.values(accounts)) {
+      if (!ROLES.includes(account.role as Role)) account.role = "super_admin";
+    }
+    return accounts as Record<string, AdminAccount>;
   } catch {
     return {};
   }
@@ -121,6 +141,10 @@ function readSession(): AdminSession | null {
       window.localStorage.getItem(SESSION_KEY) ?? "null",
     ) as AdminSession | null;
     if (!parsed || typeof parsed !== "object" || typeof parsed.email !== "string") return null;
+    // Sessions written before RBAC existed have no employee id or valid role,
+    // so they are dropped and the person signs in again.
+    if (typeof parsed.employeeId !== "string") return null;
+    if (!ROLES.includes(parsed.role as Role)) return null;
     return parsed;
   } catch {
     return null;
@@ -135,55 +159,6 @@ function writeSession(session: AdminSession | null): boolean {
   } catch {
     return false;
   }
-}
-
-/* ------------------------------------------------------------ crypto bits */
-
-const encoder = new TextEncoder();
-
-function toBase64(bytes: ArrayBuffer): string {
-  const view = new Uint8Array(bytes);
-  let binary = "";
-  for (const byte of view) binary += String.fromCharCode(byte);
-  return window.btoa(binary);
-}
-
-function fromBase64(value: string): Uint8Array {
-  const binary = window.atob(value);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-  return bytes;
-}
-
-async function pbkdf2(password: string, salt: Uint8Array, iterations: number): Promise<string> {
-  const key = await window.crypto.subtle.importKey(
-    "raw",
-    encoder.encode(password),
-    "PBKDF2",
-    false,
-    ["deriveBits"],
-  );
-  const bits = await window.crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt: salt as unknown as BufferSource, iterations, hash: "SHA-256" },
-    key,
-    256,
-  );
-  return toBase64(bits);
-}
-
-async function sha256Hex(password: string): Promise<string> {
-  const digest = await window.crypto.subtle.digest("SHA-256", encoder.encode(password));
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-/** Length-independent comparison so a wrong password never short-circuits. */
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
 }
 
 /* ------------------------------------------------------------- attempts */
@@ -337,7 +312,7 @@ export async function signInAdmin(emailInput: string, password: string): Promise
     return { ok: false, error: `Too many failed attempts. Try again in ${seconds}s.` };
   }
 
-  if (typeof window === "undefined" || !window.crypto?.subtle) {
+  if (!cryptoAvailable()) {
     return {
       ok: false,
       error: "This browser cannot verify a password securely. Try another browser.",
@@ -347,6 +322,7 @@ export async function signInAdmin(emailInput: string, password: string): Promise
   const env = readEnvCredential();
   let verified: SignInResult | null = null;
 
+  // 1. The deployment's own credential — always a super admin.
   if (env && env.email === email) {
     const matchesHash = env.passwordHash
       ? safeEqual(await sha256Hex(password), env.passwordHash)
@@ -355,29 +331,61 @@ export async function signInAdmin(emailInput: string, password: string): Promise
     if (matchesHash || matchesPlain) {
       verified = {
         ok: true,
-        session: await startSession(
+        session: await startSession({
+          employeeId: "OWNER-1",
           email,
-          splitName(email, "Administrator"),
-          "owner",
-          "environment",
-        ),
+          name: splitName(email, "Administrator"),
+          role: "super_admin",
+          department: null,
+          source: "environment",
+        }),
       };
     }
   }
 
+  // 2. An owner account enrolled in the admin database on first run.
   if (!verified) {
     const account = readAccounts()[email];
     if (account) {
-      const candidate = await pbkdf2(password, fromBase64(account.salt), account.iterations);
-      if (safeEqual(candidate, account.hash)) {
+      const matches = await verifyPasswordCredential(password, {
+        salt: account.salt,
+        hash: account.hash,
+        iterations: account.iterations,
+      });
+      if (matches) {
         const accounts = readAccounts();
         accounts[email] = { ...account, lastLoginAt: new Date().toISOString() };
         writeAccounts(accounts);
         verified = {
           ok: true,
-          session: await startSession(account.email, account.name, account.role, "database"),
+          session: await startSession({
+            employeeId: "OWNER-1",
+            email: account.email,
+            name: account.name,
+            role: account.role,
+            department: null,
+            source: "database",
+          }),
         };
       }
+    }
+  }
+
+  // 3. An employee from the directory, with the role and desk on their record.
+  if (!verified) {
+    const staff = await verifyEmployeeSignIn(email, password);
+    if (staff.ok) {
+      verified = {
+        ok: true,
+        session: await startSession({
+          employeeId: staff.employee.id,
+          email: staff.employee.email,
+          name: staff.employee.name,
+          role: staff.employee.role,
+          department: staff.employee.department,
+          source: "employee",
+        }),
+      };
     }
   }
 
@@ -398,17 +406,11 @@ export async function signInAdmin(emailInput: string, password: string): Promise
 }
 
 async function startSession(
-  email: string,
-  name: string,
-  role: AdminRole,
-  source: AdminSession["source"],
+  identity: Omit<AdminSession, "issuedAt" | "lastSeenAt" | "expiresAt">,
 ): Promise<AdminSession> {
   const now = Date.now();
   const session: AdminSession = {
-    email,
-    name,
-    role,
-    source,
+    ...identity,
     issuedAt: new Date(now).toISOString(),
     lastSeenAt: now,
     expiresAt: now + SESSION_TTL_MS,
@@ -435,12 +437,8 @@ export function signOutAdmin() {
 /* ------------------------------------------------------- first-run setup */
 
 export function validateNewPassword(password: string, confirm: string): string | null {
-  if (password.length < MIN_PASSWORD_LENGTH) {
-    return `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
-  }
-  if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) {
-    return "Include at least one letter and one number.";
-  }
+  const weak = validatePasswordStrength(password);
+  if (weak) return weak;
   if (password !== confirm) return "Both passwords must match.";
   return null;
 }
@@ -449,9 +447,9 @@ export async function enrollAdmin(input: {
   email: string;
   name: string;
   password: string;
-  role?: AdminRole;
+  role?: Role;
 }): Promise<SignInResult> {
-  if (typeof window === "undefined" || !window.crypto?.subtle) {
+  if (!cryptoAvailable()) {
     return { ok: false, error: "This browser cannot store a password securely." };
   }
   if (readEnvCredential()) {
@@ -472,15 +470,14 @@ export async function enrollAdmin(input: {
   if (accounts[email])
     return { ok: false, error: "An administrator with that email already exists." };
 
-  const salt = window.crypto.getRandomValues(new Uint8Array(16));
-  const hash = await pbkdf2(input.password, salt, PBKDF2_ITERATIONS);
+  const credential = await createPasswordCredential(input.password);
   const account: AdminAccount = {
     email,
     name,
-    role: input.role ?? "owner",
-    salt: toBase64(salt.buffer as ArrayBuffer),
-    hash,
-    iterations: PBKDF2_ITERATIONS,
+    role: input.role ?? "super_admin",
+    salt: credential.salt,
+    hash: credential.hash,
+    iterations: credential.iterations,
     createdAt: new Date().toISOString(),
     lastLoginAt: new Date().toISOString(),
   };
@@ -488,11 +485,26 @@ export async function enrollAdmin(input: {
   if (!writeAccounts(accounts)) {
     return { ok: false, error: "This browser blocked storage, so the account could not be saved." };
   }
-  return { ok: true, session: await startSession(email, name, account.role, "database") };
+  return {
+    ok: true,
+    session: await startSession({
+      employeeId: "OWNER-1",
+      email,
+      name,
+      role: account.role,
+      department: null,
+      source: "database",
+    }),
+  };
 }
 
 /** Human labels for the credential source shown in the panel footer. */
 export const ADMIN_SOURCE_LABEL: Record<AdminSession["source"], string> = {
   environment: "Environment credential",
-  database: "Admin database",
+  database: "Owner account",
+  employee: "Employee directory",
 };
+
+/** Human label for the signed-in role, used in the shell header. */
+export const sessionRoleLabel = (session: AdminSession): string =>
+  `${ROLE_LABEL[session.role]}${session.department ? ` · ${session.department}` : ""}`;

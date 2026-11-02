@@ -213,11 +213,18 @@ try {
   await page.waitForSelector('[data-testid="drawer-flash"]', { timeout: 6000 });
   check("Status update saves to the database", /Status updated to In Progress/.test((await text('[data-testid="drawer-flash"]')) ?? ""));
 
-  await page.selectOption('[data-testid="drawer-assignee"]', "emp-vikram");
+  // Unassign first: MWC-1001 already belongs to EMP-1001, which disables the button.
+  await page.selectOption('[data-testid="drawer-assignee"]', "");
+  await page.click('[data-testid="save-assignee"]');
+  await page.waitForTimeout(600);
+  const unassigned = await page.locator('[data-testid="case-drawer"]').innerText();
+  check("Case can be moved to the unassigned queue", /Unassigned/.test(unassigned));
+
+  await page.selectOption('[data-testid="drawer-assignee"]', "EMP-1001");
   await page.click('[data-testid="save-assignee"]');
   await page.waitForTimeout(600);
   const assigned = await page.locator('[data-testid="case-drawer"]').innerText();
-  check("Case can be assigned to an employee", /Vikram Shetty/.test(assigned));
+  check("Case can be assigned to an employee", /Ananya Rao/.test(assigned));
 
   await page.fill('[data-testid="note-input"]', "Called the customer, sanction letter expected tomorrow.");
   await page.click('[data-testid="save-note"]');

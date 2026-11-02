@@ -6,10 +6,13 @@ import {
   Check,
   ClipboardList,
   Filter,
+  ListChecks,
+  Lock,
   MessageSquarePlus,
   Phone,
   RotateCcw,
   Search,
+  ShieldCheck,
   SlidersHorizontal,
   UserPlus,
   X,
@@ -20,6 +23,7 @@ import {
   CASE_TYPES,
   addCaseNote,
   assignCase,
+  assignableEmployees,
   employeeName,
   ensureAdminDatabase,
   inr,
@@ -29,12 +33,24 @@ import {
   slaFor,
   subscribeToAdminData,
   updateCaseStatus,
+  visibleCases,
   type AdminEmployee,
   type CasePriority,
   type CaseStatus,
   type CaseType,
   type CrmCase,
 } from "@/lib/admin-crm";
+import {
+  ROLE_LABEL,
+  actorFromSession,
+  canAssignCase,
+  canEditCase,
+  canViewAllTasks,
+  scopeLabel,
+  visibleCaseTypes,
+  type Actor,
+} from "@/lib/admin-rbac";
+import type { AdminSession } from "@/lib/admin-auth";
 
 type Filters = {
   q: string;
@@ -58,15 +74,22 @@ const EMPTY_FILTERS: Filters = {
 
 const PAGE_SIZES = [10, 25, 50] as const;
 
+export type TaskScope = "my" | "all";
+
 export function MasterTracker({
-  actor,
+  session,
   caseId,
+  scope,
+  onScopeChange,
   onCaseChange,
 }: {
-  actor: string;
+  session: AdminSession;
   caseId: string | null;
+  scope: TaskScope;
+  onScopeChange: (scope: TaskScope) => void;
   onCaseChange: (id: string | null) => void;
 }) {
+  const actor = useMemo(() => actorFromSession(session), [session]);
   const [version, setVersion] = useState(0);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
@@ -83,12 +106,26 @@ export function MasterTracker({
     return ensureAdminDatabase();
   }, [version]);
 
+  /** Everything this person is allowed to see, before the toolbar filters. */
+  const permitted = useMemo(() => visibleCases(actor, data.cases), [actor, data.cases]);
+  const allTasksAvailable = canViewAllTasks(actor);
+
+  const scoped = useMemo(
+    () => (scope === "my" ? permitted.filter((item) => item.assignedTo === actor.id) : permitted),
+    [permitted, scope, actor.id],
+  );
+
+  const typeOptions = useMemo(() => {
+    const allowed = new Set(visibleCaseTypes(actor));
+    return CASE_TYPES.filter((type) => allowed.has(type));
+  }, [actor]);
+
   const filtered = useMemo(() => {
     const needle = filters.q.trim().toLowerCase();
     const from = filters.from ? Date.parse(`${filters.from}T00:00:00`) : null;
     const to = filters.to ? Date.parse(`${filters.to}T23:59:59`) : null;
 
-    return data.cases
+    return scoped
       .filter((item) => filters.type === "all" || item.type === filters.type)
       .filter((item) => filters.status === "all" || item.status === filters.status)
       .filter((item) => filters.priority === "all" || item.priority === filters.priority)
@@ -121,7 +158,7 @@ export function MasterTracker({
           .includes(needle);
       })
       .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-  }, [data.cases, data.employees, filters]);
+  }, [scoped, data.employees, filters]);
 
   const total = filtered.length;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
@@ -140,6 +177,7 @@ export function MasterTracker({
   ].filter(Boolean).length;
 
   const selected = caseId ? (data.cases.find((item) => item.id === caseId) ?? null) : null;
+  const selectedVisible = selected && permitted.some((item) => item.id === selected.id);
 
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -154,6 +192,50 @@ export function MasterTracker({
 
   return (
     <div className="mw-admin-tracker" data-testid="master-tracker">
+      <section className="mw-admin-scope" data-testid="tracker-scope-banner">
+        <span className="mw-admin-scope-icon">
+          <ShieldCheck size={15} />
+        </span>
+        <div>
+          <strong data-testid="tracker-scope-label">{scopeLabel(actor)}</strong>
+          <small>
+            {ROLE_LABEL[actor.role]} · {actor.id}
+            {allTasksAvailable
+              ? " — you can switch between your own queue and the full desk."
+              : " — your role only sees work assigned to you."}
+          </small>
+        </div>
+        <div className="mw-admin-scope-switch" role="group" aria-label="Task scope">
+          <button
+            type="button"
+            className={scope === "my" ? "is-on" : ""}
+            aria-pressed={scope === "my"}
+            onClick={() => {
+              onScopeChange("my");
+              setPage(1);
+            }}
+            data-testid="scope-my"
+          >
+            <ListChecks size={14} /> My tasks
+          </button>
+          <button
+            type="button"
+            className={scope === "all" ? "is-on" : ""}
+            aria-pressed={scope === "all"}
+            disabled={!allTasksAvailable}
+            title={allTasksAvailable ? undefined : "Your role can only see work assigned to you."}
+            onClick={() => {
+              if (!allTasksAvailable) return;
+              onScopeChange("all");
+              setPage(1);
+            }}
+            data-testid="scope-all"
+          >
+            {allTasksAvailable ? <ClipboardList size={14} /> : <Lock size={13} />} All tasks
+          </button>
+        </div>
+      </section>
+
       <section className="mw-admin-toolbar" aria-label="Tracker filters">
         <div className="mw-admin-search">
           <Search size={16} />
@@ -176,7 +258,7 @@ export function MasterTracker({
               data-testid="filter-type"
             >
               <option value="all">All types</option>
-              {CASE_TYPES.map((type) => (
+              {typeOptions.map((type) => (
                 <option key={type} value={type}>
                   {type}
                 </option>
@@ -252,12 +334,14 @@ export function MasterTracker({
               data-testid="filter-assignee"
             >
               <option value="all">Anyone</option>
-              <option value="unassigned">Unassigned</option>
-              {data.employees.map((employee) => (
-                <option key={employee.id} value={employee.id}>
-                  {employee.name}
-                </option>
-              ))}
+              {allTasksAvailable ? <option value="unassigned">Unassigned</option> : null}
+              {data.employees
+                .filter((employee) => permitted.some((item) => item.assignedTo === employee.id))
+                .map((employee) => (
+                  <option key={employee.id} value={employee.id}>
+                    {employee.name}
+                  </option>
+                ))}
             </select>
           </label>
           <label>
@@ -398,7 +482,9 @@ export function MasterTracker({
 
         {rows.length === 0 ? (
           <div className="mw-admin-empty is-big" data-testid="tracker-empty">
-            No cases match these filters. Try a different type, status or date range.
+            {scope === "my"
+              ? "No cases are assigned to you yet. A manager can hand you work from All tasks."
+              : "No cases match these filters. Try a different type, status or date range."}
           </div>
         ) : null}
       </section>
@@ -449,7 +535,7 @@ export function MasterTracker({
         </div>
       </nav>
 
-      {selected ? (
+      {selected && selectedVisible ? (
         <CaseDrawer
           key={selected.id}
           item={selected}
@@ -458,11 +544,52 @@ export function MasterTracker({
           onClose={() => onCaseChange(null)}
         />
       ) : null}
+
+      {selected && !selectedVisible ? (
+        <CaseDeniedDrawer itemId={selected.id} onClose={() => onCaseChange(null)} />
+      ) : null}
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ drawer */
+
+function CaseDeniedDrawer({ itemId, onClose }: { itemId: string; onClose: () => void }) {
+  return (
+    <div className="mw-admin-drawer-root" data-testid="case-drawer-denied">
+      <button
+        type="button"
+        className="mw-admin-drawer-backdrop"
+        onClick={onClose}
+        aria-label="Close case details"
+        tabIndex={-1}
+      />
+      <aside className="mw-admin-drawer" role="dialog" aria-modal="true">
+        <header className="mw-admin-drawer-head">
+          <div>
+            <span className="mw-admin-type">Restricted</span>
+            <h2>{itemId}</h2>
+            <p>This case sits outside your department.</p>
+          </div>
+          <button
+            type="button"
+            className="mw-admin-drawer-close"
+            onClick={onClose}
+            aria-label="Close case details"
+          >
+            <X size={18} />
+          </button>
+        </header>
+        <div className="mw-admin-drawer-body">
+          <p className="mw-admin-denied" data-testid="drawer-denied-message">
+            <Lock size={16} /> Your role can only open cases on your own desk. Ask a super admin if
+            you need access.
+          </p>
+        </div>
+      </aside>
+    </div>
+  );
+}
 
 function CaseDrawer({
   item,
@@ -472,7 +599,7 @@ function CaseDrawer({
 }: {
   item: CrmCase;
   employees: AdminEmployee[];
-  actor: string;
+  actor: Actor;
   onClose: () => void;
 }) {
   const [status, setStatus] = useState<CaseStatus>(item.status);
@@ -501,6 +628,9 @@ function CaseDrawer({
   };
 
   const sla = slaFor(item);
+  const mayEdit = canEditCase(actor, item);
+  const mayAssign = canAssignCase(actor, item);
+  const canTakeWork = assignableEmployees(actor, employees, item.type);
 
   const saveStatus = () => {
     setError(null);
@@ -620,8 +750,14 @@ function CaseDrawer({
             </p>
           ) : null}
           {error ? (
-            <p className="mw-admin-error" role="alert">
+            <p className="mw-admin-error" role="alert" data-testid="drawer-error">
               {error}
+            </p>
+          ) : null}
+          {!mayEdit ? (
+            <p className="mw-admin-readonly" data-testid="drawer-readonly">
+              <Lock size={14} /> {ROLE_LABEL[actor.role]} access — you can read this case but not
+              change it.
             </p>
           ) : null}
 
@@ -634,6 +770,7 @@ function CaseDrawer({
                 value={status}
                 onChange={(event) => setStatus(event.target.value as CaseStatus)}
                 aria-label="Case status"
+                disabled={!mayEdit}
                 data-testid="drawer-status"
               >
                 {CASE_STATUSES.map((option) => (
@@ -645,7 +782,7 @@ function CaseDrawer({
               <button
                 type="button"
                 onClick={saveStatus}
-                disabled={status === item.status}
+                disabled={!mayEdit || status === item.status}
                 data-testid="save-status"
               >
                 Save status
@@ -657,29 +794,41 @@ function CaseDrawer({
             <h3>
               <UserPlus size={15} /> Assign to employee
             </h3>
-            <div className="mw-admin-inline">
-              <select
-                value={assignee}
-                onChange={(event) => setAssignee(event.target.value)}
-                aria-label="Assigned employee"
-                data-testid="drawer-assignee"
-              >
-                <option value="">Unassigned</option>
-                {employees.map((employee) => (
-                  <option key={employee.id} value={employee.id}>
-                    {employee.name} — {employee.role}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={saveAssignee}
-                disabled={(item.assignedTo ?? "") === assignee}
-                data-testid="save-assignee"
-              >
-                Assign
-              </button>
-            </div>
+            {mayAssign ? (
+              <>
+                <div className="mw-admin-inline">
+                  <select
+                    value={assignee}
+                    onChange={(event) => setAssignee(event.target.value)}
+                    aria-label="Assigned employee"
+                    data-testid="drawer-assignee"
+                  >
+                    <option value="">Unassigned</option>
+                    {canTakeWork.map((employee) => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.name} — {employee.id} · {employee.department}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={saveAssignee}
+                    disabled={(item.assignedTo ?? "") === assignee}
+                    data-testid="save-assignee"
+                  >
+                    Assign
+                  </button>
+                </div>
+                <p className="mw-admin-hint">
+                  Only {item.type} desk employees can take this case, so the list is filtered to
+                  them.
+                </p>
+              </>
+            ) : (
+              <p className="mw-admin-hint" data-testid="assign-locked">
+                <Lock size={13} /> Your role cannot reassign work.
+              </p>
+            )}
           </section>
 
           <section className="mw-admin-drawersection">
@@ -706,15 +855,16 @@ function CaseDrawer({
               value={note}
               onChange={(event) => setNote(event.target.value)}
               rows={3}
-              placeholder="Add context for the team…"
+              placeholder={mayEdit ? "Add context for the team…" : "Your role cannot add notes."}
               aria-label="New note"
+              disabled={!mayEdit}
               data-testid="note-input"
             />
             <button
               type="button"
               className="mw-admin-secondary"
               onClick={saveNote}
-              disabled={note.trim().length < 2}
+              disabled={!mayEdit || note.trim().length < 2}
               data-testid="save-note"
             >
               <MessageSquarePlus size={15} /> Add note

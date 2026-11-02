@@ -96,7 +96,7 @@ export function MasterAdminLoginPage() {
               <p>
                 {setup
                   ? "No administrator exists on this device yet. Create the first account — the password is stored only as a salted hash."
-                  : "Restricted area. Use your Motor Wallah administrator credentials."}
+                  : "Restricted area. Sign in with your administrator or employee credentials."}
               </p>
             </div>
             <span className="mw-admin-badge">Phase 1</span>

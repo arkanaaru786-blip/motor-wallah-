@@ -9,29 +9,36 @@ import {
   Clock3,
   Layers,
   ShieldAlert,
+  ShieldCheck,
   UserCheck,
   Users,
 } from "lucide-react";
 import {
   actionRequired,
   adminKpis,
-  ensureAdminDatabase,
   employeeName,
+  ensureAdminDatabase,
   inr,
   isOpenStatus,
-  recentActivity,
+  recentAudit,
   relativeTime,
   slaFor,
   statusBreakdown,
   subscribeToAdminData,
   typeBreakdown,
+  visibleAudit,
+  visibleCases,
+  visibleEmployees,
   type AdminEmployee,
   type CrmCase,
 } from "@/lib/admin-crm";
+import { ROLE_LABEL, actorFromSession, scopeLabel, type Actor } from "@/lib/admin-rbac";
+import type { AdminSession } from "@/lib/admin-auth";
 
 const toneForPriority = (priority: CrmCase["priority"]) => `is-${priority.toLowerCase()}`;
 
-export function AdminDashboard({ actor }: { actor: string }) {
+export function AdminDashboard({ session }: { session: AdminSession }) {
+  const actor = useMemo(() => actorFromSession(session), [session]);
   const [tick, setTick] = useState(() => Date.now());
   const [version, setVersion] = useState(0);
 
@@ -50,11 +57,22 @@ export function AdminDashboard({ actor }: { actor: string }) {
     return ensureAdminDatabase();
   }, [version]);
 
-  const kpis = useMemo(() => adminKpis(data.cases, tick), [data.cases, tick]);
-  const attention = useMemo(() => actionRequired(data.cases, tick), [data.cases, tick]);
-  const activity = useMemo(() => recentActivity(data.activity, 7), [data.activity]);
-  const pipeline = useMemo(() => statusBreakdown(data.cases), [data.cases]);
-  const types = useMemo(() => typeBreakdown(data.cases), [data.cases]);
+  /** Only what this person's role may see — every KPI below is scoped. */
+  const cases = useMemo(() => visibleCases(actor, data.cases), [actor, data.cases]);
+  const employees = useMemo(() => visibleEmployees(actor, data.employees), [actor, data.employees]);
+
+  const kpis = useMemo(() => adminKpis(cases, tick), [cases, tick]);
+  const attention = useMemo(() => actionRequired(cases, tick), [cases, tick]);
+  const activity = useMemo(
+    () => recentAudit(visibleAudit(actor, data.audit), 7),
+    [actor, data.audit],
+  );
+  const mine = useMemo(
+    () => cases.filter((item) => item.assignedTo === actor.id && isOpenStatus(item.status)),
+    [cases, actor.id],
+  );
+  const pipeline = useMemo(() => statusBreakdown(cases), [cases]);
+  const types = useMemo(() => typeBreakdown(cases), [cases]);
   const maxStatus = Math.max(1, ...pipeline.map((row) => row.count));
   const maxType = Math.max(1, ...types.map((row) => row.count));
 
@@ -126,6 +144,22 @@ export function AdminDashboard({ actor }: { actor: string }) {
         </article>
       </section>
 
+      <section className="mw-admin-scope is-dash" data-testid="dashboard-scope">
+        <span className="mw-admin-scope-icon">
+          <ShieldCheck size={15} />
+        </span>
+        <div>
+          <strong>{scopeLabel(actor)}</strong>
+          <small>
+            {ROLE_LABEL[actor.role]} · every number on this page is limited to what your role can
+            see.
+          </small>
+        </div>
+        <Link to="/master-admin/tracker" search={{ scope: "my" }} className="mw-admin-link">
+          My tasks ({mine.length}) <ArrowUpRight size={13} />
+        </Link>
+      </section>
+
       <div className="mw-admin-bento mw-admin-bento--lower">
         <section className="mw-admin-panel mw-admin-span-5" aria-labelledby="action-required">
           <header className="mw-admin-panel-head">
@@ -133,7 +167,10 @@ export function AdminDashboard({ actor }: { actor: string }) {
               <h2 id="action-required">
                 <AlertTriangle size={16} /> Action required
               </h2>
-              <p>Overdue and due-soon cases across every desk.</p>
+              <p>
+                Overdue and due-soon cases{" "}
+                {actor.role === "super_admin" ? "across every desk" : "on your desk"}.
+              </p>
             </div>
             <span className="mw-admin-chip is-danger" data-testid="overdue-count">
               {kpis.overdue} overdue
@@ -198,7 +235,7 @@ export function AdminDashboard({ actor }: { actor: string }) {
               {activity.map((entry) => (
                 <li key={entry.id}>
                   <span className="mw-admin-activity-avatar" aria-hidden="true">
-                    {entry.actor
+                    {entry.actorName
                       .split(/\s+/)
                       .map((part) => part.charAt(0))
                       .slice(0, 2)
@@ -206,19 +243,11 @@ export function AdminDashboard({ actor }: { actor: string }) {
                   </span>
                   <div>
                     <p>
-                      <strong>{entry.actor}</strong> {entry.action}{" "}
-                      {entry.caseId ? (
-                        <Link
-                          to="/master-admin/tracker"
-                          search={{ case: entry.caseId }}
-                          className="mw-admin-activity-link"
-                        >
-                          {entry.caseId}
-                        </Link>
-                      ) : null}
+                      <strong>{entry.actorName}</strong> {entry.summary}
                     </p>
                     <small>
-                      {entry.detail ? `${entry.detail} · ` : ""}
+                      {ROLE_LABEL[entry.actorRole]} ·{" "}
+                      {entry.department ? `${entry.department} · ` : ""}
                       {relativeTime(entry.at, tick)}
                     </small>
                   </div>
@@ -259,7 +288,7 @@ export function AdminDashboard({ actor }: { actor: string }) {
               <h2 id="by-type">
                 <CalendarClock size={16} /> Cases by business line
               </h2>
-              <p>Where today&apos;s demand is coming from, {actor.split(" ")[0]}.</p>
+              <p>Where demand is coming from on your desk, {session.name.split(" ")[0]}.</p>
             </div>
           </header>
           <ul className="mw-admin-types" data-testid="type-breakdown">
@@ -279,7 +308,7 @@ export function AdminDashboard({ actor }: { actor: string }) {
         </section>
       </div>
 
-      <EmployeesStrip employees={data.employees} cases={data.cases} tick={tick} />
+      <EmployeesStrip employees={employees} cases={cases} tick={tick} />
     </div>
   );
 }
@@ -319,7 +348,9 @@ function EmployeesStrip({
               </span>
               <div>
                 <strong>{employee.name}</strong>
-                <small>{employee.role}</small>
+                <small>
+                  {employee.department} · {ROLE_LABEL[employee.role]}
+                </small>
               </div>
               <span className={overdue ? "mw-admin-team-overdue" : "mw-admin-team-ok"}>
                 {open.length} open

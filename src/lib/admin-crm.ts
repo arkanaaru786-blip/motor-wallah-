@@ -8,8 +8,33 @@
  *
  * Like the rest of the project the database is device-local storage; the read
  * and write helpers below are the single seam to swap for a real API later.
+ *
+ * Access control lives in this file too: every mutation takes the acting
+ * `Actor`, re-checks the role and department policy, refuses the write when the
+ * policy says no, and records both the allowed and the refused attempts in the
+ * audit log. Hiding a button in the UI is never the only defence.
  */
 import { readLeadQueue, type Lead, type LeadType } from "./leads";
+import {
+  DEPARTMENTS,
+  ROLES,
+  ROLE_LABEL,
+  can,
+  canAssignCase,
+  canEditCase,
+  canViewCase,
+  departmentCovers,
+  departmentForCaseType,
+  isSuperAdmin,
+  type Actor,
+  type Department,
+  type Role,
+} from "./admin-rbac";
+import {
+  createPasswordCredential,
+  validatePasswordStrength,
+  verifyPasswordCredential,
+} from "./admin-crypto";
 
 /* ------------------------------------------------------------------ types */
 
@@ -84,21 +109,66 @@ export type CrmCase = {
   sourceKey: string;
 };
 
+export type EmployeeStatus = "Active" | "Disabled";
+
 export type AdminEmployee = {
+  /** Human-facing unique id, e.g. EMP-1001. */
   id: string;
   name: string;
-  role: string;
-  desk: CaseType | "All";
+  email: string;
   mobile: string;
+  department: Department;
+  role: Role;
+  status: EmployeeStatus;
+  createdAt: string;
+  lastLoginAt: string | null;
+  /** Salted PBKDF2 credential; the plaintext password is never stored. */
+  credential: { salt: string; hash: string; iterations: number } | null;
 };
 
-export type ActivityEntry = {
+/** Actions worth recording. Everything that changes access or a case is here. */
+export const AUDIT_ACTIONS = [
+  "case.status",
+  "case.assign",
+  "case.note",
+  "case.denied",
+  "employee.create",
+  "employee.update",
+  "employee.disable",
+  "employee.enable",
+  "employee.password",
+  "auth.sign_in",
+  "access.denied",
+] as const;
+export type AuditAction = (typeof AUDIT_ACTIONS)[number];
+
+export const AUDIT_CATEGORY: Record<AuditAction, string> = {
+  "case.status": "Case status",
+  "case.assign": "Assignment",
+  "case.note": "Case note",
+  "case.denied": "Refused change",
+  "employee.create": "Employee added",
+  "employee.update": "Employee edited",
+  "employee.disable": "Employee disabled",
+  "employee.enable": "Employee enabled",
+  "employee.password": "Password reset",
+  "auth.sign_in": "Sign in",
+  "access.denied": "Access refused",
+};
+
+export type AuditEntry = {
   id: string;
   at: string;
-  actor: string;
-  action: string;
-  detail: string;
-  caseId: string | null;
+  actorId: string;
+  actorName: string;
+  actorRole: Role;
+  action: AuditAction;
+  /** Case id, employee id or "—". */
+  target: string;
+  /** Reads like “assigned MWC-1001 to Priyanka Shah (EMP-1004)”. */
+  summary: string;
+  department: Department | null;
+  outcome: "allowed" | "denied";
 };
 
 export type SlaState = "On track" | "Due soon" | "Overdue" | "Met" | "Breached";
@@ -108,8 +178,10 @@ export type SlaInfo = { state: SlaState; label: string; hoursLeft: number };
 /* -------------------------------------------------------------- key names */
 
 const CASES_KEY = "mw_admin_cases_v1";
-const EMPLOYEES_KEY = "mw_admin_employees_v1";
-const ACTIVITY_KEY = "mw_admin_activity_v1";
+const EMPLOYEES_KEY = "mw_admin_employees_v2";
+const LEGACY_EMPLOYEES_KEY = "mw_admin_employees_v1";
+const AUDIT_KEY = "mw_admin_audit_v1";
+const LEGACY_ACTIVITY_KEY = "mw_admin_activity_v1";
 const SEED_FLAG_KEY = "mw_admin_seeded_v1";
 
 /** First-response SLA in hours, per business line. */
@@ -154,41 +226,75 @@ function writeJson(key: string, value: unknown): void {
 
 const DEMO_EMPLOYEES: AdminEmployee[] = [
   {
-    id: "emp-ananya",
+    id: "EMP-1001",
     name: "Ananya Rao",
-    role: "Finance Desk Lead",
-    desk: "Finance",
+    email: "ananya.rao@motorwallah.in",
     mobile: "9820011201",
+    department: "Finance",
+    role: "manager",
+    status: "Active",
+    createdAt: "2025-11-02T09:00:00.000Z",
+    lastLoginAt: null,
+    credential: null,
   },
   {
-    id: "emp-vikram",
+    id: "EMP-1002",
     name: "Vikram Shetty",
-    role: "Insurance Advisor",
-    desk: "Insurance",
+    email: "vikram.shetty@motorwallah.in",
     mobile: "9820011202",
+    department: "Insurance",
+    role: "executive",
+    status: "Active",
+    createdAt: "2025-11-02T09:05:00.000Z",
+    lastLoginAt: null,
+    credential: null,
   },
   {
-    id: "emp-rahul",
+    id: "EMP-1003",
     name: "Rahul Menon",
-    role: "Service Manager",
-    desk: "Service",
+    email: "rahul.menon@motorwallah.in",
     mobile: "9820011203",
+    department: "Service",
+    role: "manager",
+    status: "Active",
+    createdAt: "2025-11-02T09:10:00.000Z",
+    lastLoginAt: null,
+    credential: null,
   },
   {
-    id: "emp-priyanka",
+    id: "EMP-1004",
     name: "Priyanka Shah",
-    role: "Sales Executive",
-    desk: "All",
+    email: "priyanka.shah@motorwallah.in",
     mobile: "9820011204",
+    department: "Sales",
+    role: "executive",
+    status: "Active",
+    createdAt: "2025-11-02T09:15:00.000Z",
+    lastLoginAt: null,
+    credential: null,
   },
   {
-    id: "emp-aakash",
+    id: "EMP-1005",
     name: "Aakash Verma",
-    role: "Partnerships",
-    desk: "Franchise",
+    email: "aakash.verma@motorwallah.in",
     mobile: "9820011205",
+    department: "Operations",
+    role: "manager",
+    status: "Active",
+    createdAt: "2025-11-02T09:20:00.000Z",
+    lastLoginAt: null,
+    credential: null,
   },
 ];
+
+/** Ids used before the directory existed, kept so old records keep their owner. */
+const LEGACY_EMPLOYEE_IDS: Record<string, string> = {
+  "emp-ananya": "EMP-1001",
+  "emp-vikram": "EMP-1002",
+  "emp-rahul": "EMP-1003",
+  "emp-priyanka": "EMP-1004",
+  "emp-aakash": "EMP-1005",
+};
 
 const HOUR = 60 * 60 * 1000;
 
@@ -219,7 +325,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "Marketplace",
     status: "Awaiting Approval",
     priority: "High",
-    assignedTo: "emp-ananya",
+    assignedTo: "EMP-1001",
     ageHours: 6,
     value: 840_000,
     vehicle: "Tata Nexon XZ+ 2022",
@@ -248,7 +354,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "Phone",
     status: "In Progress",
     priority: "Medium",
-    assignedTo: "emp-ananya",
+    assignedTo: "EMP-1001",
     ageHours: 52,
     value: 560_000,
     vehicle: "Maruti Suzuki Baleno Zeta 2022",
@@ -262,7 +368,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "Walk-in",
     status: "Won",
     priority: "Medium",
-    assignedTo: "emp-ananya",
+    assignedTo: "EMP-1001",
     ageHours: 240,
     value: 720_000,
     vehicle: "Honda City VX 2021",
@@ -276,7 +382,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "Website",
     status: "In Progress",
     priority: "High",
-    assignedTo: "emp-vikram",
+    assignedTo: "EMP-1002",
     ageHours: 9,
     value: 18_400,
     vehicle: "Kia Seltos HTX 2022",
@@ -302,7 +408,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "Referral",
     status: "Won",
     priority: "Low",
-    assignedTo: "emp-vikram",
+    assignedTo: "EMP-1002",
     ageHours: 190,
     value: 22_600,
     vehicle: "Toyota Innova Crysta 2019",
@@ -315,7 +421,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "Website",
     status: "In Progress",
     priority: "Critical",
-    assignedTo: "emp-rahul",
+    assignedTo: "EMP-1003",
     ageHours: 11,
     value: 14_500,
     vehicle: "Tata Nexon 2021",
@@ -329,7 +435,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "Phone",
     status: "Awaiting Customer",
     priority: "Medium",
-    assignedTo: "emp-rahul",
+    assignedTo: "EMP-1003",
     ageHours: 30,
     value: 6_200,
     vehicle: "Maruti Suzuki Swift 2020",
@@ -342,7 +448,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "Walk-in",
     status: "Won",
     priority: "Low",
-    assignedTo: "emp-rahul",
+    assignedTo: "EMP-1003",
     ageHours: 120,
     value: 3_900,
     vehicle: "Hyundai i20 2022",
@@ -369,7 +475,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "Website",
     status: "Awaiting Approval",
     priority: "High",
-    assignedTo: "emp-aakash",
+    assignedTo: "EMP-1005",
     ageHours: 34,
     value: 2_500_000,
     vehicle: "Dealership — Pune (West)",
@@ -384,7 +490,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "Referral",
     status: "In Progress",
     priority: "Medium",
-    assignedTo: "emp-aakash",
+    assignedTo: "EMP-1005",
     ageHours: 70,
     value: 1_800_000,
     vehicle: "Workshop — Hyderabad (Kondapur)",
@@ -397,7 +503,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "Website",
     status: "In Progress",
     priority: "High",
-    assignedTo: "emp-priyanka",
+    assignedTo: "EMP-1004",
     ageHours: 7,
     value: 640_000,
     vehicle: "Maruti Suzuki Baleno Zeta 2022",
@@ -423,7 +529,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "Walk-in",
     status: "Won",
     priority: "Low",
-    assignedTo: "emp-priyanka",
+    assignedTo: "EMP-1004",
     ageHours: 300,
     value: 415_000,
     vehicle: "Hyundai Grand i10 2018",
@@ -436,7 +542,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "Website",
     status: "In Progress",
     priority: "Medium",
-    assignedTo: "emp-priyanka",
+    assignedTo: "EMP-1004",
     ageHours: 13,
     value: 48_000,
     vehicle: "Maruti Suzuki Alto 2009",
@@ -462,7 +568,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "Website",
     status: "In Progress",
     priority: "High",
-    assignedTo: "emp-priyanka",
+    assignedTo: "EMP-1004",
     ageHours: 5,
     value: 12_800,
     vehicle: "Honda City VX 2021",
@@ -476,7 +582,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "WhatsApp",
     status: "Won",
     priority: "Low",
-    assignedTo: "emp-priyanka",
+    assignedTo: "EMP-1004",
     ageHours: 96,
     value: 4_300,
     vehicle: "Maruti Suzuki Swift 2020",
@@ -489,7 +595,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "Marketplace",
     status: "Awaiting Customer",
     priority: "Medium",
-    assignedTo: "emp-priyanka",
+    assignedTo: "EMP-1004",
     ageHours: 26,
     value: 21_500,
     vehicle: "Toyota Innova Crysta 2019",
@@ -515,7 +621,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "Website",
     status: "In Progress",
     priority: "High",
-    assignedTo: "emp-priyanka",
+    assignedTo: "EMP-1004",
     ageHours: 18,
     value: 1_050_000,
     vehicle: "Exchange: Swift 2019 → Creta SX 2023",
@@ -541,7 +647,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "Website",
     status: "Won",
     priority: "Low",
-    assignedTo: "emp-priyanka",
+    assignedTo: "EMP-1004",
     ageHours: 130,
     value: 0,
     vehicle: "Hyundai Creta SX 2023",
@@ -554,7 +660,7 @@ const SEED_ROWS: SeedRow[] = [
     source: "Marketplace",
     status: "In Progress",
     priority: "Medium",
-    assignedTo: "emp-priyanka",
+    assignedTo: "EMP-1004",
     ageHours: 4,
     value: 0,
     vehicle: "Honda City VX 2021",
@@ -711,18 +817,79 @@ function seedCases(now: number): CrmCase[] {
 export type CrmSnapshot = {
   cases: CrmCase[];
   employees: AdminEmployee[];
-  activity: ActivityEntry[];
+  audit: AuditEntry[];
 };
 
-const EMPTY: CrmSnapshot = { cases: [], employees: [], activity: [] };
+const EMPTY: CrmSnapshot = { cases: [], employees: [], audit: [] };
 
 function readSnapshot(): CrmSnapshot {
   if (typeof window === "undefined") return EMPTY;
   return {
     cases: readJson<CrmCase[]>(CASES_KEY, []),
     employees: readJson<AdminEmployee[]>(EMPLOYEES_KEY, []),
-    activity: readJson<ActivityEntry[]>(ACTIVITY_KEY, []),
+    audit: readJson<AuditEntry[]>(AUDIT_KEY, []),
   };
+}
+
+/* ------------------------------------------------------------- migration */
+
+type LegacyEmployee = {
+  id?: string;
+  name?: string;
+  role?: string;
+  desk?: string;
+  mobile?: string;
+  email?: string;
+};
+
+/**
+ * Upgrades the Phase 1 team list (name / role text / desk) into the employee
+ * directory. Ids are preserved so existing case assignments keep their owner.
+ */
+function migrateEmployees(): AdminEmployee[] {
+  const current = readJson<AdminEmployee[]>(EMPLOYEES_KEY, []);
+  const compatible =
+    current.length > 0 &&
+    current.every(
+      (item) => typeof item.department === "string" && ROLES.includes(item.role as Role),
+    );
+  if (compatible) {
+    return current.map((item) => ({
+      ...item,
+      status: item.status ?? "Active",
+      credential: item.credential ?? null,
+      lastLoginAt: item.lastLoginAt ?? null,
+    }));
+  }
+
+  const legacy = readJson<LegacyEmployee[]>(LEGACY_EMPLOYEES_KEY, []);
+  const migrated = legacy.length
+    ? legacy.map((row, index) => {
+        const seed =
+          DEMO_EMPLOYEES.find((item) => item.name === row.name) ??
+          DEMO_EMPLOYEES[Math.min(index, DEMO_EMPLOYEES.length - 1)]!;
+        return {
+          ...seed,
+          id: LEGACY_EMPLOYEE_IDS[row.id ?? ""] ?? seed.id,
+          name: row.name ?? seed.name,
+          email: (row.email ?? seed.email).toLowerCase(),
+          mobile: row.mobile ?? seed.mobile,
+        };
+      })
+    : [...DEMO_EMPLOYEES];
+
+  const unique = new Map(migrated.map((item) => [item.id, item]));
+  writeJson(EMPLOYEES_KEY, [...unique.values()]);
+  return [...unique.values()];
+}
+
+/** Rewrites the Phase 1 employee ids on cases so nothing is orphaned. */
+function remapLegacyAssignments(cases: CrmCase[]): CrmCase[] {
+  return cases.map((item) =>
+    item.assignedTo && LEGACY_EMPLOYEE_IDS[item.assignedTo]
+      ? { ...item, assignedTo: LEGACY_EMPLOYEE_IDS[item.assignedTo]! }
+      : item,
+  );
 }
 
 /**
@@ -734,11 +901,17 @@ export function ensureAdminDatabase(): CrmSnapshot {
   if (typeof window === "undefined") return EMPTY;
 
   const existing = readSnapshot();
-  const employees = existing.employees.length ? existing.employees : DEMO_EMPLOYEES;
-  if (!existing.employees.length) writeJson(EMPLOYEES_KEY, employees);
+  const employees = migrateEmployees();
+  const knownEmployees = new Set(employees.map((item) => item.id));
 
-  let cases = existing.cases.length ? existing.cases : seedCases(Date.now());
-  const seeded = window.localStorage.getItem(SEED_FLAG_KEY) === "1";
+  let cases = existing.cases.length
+    ? remapLegacyAssignments(existing.cases)
+    : seedCases(Date.now());
+  // A case assigned to someone who was deleted belongs back in the open queue.
+  cases = cases.map((item) =>
+    item.assignedTo && !knownEmployees.has(item.assignedTo) ? { ...item, assignedTo: null } : item,
+  );
+
   if (!existing.cases.length) writeJson(SEED_FLAG_KEY, "1");
 
   // Pull in leads the site collected, without touching cases imported before.
@@ -754,45 +927,77 @@ export function ensureAdminDatabase(): CrmSnapshot {
 
   if (!existing.cases.length || imported > 0) writeJson(CASES_KEY, cases);
 
-  if (!seeded && !existing.activity.length) {
-    const now = Date.now();
-    const startActivity: ActivityEntry[] = cases.slice(0, 6).map((item, index) => ({
-      id: `act-seed-${index}`,
-      at: new Date(now - (index * 37 + 12) * 60 * 1000).toISOString(),
-      actor: index % 2 === 0 ? "Ananya Rao" : "Priyanka Shah",
-      action: index % 2 === 0 ? "reviewed" : "updated",
-      detail: `${item.type} case for ${item.customerName}`,
-      caseId: item.id,
-    }));
-    writeJson(ACTIVITY_KEY, startActivity);
+  if (!existing.audit.length) {
+    const legacy = readJson<
+      {
+        id?: string;
+        at?: string;
+        actor?: string;
+        action?: string;
+        detail?: string;
+        caseId?: string | null;
+      }[]
+    >(LEGACY_ACTIVITY_KEY, []);
+    const migrated = legacy
+      .filter((entry) => entry.at && entry.actor)
+      .map<AuditEntry>((entry, index) => ({
+        id: entry.id ?? `aud-legacy-${index}`,
+        at: entry.at as string,
+        actorId: "OWNER-1",
+        actorName: entry.actor as string,
+        actorRole: "super_admin",
+        action: "case.note",
+        target: entry.caseId ?? "—",
+        summary: `${entry.action ?? "updated"} ${entry.caseId ?? "a case"}${
+          entry.detail ? ` — ${entry.detail}` : ""
+        }`,
+        department: null,
+        outcome: "allowed",
+      }));
+    writeJson(AUDIT_KEY, migrated.length ? migrated.slice(0, 20) : seedAudit(cases));
   }
 
   return readSnapshot();
+}
+
+function seedAudit(cases: CrmCase[]): AuditEntry[] {
+  const now = Date.now();
+  return cases.slice(0, 6).map((item, index) => ({
+    id: `aud-seed-${index}`,
+    at: new Date(now - (index * 37 + 12) * 60 * 1000).toISOString(),
+    actorId: index % 2 === 0 ? "EMP-1001" : "EMP-1004",
+    actorName: index % 2 === 0 ? "Ananya Rao" : "Priyanka Shah",
+    actorRole: index % 2 === 0 ? "manager" : "executive",
+    action: index % 2 === 0 ? "case.status" : "case.note",
+    target: item.id,
+    summary:
+      index % 2 === 0
+        ? `reviewed status of ${item.id} (${item.type} case for ${item.customerName})`
+        : `added a note to ${item.id} (${item.type} case for ${item.customerName})`,
+    department: departmentForCaseType(item.type),
+    outcome: "allowed" as const,
+  }));
 }
 
 /* -------------------------------------------------------------- mutations */
 
 const listeners = new Set<() => void>();
 
-function commit(
-  cases: CrmCase[],
-  activity: ActivityEntry[],
-  entry: Omit<ActivityEntry, "id" | "at">,
-) {
-  writeJson(CASES_KEY, cases);
-  const next: ActivityEntry = {
-    ...entry,
-    id: uniqueId("act"),
-    at: new Date().toISOString(),
-  };
-  writeJson(ACTIVITY_KEY, [next, ...activity].slice(0, 80));
+function notify(): void {
   listeners.forEach((listener) => listener());
 }
 
 export function subscribeToAdminData(listener: () => void): () => void {
   listeners.add(listener);
   const onStorage = (event: StorageEvent) => {
-    if (!event.key || event.key === CASES_KEY || event.key === ACTIVITY_KEY) listener();
+    if (
+      !event.key ||
+      event.key === CASES_KEY ||
+      event.key === AUDIT_KEY ||
+      event.key === EMPLOYEES_KEY
+    ) {
+      listener();
+    }
   };
   window.addEventListener("storage", onStorage);
   return () => {
@@ -801,115 +1006,543 @@ export function subscribeToAdminData(listener: () => void): () => void {
   };
 }
 
-function withCase(
-  id: string,
-  actor: string,
-  mutate: (item: CrmCase) => CrmCase,
-  activity: { action: string; detail: string },
-): boolean {
-  const snapshot = ensureAdminDatabase();
-  const index = snapshot.cases.findIndex((item) => item.id === id);
-  if (index === -1) return false;
-  const current = snapshot.cases[index]!;
-  const updated = mutate(current);
-  const cases = [...snapshot.cases];
-  cases[index] = updated;
-  commit(cases, snapshot.activity, { ...activity, actor, caseId: id });
-  return true;
+function readAudit(): AuditEntry[] {
+  return readJson<AuditEntry[]>(AUDIT_KEY, []);
+}
+
+/** Appends one immutable audit entry. Never throws, never blocks a write. */
+function record(entry: Omit<AuditEntry, "id" | "at">): AuditEntry {
+  const next: AuditEntry = { ...entry, id: uniqueId("aud"), at: new Date().toISOString() };
+  writeJson(AUDIT_KEY, [next, ...readAudit()].slice(0, 500));
+  return next;
+}
+
+function auditActor(actor: Actor) {
+  return { actorId: actor.id, actorName: actor.name, actorRole: actor.role };
+}
+
+function saveCases(cases: CrmCase[]): void {
+  writeJson(CASES_KEY, cases);
+}
+
+/**
+ * The single write gate for a case. Returns the refusal message, or null when
+ * the actor is allowed to perform this kind of change.
+ */
+function caseDenial(
+  actor: Actor,
+  item: CrmCase,
+  intent: "status" | "assign" | "note",
+): string | null {
+  if (!canViewCase(actor, item)) {
+    const desk = departmentForCaseType(item.type) ?? "another";
+    return `This case belongs to the ${desk} desk, outside your access.`;
+  }
+  if (intent === "assign") {
+    if (!can(actor, "case.assign")) {
+      return `Your role (${ROLE_LABEL[actor.role]}) cannot assign cases.`;
+    }
+    return null;
+  }
+  if (!can(actor, intent === "note" ? "case.note" : "case.update_status")) {
+    return `Your role (${ROLE_LABEL[actor.role]}) has read-only access to cases.`;
+  }
+  if (actor.role === "executive" && item.assignedTo !== actor.id) {
+    return "Only the assigned executive or a manager can change this case.";
+  }
+  return null;
+}
+
+function denyCaseWrite(
+  actor: Actor,
+  item: CrmCase,
+  attempted: string,
+  reason: string,
+): { ok: false; error: string } {
+  record({
+    ...auditActor(actor),
+    action: "case.denied",
+    target: item.id,
+    summary: `attempted to ${attempted} ${item.id} — refused: ${reason}`,
+    department: departmentForCaseType(item.type),
+    outcome: "denied",
+  });
+  notify();
+  return { ok: false, error: reason };
 }
 
 export function updateCaseStatus(
   id: string,
   status: CaseStatus,
-  actor: string,
+  actor: Actor,
 ): { ok: boolean; error?: string } {
-  let changed = false;
-  const done = withCase(
-    id,
-    actor,
-    (item) => {
-      if (item.status === status) return item;
-      changed = true;
-      return {
-        ...item,
-        status,
-        updatedAt: new Date().toISOString(),
-        events: [
-          ...item.events,
-          {
-            id: uniqueId("evt"),
-            at: new Date().toISOString(),
-            by: actor,
-            label: `Status ${item.status} → ${status}`,
-          },
-        ],
-      };
-    },
-    { action: "updated status", detail: "" },
-  );
-  if (!done) return { ok: false, error: "That case no longer exists." };
-  return changed ? { ok: true } : { ok: false, error: "That status is already set." };
+  const snapshot = ensureAdminDatabase();
+  const current = snapshot.cases.find((item) => item.id === id);
+  if (!current) return { ok: false, error: "That case no longer exists." };
+
+  const denial = caseDenial(actor, current, "status");
+  if (denial) return denyCaseWrite(actor, current, "update", denial);
+
+  if (current.status === status) return { ok: false, error: "That status is already set." };
+
+  const updated: CrmCase = {
+    ...current,
+    status,
+    updatedAt: new Date().toISOString(),
+    events: [
+      ...current.events,
+      {
+        id: uniqueId("evt"),
+        at: new Date().toISOString(),
+        by: actor.name,
+        label: `Status ${current.status} → ${status}`,
+      },
+    ],
+  };
+  saveCases(snapshot.cases.map((item) => (item.id === id ? updated : item)));
+  record({
+    ...auditActor(actor),
+    action: "case.status",
+    target: id,
+    summary: `changed status of ${id} from ${current.status} to ${status}`,
+    department: departmentForCaseType(current.type),
+    outcome: "allowed",
+  });
+  notify();
+  return { ok: true };
 }
 
 export function assignCase(
   id: string,
   employeeId: string | null,
-  actor: string,
+  actor: Actor,
 ): { ok: boolean; error?: string } {
-  const employees = ensureAdminDatabase().employees;
-  const employee = employeeId ? employees.find((item) => item.id === employeeId) : null;
-  if (employeeId && !employee) return { ok: false, error: "Unknown employee." };
+  const snapshot = ensureAdminDatabase();
+  const current = snapshot.cases.find((item) => item.id === id);
+  if (!current) return { ok: false, error: "That case no longer exists." };
 
-  const done = withCase(
-    id,
-    actor,
-    (item) => ({
-      ...item,
-      assignedTo: employee ? employee.id : null,
-      updatedAt: new Date().toISOString(),
-      events: [
-        ...item.events,
-        {
-          id: uniqueId("evt"),
-          at: new Date().toISOString(),
-          by: actor,
-          label: employee ? `Assigned to ${employee.name}` : "Unassigned",
-        },
-      ],
-    }),
-    {
-      action: employee ? "assigned" : "unassigned",
-      detail: `${id} → ${employee?.name ?? "unassigned"}`,
-    },
-  );
-  return done ? { ok: true } : { ok: false, error: "That case no longer exists." };
+  const denial = caseDenial(actor, current, "assign");
+  if (denial) return denyCaseWrite(actor, current, "assign", denial);
+
+  const employee = employeeId
+    ? (snapshot.employees.find((item) => item.id === employeeId) ?? null)
+    : null;
+  if (employeeId && !employee) return { ok: false, error: "Unknown employee." };
+  if (employee) {
+    if (employee.status !== "Active") {
+      return denyCaseWrite(
+        actor,
+        current,
+        "assign",
+        `${employee.name} is disabled and cannot take new work.`,
+      );
+    }
+    const fitsDesk =
+      employee.role === "super_admin" || departmentCovers(employee.department, current.type);
+    if (!fitsDesk) {
+      return denyCaseWrite(
+        actor,
+        current,
+        "assign",
+        `${employee.name} works in ${employee.department} and cannot take a ${current.type} case.`,
+      );
+    }
+  }
+
+  const updated: CrmCase = {
+    ...current,
+    assignedTo: employee ? employee.id : null,
+    updatedAt: new Date().toISOString(),
+    events: [
+      ...current.events,
+      {
+        id: uniqueId("evt"),
+        at: new Date().toISOString(),
+        by: actor.name,
+        label: employee ? `Assigned to ${employee.name} (${employee.id})` : "Unassigned",
+      },
+    ],
+  };
+  saveCases(snapshot.cases.map((item) => (item.id === id ? updated : item)));
+  record({
+    ...auditActor(actor),
+    action: "case.assign",
+    target: id,
+    summary: employee
+      ? `assigned ${id} to ${employee.name} (${employee.id})`
+      : `moved ${id} back to the unassigned queue`,
+    department: departmentForCaseType(current.type),
+    outcome: "allowed",
+  });
+  notify();
+  return { ok: true };
 }
 
 export function addCaseNote(
   id: string,
   text: string,
-  actor: string,
+  actor: Actor,
 ): { ok: boolean; error?: string } {
   const note = text.trim().replace(/\s+/g, " ");
   if (note.length < 2) return { ok: false, error: "Write a note before saving." };
-  const done = withCase(
-    id,
-    actor,
-    (item) => ({
-      ...item,
-      updatedAt: new Date().toISOString(),
-      notes: [
-        ...item.notes,
-        { id: uniqueId("note"), at: new Date().toISOString(), by: actor, text: note },
-      ],
-      events: [
-        ...item.events,
-        { id: uniqueId("evt"), at: new Date().toISOString(), by: actor, label: "Note added" },
-      ],
-    }),
-    { action: "added a note to", detail: note.slice(0, 80) },
+
+  const snapshot = ensureAdminDatabase();
+  const current = snapshot.cases.find((item) => item.id === id);
+  if (!current) return { ok: false, error: "That case no longer exists." };
+
+  const denial = caseDenial(actor, current, "note");
+  if (denial) return denyCaseWrite(actor, current, "add a note to", denial);
+
+  const updated: CrmCase = {
+    ...current,
+    updatedAt: new Date().toISOString(),
+    notes: [
+      ...current.notes,
+      { id: uniqueId("note"), at: new Date().toISOString(), by: actor.name, text: note },
+    ],
+    events: [
+      ...current.events,
+      { id: uniqueId("evt"), at: new Date().toISOString(), by: actor.name, label: "Note added" },
+    ],
+  };
+  saveCases(snapshot.cases.map((item) => (item.id === id ? updated : item)));
+  record({
+    ...auditActor(actor),
+    action: "case.note",
+    target: id,
+    summary: `added a note to ${id} — ${note.slice(0, 70)}${note.length > 70 ? "…" : ""}`,
+    department: departmentForCaseType(current.type),
+    outcome: "allowed",
+  });
+  notify();
+  return { ok: true };
+}
+
+/* ------------------------------------------------------------ employees */
+
+export type EmployeeInput = {
+  name: string;
+  email: string;
+  mobile: string;
+  department: Department;
+  role: Role;
+  status: EmployeeStatus;
+};
+
+export type EmployeeResult = { ok: true; employee: AdminEmployee } | { ok: false; error: string };
+
+export function nextEmployeeId(employees: AdminEmployee[]): string {
+  const highest = employees.reduce((acc, item) => {
+    const numeric = Number(item.id.replace(/^EMP-/, ""));
+    return Number.isFinite(numeric) ? Math.max(acc, numeric) : acc;
+  }, 1000);
+  return `EMP-${highest + 1}`;
+}
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
+
+/** Digits only, so 98200 11201 and +91 98200 11201 both work. */
+function normalizeMobile(value: string): string {
+  const digits = value.replace(/\D+/g, "");
+  if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
+  return digits;
+}
+
+function validateEmployee(
+  input: EmployeeInput,
+  employees: AdminEmployee[],
+  editingId?: string,
+): string | null {
+  const name = input.name.trim().replace(/\s+/g, " ");
+  if (name.length < 2) return "Enter the employee's full name.";
+  if (name.length > 60) return "Keep the name under 60 characters.";
+
+  const email = input.email.trim().toLowerCase();
+  if (!EMAIL_PATTERN.test(email)) return "Enter a valid work email address.";
+  const clash = employees.find(
+    (item) => item.email.toLowerCase() === email && item.id !== editingId,
   );
-  return done ? { ok: true } : { ok: false, error: "That case no longer exists." };
+  if (clash) return `${clash.name} already uses that email (${clash.id}).`;
+
+  const mobile = normalizeMobile(input.mobile);
+  if (!/^[6-9]\d{9}$/.test(mobile)) return "Enter a 10-digit Indian mobile number.";
+
+  if (!DEPARTMENTS.includes(input.department)) return "Choose a department.";
+  if (!ROLES.includes(input.role)) return "Choose a role.";
+  return null;
+}
+
+function employeeDenial(actor: Actor): string | null {
+  if (!can(actor, "employee.manage")) {
+    return `Your role (${ROLE_LABEL[actor.role]}) can view the directory but not change it.`;
+  }
+  return null;
+}
+
+function recordEmployeeDenial(actor: Actor, summary: string, target = "—") {
+  record({
+    ...auditActor(actor),
+    action: "access.denied",
+    target,
+    summary,
+    department: actor.department,
+    outcome: "denied",
+  });
+  notify();
+}
+
+export async function createEmployee(
+  input: EmployeeInput & { password: string },
+  actor: Actor,
+): Promise<EmployeeResult> {
+  const denial = employeeDenial(actor);
+  if (denial) {
+    recordEmployeeDenial(actor, `tried to add an employee — refused: ${denial}`);
+    return { ok: false, error: denial };
+  }
+
+  const snapshot = ensureAdminDatabase();
+  const invalid = validateEmployee(input, snapshot.employees);
+  if (invalid) return { ok: false, error: invalid };
+
+  const weak = validatePasswordStrength(input.password);
+  if (weak) return { ok: false, error: weak };
+
+  const credential = await createPasswordCredential(input.password);
+  const employee: AdminEmployee = {
+    id: nextEmployeeId(snapshot.employees),
+    name: input.name.trim().replace(/\s+/g, " "),
+    email: input.email.trim().toLowerCase(),
+    mobile: normalizeMobile(input.mobile),
+    department: input.department,
+    role: input.role,
+    status: input.status,
+    createdAt: new Date().toISOString(),
+    lastLoginAt: null,
+    credential,
+  };
+
+  writeJson(EMPLOYEES_KEY, [...snapshot.employees, employee]);
+  record({
+    ...auditActor(actor),
+    action: "employee.create",
+    target: employee.id,
+    summary: `added ${employee.name} (${employee.id}) to ${employee.department} as ${ROLE_LABEL[employee.role]}`,
+    department: employee.department,
+    outcome: "allowed",
+  });
+  notify();
+  return { ok: true, employee };
+}
+
+export function updateEmployee(id: string, input: EmployeeInput, actor: Actor): EmployeeResult {
+  const denial = employeeDenial(actor);
+  if (denial) {
+    recordEmployeeDenial(actor, `tried to edit ${id} — refused: ${denial}`, id);
+    return { ok: false, error: denial };
+  }
+
+  const snapshot = ensureAdminDatabase();
+  const current = snapshot.employees.find((item) => item.id === id);
+  if (!current) return { ok: false, error: "That employee no longer exists." };
+
+  const invalid = validateEmployee(input, snapshot.employees, id);
+  if (invalid) return { ok: false, error: invalid };
+
+  if (id === actor.id && (input.role !== current.role || input.department !== current.department)) {
+    return { ok: false, error: "You cannot change your own role or department." };
+  }
+
+  const employee: AdminEmployee = {
+    ...current,
+    name: input.name.trim().replace(/\s+/g, " "),
+    email: input.email.trim().toLowerCase(),
+    mobile: normalizeMobile(input.mobile),
+    department: input.department,
+    role: input.role,
+    status: input.status,
+  };
+  writeJson(
+    EMPLOYEES_KEY,
+    snapshot.employees.map((item) => (item.id === id ? employee : item)),
+  );
+  record({
+    ...auditActor(actor),
+    action: "employee.update",
+    target: id,
+    summary: `updated ${employee.name} (${id}) — ${employee.department}, ${ROLE_LABEL[employee.role]}`,
+    department: employee.department,
+    outcome: "allowed",
+  });
+  notify();
+  return { ok: true, employee };
+}
+
+export function setEmployeeStatus(
+  id: string,
+  status: EmployeeStatus,
+  actor: Actor,
+): EmployeeResult {
+  const denial = employeeDenial(actor);
+  if (denial) {
+    recordEmployeeDenial(
+      actor,
+      `tried to ${status === "Disabled" ? "disable" : "enable"} ${id} — refused: ${denial}`,
+      id,
+    );
+    return { ok: false, error: denial };
+  }
+  if (id === actor.id && status === "Disabled") {
+    return { ok: false, error: "You cannot disable the account you are signed in with." };
+  }
+
+  const snapshot = ensureAdminDatabase();
+  const current = snapshot.employees.find((item) => item.id === id);
+  if (!current) return { ok: false, error: "That employee no longer exists." };
+  if (current.status === status) {
+    return { ok: false, error: `${current.name} is already ${status.toLowerCase()}.` };
+  }
+
+  const employee: AdminEmployee = { ...current, status };
+  writeJson(
+    EMPLOYEES_KEY,
+    snapshot.employees.map((item) => (item.id === id ? employee : item)),
+  );
+  record({
+    ...auditActor(actor),
+    action: status === "Disabled" ? "employee.disable" : "employee.enable",
+    target: id,
+    summary: `${status === "Disabled" ? "disabled" : "re-enabled"} ${employee.name} (${id})`,
+    department: employee.department,
+    outcome: "allowed",
+  });
+  notify();
+  return { ok: true, employee };
+}
+
+export async function resetEmployeePassword(
+  id: string,
+  password: string,
+  actor: Actor,
+): Promise<EmployeeResult> {
+  const denial = employeeDenial(actor);
+  if (denial) {
+    recordEmployeeDenial(actor, `tried to reset the password for ${id} — refused: ${denial}`, id);
+    return { ok: false, error: denial };
+  }
+  const weak = validatePasswordStrength(password);
+  if (weak) return { ok: false, error: weak };
+
+  const snapshot = ensureAdminDatabase();
+  const current = snapshot.employees.find((item) => item.id === id);
+  if (!current) return { ok: false, error: "That employee no longer exists." };
+
+  const credential = await createPasswordCredential(password);
+  const employee: AdminEmployee = { ...current, credential };
+  writeJson(
+    EMPLOYEES_KEY,
+    snapshot.employees.map((item) => (item.id === id ? employee : item)),
+  );
+  record({
+    ...auditActor(actor),
+    action: "employee.password",
+    target: id,
+    summary: `reset the password for ${employee.name} (${id})`,
+    department: employee.department,
+    outcome: "allowed",
+  });
+  notify();
+  return { ok: true, employee };
+}
+
+/** Used by the sign-in screen; returns the employee record on success. */
+export async function verifyEmployeeSignIn(
+  emailInput: string,
+  password: string,
+): Promise<EmployeeResult> {
+  const email = emailInput.trim().toLowerCase();
+  const snapshot = ensureAdminDatabase();
+  const employee = snapshot.employees.find((item) => item.email.toLowerCase() === email);
+  if (!employee || !employee.credential) {
+    return { ok: false, error: "Email or password is incorrect." };
+  }
+
+  const valid = await verifyPasswordCredential(password, employee.credential);
+  if (!valid) return { ok: false, error: "Email or password is incorrect." };
+  if (employee.status === "Disabled") {
+    return {
+      ok: false,
+      error: "This employee account is disabled. Ask an administrator to re-enable it.",
+    };
+  }
+
+  const at = new Date().toISOString();
+  const next: AdminEmployee = { ...employee, lastLoginAt: at };
+  writeJson(
+    EMPLOYEES_KEY,
+    snapshot.employees.map((item) => (item.id === employee.id ? next : item)),
+  );
+  record({
+    ...auditActor({
+      id: next.id,
+      name: next.name,
+      email: next.email,
+      role: next.role,
+      department: next.department,
+    }),
+    action: "auth.sign_in",
+    target: next.id,
+    summary: `signed in to the control room (${ROLE_LABEL[next.role]}, ${next.department})`,
+    department: next.department,
+    outcome: "allowed",
+  });
+  notify();
+  return { ok: true, employee: next };
+}
+
+/* -------------------------------------------------------------- queries */
+
+export function visibleCases(actor: Actor, cases: CrmCase[]): CrmCase[] {
+  return cases.filter((item) => canViewCase(actor, item));
+}
+
+export function visibleEmployees(actor: Actor, employees: AdminEmployee[]): AdminEmployee[] {
+  if (isSuperAdmin(actor) || can(actor, "employee.view")) return employees;
+  return employees.filter((item) => item.department === actor.department);
+}
+
+/** Employees the actor may hand this kind of case to. */
+export function assignableEmployees(
+  actor: Actor,
+  employees: AdminEmployee[],
+  type: CaseType,
+): AdminEmployee[] {
+  if (!can(actor, "case.assign")) return [];
+  return employees.filter(
+    (item) =>
+      item.status === "Active" &&
+      (item.role === "super_admin" || departmentCovers(item.department, type)),
+  );
+}
+
+/** Audit entries the actor is allowed to read, newest first. */
+export function visibleAudit(actor: Actor, entries: AuditEntry[]): AuditEntry[] {
+  const sorted = [...entries].sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+  if (isSuperAdmin(actor)) return sorted;
+  if (can(actor, "audit.view")) {
+    return sorted.filter(
+      (entry) => entry.department === actor.department || entry.actorId === actor.id,
+    );
+  }
+  return sorted.filter((entry) => entry.actorId === actor.id);
+}
+
+export function recentAudit(entries: AuditEntry[], limit = 7): AuditEntry[] {
+  return entries.slice(0, limit);
+}
+
+export function openCasesFor(cases: CrmCase[], employeeId: string): CrmCase[] {
+  return cases.filter((item) => item.assignedTo === employeeId && isOpenStatus(item.status));
 }
 
 /* -------------------------------------------------------------------- SLA */
@@ -1006,10 +1639,6 @@ export function actionRequired(cases: CrmCase[], now = Date.now()): CrmCase[] {
     .map(({ item }) => item);
 }
 
-export function recentActivity(activity: ActivityEntry[], limit = 8): ActivityEntry[] {
-  return [...activity].sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, limit);
-}
-
 export function typeBreakdown(cases: CrmCase[]): { type: CaseType; count: number; open: number }[] {
   return CASE_TYPES.map((type) => {
     const rows = cases.filter((item) => item.type === type);
@@ -1059,4 +1688,9 @@ export const relativeTime = (iso: string, now = Date.now()) => {
 export function employeeName(employees: AdminEmployee[], id: string | null): string | null {
   if (!id) return null;
   return employees.find((item) => item.id === id)?.name ?? null;
+}
+
+export function employeeById(employees: AdminEmployee[], id: string | null): AdminEmployee | null {
+  if (!id) return null;
+  return employees.find((item) => item.id === id) ?? null;
 }

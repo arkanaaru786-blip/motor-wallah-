@@ -1965,3 +1965,396 @@
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ==========================================================================
+   PHASE 2 — RBAC, employee directory and audit log.
+   Additive only: every selector is still scoped under .mw-admin.
+   ========================================================================== */
+
+.mw-admin-scope {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--adm-surface-solid);
+  border: 1px solid var(--adm-line);
+  box-shadow: var(--adm-shadow);
+}
+.mw-admin-scope-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--adm-red-soft);
+  color: var(--adm-red);
+}
+.mw-admin-scope > div {
+  min-width: 0;
+  flex: 1 1 240px;
+}
+.mw-admin-scope strong {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.mw-admin-scope small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--adm-muted);
+}
+.mw-admin-scope .mw-admin-link {
+  margin-left: auto;
+  white-space: nowrap;
+}
+.mw-admin-scope-switch {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 10px;
+  background: rgba(15, 17, 24, 0.05);
+}
+.mw-admin-scope-switch button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: var(--adm-muted);
+  white-space: nowrap;
+}
+.mw-admin-scope-switch button.is-on {
+  background: #fff;
+  color: var(--adm-ink);
+  box-shadow: 0 1px 3px rgba(15, 17, 24, 0.14);
+}
+.mw-admin-scope-switch button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ------------------------------------------------------ directory + audit */
+
+.mw-admin-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 15px;
+  border-radius: 9px;
+  border: 0;
+  background: var(--adm-red);
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.mw-admin-primary:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+.mw-admin-primary:disabled {
+  background: rgba(15, 17, 24, 0.12);
+  color: oklch(0.6 0.008 265);
+  cursor: not-allowed;
+}
+.mw-admin-lockednote {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 11px;
+  border-radius: 9px;
+  border: 1px dashed var(--adm-line-strong);
+  font-size: 0.72rem;
+  color: var(--adm-muted);
+}
+.mw-admin-role,
+.mw-admin-dept {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  background: rgba(15, 17, 24, 0.06);
+  color: oklch(0.44 0.01 265);
+}
+.mw-admin-dept {
+  background: rgba(15, 17, 24, 0.04);
+  font-weight: 600;
+  color: oklch(0.4 0.01 265);
+}
+.mw-admin-role.is-super-admin {
+  background: var(--adm-red-soft);
+  color: oklch(0.47 0.19 27.5);
+}
+.mw-admin-role.is-manager,
+.mw-admin-role.is-case-assign,
+.mw-admin-role.is-employee-create,
+.mw-admin-role.is-employee-update,
+.mw-admin-role.is-employee-password {
+  background: oklch(0.55 0.12 250 / 0.13);
+  color: oklch(0.44 0.13 250);
+}
+.mw-admin-role.is-executive,
+.mw-admin-role.is-auth-sign-in {
+  background: oklch(0.6 0.12 150 / 0.16);
+  color: oklch(0.4 0.12 150);
+}
+.mw-admin-role.is-case-denied,
+.mw-admin-role.is-access-denied,
+.mw-admin-role.is-employee-disable {
+  background: oklch(0.55 0.223 27.5 / 0.1);
+  color: oklch(0.45 0.19 27.5);
+}
+.mw-admin-empstatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.67rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.mw-admin-empstatus.is-active {
+  background: oklch(0.6 0.12 150 / 0.16);
+  color: oklch(0.38 0.12 150);
+}
+.mw-admin-empstatus.is-disabled {
+  background: rgba(15, 17, 24, 0.07);
+  color: oklch(0.48 0.01 265);
+}
+.mw-admin-rowactions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.mw-admin-view.is-danger {
+  color: oklch(0.45 0.19 27.5);
+  border-color: oklch(0.55 0.223 27.5 / 0.3);
+}
+.mw-admin-view.is-danger:hover {
+  background: var(--adm-red-soft);
+}
+.mw-admin-when {
+  font-size: 0.74rem;
+  color: var(--adm-muted);
+  white-space: nowrap;
+}
+.mw-admin-audittext {
+  display: block;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  max-width: 46ch;
+}
+
+/* --------------------------------------------------------- employee form */
+
+.mw-admin-formgrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.mw-admin-formgrid .is-wide {
+  grid-column: 1 / -1;
+}
+.mw-admin-field input,
+.mw-admin-field select {
+  width: 100%;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid var(--adm-line-strong);
+  background: #fff;
+  font-size: 0.82rem;
+}
+.mw-admin-field input:focus-visible,
+.mw-admin-field select:focus-visible {
+  outline: 2px solid var(--adm-red);
+  outline-offset: 1px;
+}
+.mw-admin-drawerfoot {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  border-top: 1px solid var(--adm-line);
+}
+.mw-admin-drawer.is-narrow {
+  width: min(460px, 100%);
+}
+.mw-admin-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--adm-muted);
+}
+.mw-admin-hint.is-foot {
+  padding: 0 2px 10px;
+}
+.mw-admin-hint svg {
+  flex: none;
+  margin-top: 1px;
+}
+.mw-admin-readonly {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: rgba(15, 17, 24, 0.04);
+  border: 1px dashed var(--adm-line-strong);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--adm-muted);
+}
+.mw-admin-denied {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px 22px;
+}
+.mw-admin-denied-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--adm-red-soft);
+  color: var(--adm-red);
+}
+.mw-admin-denied h2 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.mw-admin-denied p {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--adm-muted);
+}
+.mw-admin-denied-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+@media (max-width: 860px) {
+  .mw-admin-rowactions {
+    width: 100%;
+  }
+  .mw-admin-rowactions .mw-admin-view {
+    width: auto;
+    flex: 1 1 auto;
+  }
+  .mw-admin-table--audit tbody td:nth-child(2),
+  .mw-admin-table--audit tbody td:nth-child(4) {
+    grid-column: 1 / -1;
+  }
+  .mw-admin-table--people tbody td:nth-child(2),
+  .mw-admin-table--people tbody td:nth-child(9) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .mw-admin-scope {
+    align-items: flex-start;
+  }
+  .mw-admin-scope-switch {
+    margin-left: 0;
+    width: 100%;
+  }
+  .mw-admin-scope-switch button {
+    flex: 1;
+    justify-content: center;
+  }
+  .mw-admin-formgrid {
+    grid-template-columns: 1fr;
+  }
+  .mw-admin-scope .mw-admin-link {
+    margin-left: 0;
+  }
+}
+
+/* Phase 2 page stacks keep the same rhythm as the tracker. */
+.mw-admin-directory,
+.mw-admin-audit {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+.mw-admin-directory .mw-admin-toolbar,
+.mw-admin-audit .mw-admin-toolbar,
+.mw-admin-tracker .mw-admin-toolbar {
+  align-items: center;
+}
+.mw-admin-drawerfoot .mw-admin-secondary {
+  background: #fff;
+  color: var(--adm-ink);
+  border: 1px solid var(--adm-line-strong);
+}
+.mw-admin-drawerfoot .mw-admin-secondary:hover {
+  border-color: var(--adm-red);
+  color: var(--adm-red);
+}
+.mw-admin-empstatus.is-pending {
+  margin-left: 5px;
+  background: oklch(0.78 0.14 85 / 0.22);
+  color: oklch(0.42 0.12 75);
+}
+.mw-admin-empstatus.is-allowed {
+  background: oklch(0.6 0.12 150 / 0.16);
+  color: oklch(0.38 0.12 150);
+}
+.mw-admin-empstatus.is-denied {
+  background: oklch(0.55 0.223 27.5 / 0.12);
+  color: oklch(0.45 0.19 27.5);
+}
+
+@media (max-width: 860px) {
+  .mw-admin-table--people tbody tr {
+    gap: 6px 10px;
+    padding: 12px 13px;
+  }
+  .mw-admin-table--people tbody td::before {
+    margin-bottom: 1px;
+  }
+}
+
+@media (max-width: 640px) {
+  .mw-admin-side {
+    padding: 12px 14px 10px;
+  }
+  .mw-admin-nav {
+    gap: 6px;
+  }
+  .mw-admin-navlink {
+    padding: 8px 11px;
+    font-size: 0.78rem;
+  }
+  .mw-admin-navcount {
+    padding: 1px 5px;
+    font-size: 0.62rem;
+  }
+}
