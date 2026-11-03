@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { replicaRead, replicaWrite } from "@/lib/cloud-store";
+
 /**
  * Buyer ↔ seller conversations for one vehicle listing.
  *
- * There is no messaging server in this project, so a thread lives in this
- * browser's storage. That still makes it genuinely two-way: the buyer writes
- * from a vehicle page, the seller reads and replies from the Seller Desk, and
- * both sides render the same stored thread. The seller's first reply is
- * simulated three seconds after the buyer's message, as specified.
+ * Threads are stored in Supabase against the visitor's anonymous session (see
+ * cloud-store) and read from the on-device replica. That still makes them
+ * genuinely two-way: the buyer writes from a vehicle page, the seller reads and
+ * replies from the Seller Desk, and both sides render the same stored thread.
+ * The seller's first reply is simulated three seconds after the buyer's
+ * message, as specified.
  */
 
 export type ChatRole = "buyer" | "seller" | "system";
@@ -57,22 +60,12 @@ let bridgeBound = false;
 /* ------------------------------------------------------------------ storage */
 
 function readJson<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = JSON.parse(window.localStorage.getItem(key) ?? "null");
-    return (raw as T) ?? fallback;
-  } catch {
-    return fallback;
-  }
+  return replicaRead<T>(key, fallback);
 }
 
 function writeJson(key: string, value: unknown) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* storage blocked — chat UI must never crash */
-  }
+  // Never throws: chat must not crash when the network or storage is down.
+  replicaWrite(key, value);
 }
 
 function notify() {

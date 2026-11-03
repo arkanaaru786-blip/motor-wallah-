@@ -3,11 +3,11 @@ import { submitLead } from "@/lib/leads";
 /**
  * Customer offers against a BUY listing.
  *
- * IMPORTANT — there is no seller-side or offer backend in this project yet.
- * Offers are stored on the visitor's own device (localStorage) and mirrored to
- * the project's local lead queue, exactly like enquiries. Nothing here pretends
- * that a seller received, accepted or rejected an offer, and the asking price
- * is never modified by this module.
+ * IMPORTANT — there is no seller-side or offer service in this project yet.
+ * Offers are stored in Supabase against the visitor's anonymous session (see
+ * cloud-store) and mirrored to the lead queue, exactly like enquiries. Nothing
+ * here pretends that a seller received, accepted or rejected an offer, and the
+ * asking price is never modified by this module.
  *
  * The status model (Pending / Accepted / Rejected / Counter Offer) is the shape
  * a future seller dashboard would consume; locally an offer can only ever be
@@ -32,28 +32,20 @@ export type ListingOffer = {
   createdAt: string;
 };
 
+import { replicaRead, replicaWrite } from "@/lib/cloud-store";
+
 const KEY = "mw_listing_offers";
 const MAX_STORED = 100;
 
 function read(): ListingOffer[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = JSON.parse(window.localStorage.getItem(KEY) ?? "[]");
-    return Array.isArray(raw) ? (raw as ListingOffer[]) : [];
-  } catch {
-    return [];
-  }
+  const raw = replicaRead<unknown>(KEY, []);
+  return Array.isArray(raw) ? (raw as ListingOffer[]) : [];
 }
 
 function write(list: ListingOffer[]): boolean {
-  try {
-    window.localStorage.setItem(KEY, JSON.stringify(list.slice(-MAX_STORED)));
-    return true;
-  } catch {
-    // Storage unavailable (private mode / quota). Callers must report this
-    // as a failure instead of claiming the offer was saved.
-    return false;
-  }
+  // Storage unavailable (private mode / quota). Callers must report this as a
+  // failure instead of claiming the offer was saved.
+  return replicaWrite(KEY, list.slice(-MAX_STORED));
 }
 
 export const offersForListing = (listingId: string) =>

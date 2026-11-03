@@ -1,12 +1,40 @@
-export const PHONE_DISPLAY = "1800 123 4567";
-export const PHONE_HREF = "tel:18001234567";
-export const WHATSAPP_BASE = "https://wa.me/919999999999";
+/**
+ * Contact details shown across the site. These are the fallbacks; the live
+ * values come from the `site_settings` table in Supabase and are swapped in by
+ * applySiteSettings() once the cloud layer has loaded (see src/lib/site-settings.ts).
+ * They stay `let` bindings so every existing import sees the updated value on
+ * the next render without touching a single component.
+ */
+export let PHONE_DISPLAY = "1800 123 4567";
+export let PHONE_HREF = "tel:18001234567";
+export let WHATSAPP_BASE = "https://wa.me/919999999999";
+
+/** Optional support inbox; empty unless the admin fills it in Settings. */
+export let SUPPORT_EMAIL = "";
 
 export function whatsappLink(message: string) {
   return `${WHATSAPP_BASE}?text=${encodeURIComponent(message)}`;
 }
 
-export const WHATSAPP = whatsappLink("Hi Motor Wallah, I need help with a car");
+export let WHATSAPP = whatsappLink("Hi Motor Wallah, I need help with a car");
+
+/** Called once by the site-settings loader after the cloud values arrive. */
+export function applySiteSettings(settings: {
+  phoneDisplay?: string;
+  phoneHref?: string;
+  whatsappBase?: string;
+  supportEmail?: string;
+}) {
+  if (settings.phoneDisplay) PHONE_DISPLAY = settings.phoneDisplay;
+  if (settings.phoneHref) PHONE_HREF = settings.phoneHref;
+  else if (settings.phoneDisplay) {
+    const digits = settings.phoneDisplay.replace(/\D/g, "");
+    if (digits) PHONE_HREF = `tel:${digits}`;
+  }
+  if (settings.whatsappBase) WHATSAPP_BASE = settings.whatsappBase;
+  if (typeof settings.supportEmail === "string") SUPPORT_EMAIL = settings.supportEmail;
+  WHATSAPP = whatsappLink("Hi Motor Wallah, I need help with a car");
+}
 
 export const MAIN_NAV = [
   { label: "Buy", to: "/buy" },

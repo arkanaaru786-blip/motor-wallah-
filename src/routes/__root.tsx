@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { useCloudSync } from "../lib/cloud-sync";
 
 function NotFoundComponent() {
   return (
@@ -122,6 +123,10 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  // Starts the Supabase sync once and re-renders the tree when the cloud copy
+  // lands, so every store that read the on-device replica during the first
+  // render picks up the authoritative data without a page reload.
+  useCloudSync();
 
   return (
     <QueryClientProvider client={queryClient}>

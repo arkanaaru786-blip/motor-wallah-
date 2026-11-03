@@ -1,8 +1,10 @@
+import { replicaRead, replicaWrite } from "@/lib/cloud-store";
+
 /**
  * MW Autopilot — the rule engine behind the control room.
  *
- * A rule is a trigger, a set of conditions and one or more actions. Rules are
- * stored on the device next to the case table, and every action they take goes
+ * A rule is a trigger, a set of conditions and one or more actions. Rules live
+ * in Supabase alongside the case table (see cloud-store), and every action goes
  * through the same CRM write gates as a human edit, attributed to the
  * `MW Autopilot` actor. Nothing here can bypass `admin-rbac.ts`.
  *
@@ -165,24 +167,11 @@ const uid = (prefix: string) => {
 };
 
 function read<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return fallback;
-    return (JSON.parse(raw) as T) ?? fallback;
-  } catch {
-    return fallback;
-  }
+  return replicaRead<T>(key, fallback);
 }
 
 function write(key: string, value: unknown): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch {
-    return false;
-  }
+  return replicaWrite(key, value);
 }
 
 const EMPTY_CONDITIONS: RuleConditions = {

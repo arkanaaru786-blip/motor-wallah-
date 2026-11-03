@@ -1,3 +1,5 @@
+import { replicaRead, replicaWrite } from "@/lib/cloud-store";
+
 /**
  * VEHICLE DECOR store — accessories that dress up a vehicle (interior,
  * exterior, lighting, audio, utility) plus the fitter network around them.
@@ -341,20 +343,12 @@ export type DecorCartLine = {
 
 const CART_KEY = "mw_decor_cart";
 
-export const readDecorCart = (): DecorCartLine[] => {
-  try {
-    return JSON.parse(window.localStorage.getItem(CART_KEY) ?? "[]") as DecorCartLine[];
-  } catch {
-    return [];
-  }
-};
+export const readDecorCart = (): DecorCartLine[] =>
+  replicaRead<DecorCartLine[]>(CART_KEY, []);
 
 export const writeDecorCart = (lines: DecorCartLine[]): void => {
-  try {
-    window.localStorage.setItem(CART_KEY, JSON.stringify(lines.slice(0, 30)));
-  } catch {
-    /* storage unavailable — cart must never break the UI */
-  }
+  // Supabase keeps the cart; a blocked write must never break the UI.
+  replicaWrite(CART_KEY, lines.slice(0, 30));
 };
 
 export const cartCount = (lines: DecorCartLine[]) =>

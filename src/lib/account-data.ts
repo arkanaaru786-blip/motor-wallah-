@@ -1,4 +1,5 @@
-import { readLeadQueue, type Lead } from "@/lib/leads";
+import { replicaRead, replicaWrite } from "@/lib/cloud-store";
+import { LEAD_QUEUE_KEY, readLeadQueue, type Lead } from "@/lib/leads";
 import {
   chatThreads as readChatThreads,
   sendChatMessage,
@@ -20,17 +21,9 @@ import { SERVICE_STATUSES, liveStageIndex } from "@/lib/service-tracking";
 const SHORTLIST_KEY = "mw_buy_shortlist";
 /** Dashboard-only status overrides for a customer's own SELL submissions. */
 const LISTING_STATUS_KEY = "mw_my_listing_status";
-/** Same key as src/lib/leads.ts (the shared lead queue). */
-const LEAD_QUEUE_KEY = "mw_lead_queue";
 
 function readJson<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = JSON.parse(window.localStorage.getItem(key) ?? "null");
-    return (raw as T) ?? fallback;
-  } catch {
-    return fallback;
-  }
+  return replicaRead<T>(key, fallback);
 }
 
 /* ------------------------------------------------------------------ saved */
@@ -58,7 +51,7 @@ export function appendChatMessage(
   const message = sendChatMessage(listingId, "buyer", body);
   return message
     ? { ok: true }
-    : { ok: false, error: "This browser blocked local storage, so your message was not saved." };
+    : { ok: false, error: "Your message could not be saved. Please check your connection and retry." };
 }
 
 /* --------------------------------------------------------------- listings */
@@ -109,12 +102,7 @@ export function ownListings(): OwnListing[] {
 export type OwnListingEdit = { name: string; price: string; city: string; category: string };
 
 function writeLeadQueue(leads: Lead[]): boolean {
-  try {
-    window.localStorage.setItem(LEAD_QUEUE_KEY, JSON.stringify(leads));
-    return true;
-  } catch {
-    return false;
-  }
+  return replicaWrite(LEAD_QUEUE_KEY, leads);
 }
 
 /** Edit the title, price, city or category of one of the customer's own ads. */
@@ -145,9 +133,9 @@ export function updateOwnListing(
       },
     };
   });
-  if (!found) return { ok: false, error: "This ad could not be found on this device." };
+  if (!found) return { ok: false, error: "This ad could not be found." };
   if (!writeLeadQueue(next))
-    return { ok: false, error: "This browser blocked local storage, so the ad was not saved." };
+    return { ok: false, error: "Your changes could not be saved. Please check your connection and retry." };
   return { ok: true };
 }
 
@@ -155,17 +143,12 @@ export function updateOwnListing(
 export function deleteOwnListing(id: string): { ok: boolean; error?: string } {
   const queue = readLeadQueue();
   const next = queue.filter((lead) => !(lead.type === "sell_vehicle" && lead.createdAt === id));
-  if (next.length === queue.length)
-    return { ok: false, error: "This ad could not be found on this device." };
+  if (next.length === queue.length) return { ok: false, error: "This ad could not be found." };
   if (!writeLeadQueue(next))
-    return { ok: false, error: "This browser blocked local storage, so the ad was not removed." };
+    return { ok: false, error: "Your ad could not be removed. Please check your connection and retry." };
   const statuses = readListingStatuses();
   delete statuses[id];
-  try {
-    window.localStorage.setItem(LISTING_STATUS_KEY, JSON.stringify(statuses));
-  } catch {
-    /* the ad itself is already gone; a stale status key is harmless */
-  }
+  replicaWrite(LISTING_STATUS_KEY, statuses);
   return { ok: true };
 }
 
@@ -175,12 +158,9 @@ export function setOwnListingStatus(
 ): { ok: boolean; error?: string } {
   const statuses = readListingStatuses();
   statuses[id] = status;
-  try {
-    window.localStorage.setItem(LISTING_STATUS_KEY, JSON.stringify(statuses));
-    return { ok: true };
-  } catch {
-    return { ok: false, error: "This browser blocked local storage, so the status was not saved." };
-  }
+  return replicaWrite(LISTING_STATUS_KEY, statuses)
+    ? { ok: true }
+    : { ok: false, error: "The status could not be saved. Please check your connection and retry." };
 }
 
 /* ------------------------------------------------------------------ leads */

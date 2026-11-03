@@ -1,28 +1,20 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { replicaRead, replicaWrite } from "@/lib/cloud-store";
+
 /**
- * Device-local shortlist for the BUY page.
- * There is no customer account backend yet, so the shortlist lives in
- * localStorage and never pretends to sync across devices.
+ * Shortlist for the BUY page, stored in Supabase (see cloud-store) and read
+ * from the on-device replica so saving a car never waits on the network.
  */
 const KEY = "mw_buy_shortlist";
 
 function read(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = JSON.parse(window.localStorage.getItem(KEY) ?? "[]");
-    return Array.isArray(raw) ? raw.filter((id): id is string => typeof id === "string") : [];
-  } catch {
-    return [];
-  }
+  const raw = replicaRead<unknown>(KEY, []);
+  return Array.isArray(raw) ? raw.filter((id): id is string => typeof id === "string") : [];
 }
 
 function write(ids: string[]) {
-  try {
-    window.localStorage.setItem(KEY, JSON.stringify(ids));
-  } catch {
-    /* storage unavailable — the shortlist must never break browsing */
-  }
+  replicaWrite(KEY, ids);
 }
 
 export function useShortlist() {

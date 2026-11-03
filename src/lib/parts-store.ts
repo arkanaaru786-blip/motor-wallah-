@@ -1,3 +1,5 @@
+import { replicaRead, replicaWrite } from "@/lib/cloud-store";
+
 /**
  * AUTO PARTS e-commerce store.
  *
@@ -244,20 +246,11 @@ export type CartLine = {
 
 const CART_KEY = "mw_parts_cart";
 
-export const readCart = (): CartLine[] => {
-  try {
-    return JSON.parse(window.localStorage.getItem(CART_KEY) ?? "[]") as CartLine[];
-  } catch {
-    return [];
-  }
-};
+export const readCart = (): CartLine[] => replicaRead<CartLine[]>(CART_KEY, []);
 
 export const writeCart = (lines: CartLine[]): void => {
-  try {
-    window.localStorage.setItem(CART_KEY, JSON.stringify(lines.slice(0, 30)));
-  } catch {
-    /* storage unavailable — cart must never break the UI */
-  }
+  // Supabase keeps the cart; a blocked write must never break the UI.
+  replicaWrite(CART_KEY, lines.slice(0, 30));
 };
 
 export const cartCount = (lines: CartLine[]) =>

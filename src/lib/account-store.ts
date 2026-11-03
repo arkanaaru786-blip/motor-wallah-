@@ -1,12 +1,15 @@
 import { useSyncExternalStore } from "react";
 
+import { replicaRead, replicaWrite } from "@/lib/cloud-store";
+
 /**
- * Customer accounts (device-local, mock OTP).
+ * Customer accounts (Supabase-backed profiles, mock OTP).
  *
- * This project has no authentication backend yet. Login is a real, working
- * flow on the device: a mobile number is verified against a fixed demo OTP,
- * a customer profile is created or restored, and the signed-in session is
- * remembered in localStorage. Nothing here contacts a server, so the UI says
+ * Profiles are persisted in Supabase `app_records` under the visitor's
+ * anonymous session, so the account survives clearing the browser, while the
+ * signed-in session itself stays on the device (`mw_customer_session`) — a
+ * session is not something to replicate to other tabs' devices. Verification
+ * is still a fixed demo OTP because no SMS provider is wired up; the UI says
  * so plainly instead of pretending a number was verified by SMS.
  *
  * There are no Buyer / Seller roles — every account is simply a customer.
@@ -41,26 +44,15 @@ const SIGNED_OUT: AuthSnapshot = { mobile: null, profile: null };
 type Profiles = Record<string, CustomerProfile>;
 
 function readProfiles(): Profiles {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = JSON.parse(window.localStorage.getItem(PROFILES_KEY) ?? "{}");
-    return raw && typeof raw === "object" ? (raw as Profiles) : {};
-  } catch {
-    return {};
-  }
+  const raw = replicaRead<unknown>(PROFILES_KEY, {});
+  return raw && typeof raw === "object" ? (raw as Profiles) : {};
 }
 
 function writeProfiles(profiles: Profiles): boolean {
-  try {
-    window.localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
-    return true;
-  } catch {
-    return false;
-  }
+  return replicaWrite(PROFILES_KEY, profiles);
 }
 
 function readSessionMobile(): string | null {
-  if (typeof window === "undefined") return null;
   try {
     const raw = JSON.parse(window.localStorage.getItem(SESSION_KEY) ?? "null");
     return raw && typeof raw === "object" && typeof raw.mobile === "string" ? raw.mobile : null;

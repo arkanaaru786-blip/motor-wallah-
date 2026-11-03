@@ -4,6 +4,9 @@
  * general enquiry) flows through submitLead so it can later be pointed at
  * the Motor Wallah CRM / backend without touching any UI component.
  */
+import { replicaRead, replicaWrite, startCloudSync } from "@/lib/cloud-store";
+import { supabaseClient } from "@/lib/supabase";
+
 export type LeadType =
   | "whatsapp_click"
   | "call_click"
@@ -51,24 +54,68 @@ export type Lead = {
 const QUEUE_KEY = "mw_lead_queue";
 
 /**
- * Every lead is stored in the project's local lead queue first (the single
- * capture point the whole site uses). When a CRM/webhook URL is configured as
- * VITE_LEAD_ENDPOINT, the same record is also POSTed there best-effort, so the
- * team receives submissions without any UI changes. Delivery never blocks or
- * fails the UI — the queue always keeps the record.
+ * Every lead is written to the lead queue (Supabase `app_records`, replicated
+ * on device so the dashboard reads it synchronously) and, as a structured row,
+ * to the `leads` table. When a CRM/webhook URL is configured as
+ * VITE_LEAD_ENDPOINT the same record is also POSTed there best-effort.
+ * Delivery never blocks or fails the UI — the queue always keeps the record.
  */
 const LEAD_ENDPOINT: string | undefined = import.meta.env["VITE_LEAD_ENDPOINT"];
+
+/**
+ * Structured copy for reporting and staff queries.
+ *
+ * Uploaded photos and documents are kept as metadata only: a base64 image in a
+ * jsonb column is megabytes per lead. The full record with the data URLs stays
+ * in the queue where the UI expects it.
+ */
+async function insertLeadRecord(record: Lead): Promise<void> {
+  // A visitor can submit before the anonymous session exists, so wait for the
+  // cloud layer to finish booting first — the row is worthless without auth.
+  await startCloudSync();
+  const client = supabaseClient();
+  if (!client) return;
+  const stripFiles = (files: Lead["photos"]) =>
+    (files ?? []).map((file) => ({
+      name: (file as { name?: string }).name ?? "file",
+      type: (file as { type?: string }).type ?? "",
+      size: (file as { size?: number }).size ?? 0,
+    }));
+  try {
+    await client.from("leads").insert({
+      type: record.type,
+      source: record.source,
+      vehicle_id: record.vehicleId ?? null,
+      vehicle_name: record.vehicleName ?? null,
+      location: record.location ?? null,
+      name: record.name ?? null,
+      mobile: record.mobile ?? null,
+      fields: record.fields ?? {},
+      payload: {
+        estimate: record.estimate ?? null,
+        expectation: record.expectation ?? null,
+        photos: stripFiles(record.photos),
+        documents: stripFiles(record.documents),
+        createdAt: record.createdAt,
+      },
+      created_at: record.createdAt,
+    });
+  } catch {
+    /* the queue already holds the lead — a failed insert must not break capture */
+  }
+}
 
 export async function submitLead(lead: Omit<Lead, "createdAt">): Promise<{ ok: true }> {
   const record: Lead = { ...lead, createdAt: new Date().toISOString() };
   try {
     if (typeof window !== "undefined") {
-      const prev = JSON.parse(window.localStorage.getItem(QUEUE_KEY) ?? "[]") as Lead[];
-      window.localStorage.setItem(QUEUE_KEY, JSON.stringify([...prev, record].slice(-100)));
+      const prev = replicaRead<Lead[]>(QUEUE_KEY, []);
+      replicaWrite(QUEUE_KEY, [...prev, record].slice(-100));
     }
   } catch {
     /* storage unavailable — lead capture must never break the UI */
   }
+  void insertLeadRecord(record);
   if (LEAD_ENDPOINT) {
     try {
       await fetch(LEAD_ENDPOINT, {
@@ -83,10 +130,7 @@ export async function submitLead(lead: Omit<Lead, "createdAt">): Promise<{ ok: t
   return { ok: true };
 }
 
-export const readLeadQueue = (): Lead[] => {
-  try {
-    return JSON.parse(window.localStorage.getItem(QUEUE_KEY) ?? "[]") as Lead[];
-  } catch {
-    return [];
-  }
-};
+export const readLeadQueue = (): Lead[] => replicaRead<Lead[]>(QUEUE_KEY, []);
+
+/** Re-exported so the stores that share this queue can point at the same helper. */
+export const LEAD_QUEUE_KEY = QUEUE_KEY;

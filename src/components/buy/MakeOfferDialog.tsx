@@ -8,9 +8,9 @@ import { saveOffer, type ListingOffer } from "@/lib/listing-offers";
  * Section F — Make an Offer.
  *
  * Works on every listing card and on the detail page. The offer is validated
- * and saved against the correct vehicle in this project's local offer store
- * (localStorage) plus the lead queue. There is no seller-side offer backend
- * yet, so the dialog never claims a seller received or accepted the offer —
+ * and saved against the correct vehicle in this project's offer store
+ * (Supabase via cloud-store) plus the lead queue. There is no seller-side offer
+ * service yet, so the dialog never claims a seller received or accepted it —
  * it states the missing dependency and keeps the status at "Pending".
  */
 export function MakeOfferDialog({

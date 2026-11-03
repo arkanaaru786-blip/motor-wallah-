@@ -1,4 +1,6 @@
 import { useSyncExternalStore } from "react";
+
+import { replicaRead, replicaWrite } from "@/lib/cloud-store";
 import {
   createPasswordCredential,
   cryptoAvailable,
@@ -109,29 +111,25 @@ function normalizeHexHash(value: string): string {
 
 /* --------------------------------------------------------------- storage */
 
+/**
+ * The account directory lives in Supabase (cloud-store). The signed-in session
+ * (`mw_admin_session`) and the failed-attempt counter (`mw_admin_attempts`)
+ * deliberately stay device-local: a session should not be replicated, and a
+ * lockout counter that syncs would let one device lock out every other one.
+ */
 function readAccounts(): Record<string, AdminAccount> {
-  if (typeof window === "undefined") return {};
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(ACCOUNTS_KEY) ?? "{}");
-    if (!parsed || typeof parsed !== "object") return {};
-    // Phase 1 accounts carried role "owner"; they are super admins now.
-    const accounts = parsed as Record<string, AdminAccount & { role: string }>;
-    for (const account of Object.values(accounts)) {
-      if (!ROLES.includes(account.role as Role)) account.role = "super_admin";
-    }
-    return accounts as Record<string, AdminAccount>;
-  } catch {
-    return {};
+  const parsed = replicaRead<unknown>(ACCOUNTS_KEY, {});
+  if (!parsed || typeof parsed !== "object") return {};
+  // Phase 1 accounts carried role "owner"; they are super admins now.
+  const accounts = parsed as Record<string, AdminAccount & { role: string }>;
+  for (const account of Object.values(accounts)) {
+    if (!ROLES.includes(account.role as Role)) account.role = "super_admin";
   }
+  return accounts as Record<string, AdminAccount>;
 }
 
 function writeAccounts(accounts: Record<string, AdminAccount>): boolean {
-  try {
-    window.localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
-    return true;
-  } catch {
-    return false;
-  }
+  return replicaWrite(ACCOUNTS_KEY, accounts);
 }
 
 function readSession(): AdminSession | null {

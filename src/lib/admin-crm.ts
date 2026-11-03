@@ -1,3 +1,5 @@
+import { replicaRead, replicaWrite } from "@/lib/cloud-store";
+
 /**
  * Master Tracker data — one table for every business case.
  *
@@ -6,8 +8,8 @@
  * pipeline the control room needs on day one, and persists all edits (status,
  * assignment, notes, history) in the admin database.
  *
- * Like the rest of the project the database is device-local storage; the read
- * and write helpers below are the single seam to swap for a real API later.
+ * Persistence goes through src/lib/cloud-store.ts, so the case table is stored
+ * in Supabase and replicated on device for synchronous rendering.
  *
  * Access control lives in this file too: every mutation takes the acting
  * `Actor`, re-checks the role and department policy, refuses the write when the
@@ -220,27 +222,17 @@ export const SLA_HOURS: Record<CaseType, number> = {
 
 /* ---------------------------------------------------------------- storage */
 
+/**
+ * Every CRM collection (cases, employees, audit trail) now lives in Supabase
+ * `app_records`; the on-device replica keeps the panel rendering synchronously.
+ */
 function readJson<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw) as T;
-    return parsed ?? fallback;
-  } catch {
-    return fallback;
-  }
+  return replicaRead<T>(key, fallback);
 }
 
 function writeJson(key: string, value: unknown): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch {
-    /* storage unavailable — the panel still renders with in-memory state */
-    return false;
-  }
+  // A blocked write still leaves the panel rendering its in-memory state.
+  return replicaWrite(key, value);
 }
 
 /* ------------------------------------------------------------- seed data */

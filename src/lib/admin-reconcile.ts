@@ -1,3 +1,5 @@
+import { replicaRead, replicaWrite } from "@/lib/cloud-store";
+
 /**
  * No-missed-case reliability.
  *
@@ -56,24 +58,11 @@ export type ReconcileReport = {
 const REPORT_KEY = "mw_admin_reconcile_v1";
 
 function read<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return fallback;
-    return (JSON.parse(raw) as T) ?? fallback;
-  } catch {
-    return fallback;
-  }
+  return replicaRead<T>(key, fallback);
 }
 
 function write(key: string, value: unknown): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch {
-    return false;
-  }
+  return replicaWrite(key, value);
 }
 
 export const lastReport = (): ReconcileReport | null =>
