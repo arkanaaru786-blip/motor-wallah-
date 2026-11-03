@@ -11,6 +11,7 @@ import {
   LogOut,
   ShieldCheck,
   ScrollText,
+  Settings,
   Users,
   Wallet,
   Zap,
@@ -21,7 +22,7 @@ import {
   signOutAdmin,
   type AdminSession,
 } from "@/lib/admin-auth";
-import { actorFromSession, can, canViewAutomation } from "@/lib/admin-rbac";
+import { actorFromSession, can, canViewAutomation, isSuperAdmin } from "@/lib/admin-rbac";
 
 type NavItem = {
   to: string;
@@ -106,6 +107,9 @@ export function AdminShell({
       icon: Zap,
       ...(typeof ruleCount === "number" ? { count: ruleCount } : {}),
     });
+  }
+  if (isSuperAdmin(actor)) {
+    nav.push({ to: "/master-admin/settings", label: "Site Settings", icon: Settings });
   }
 
   return (

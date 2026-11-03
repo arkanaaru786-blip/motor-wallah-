@@ -1,13 +1,20 @@
 # Supabase setup
 
-The app now stores everything in Supabase instead of `localStorage`. Three steps
-finish the setup — the site keeps working from its on-device replica until they
-are done, and never shows an error while they are pending.
+The app stores its data in Supabase instead of `localStorage`. Visitors get a
+real (anonymous) session, so row level security can scope every row to its owner.
+
+> **If inserts fail with `42501 new row violates row level security policy`**,
+> run [`fix-rls.sql`](./fix-rls.sql) in the SQL editor. It drops whatever policies
+> exist, recreates one known-good set, seeds the default site settings, rebuilds
+> the reporting views, and then self-tests the exact insert the site makes — the
+> last result set tells you whether the write path works before you retry the
+> browser. It is safe to re-run.
 
 ## 1. Create the tables
 
 Supabase dashboard → **SQL Editor** → **New query** → paste all of
 [`schema.sql`](./schema.sql) → **Run**. It is idempotent, so re-running is safe.
+Then run [`fix-rls.sql`](./fix-rls.sql) once and read its self-test output.
 
 ## 2. Enable anonymous sign-ins
 
@@ -31,6 +38,25 @@ on conflict (user_id) do update set email = excluded.email, role = excluded.role
 
 `public.is_staff()` then returns true for that user, and the `leads`, `profiles`
 and `app_records` staff policies return every row instead of just their own.
+
+### Editing site settings from the admin panel
+
+**Master Control → Site Settings** changes the support phone, dial link, WhatsApp
+link and support inbox. Saving is a database write, so the screen asks for a
+separate staff sign-in (email + password of the user you added above) the first
+time — the panel's own login is a local credential check that Supabase knows
+nothing about. That staff session is stored under `mw_staff_auth`, separately
+from the visitor session, so signing in never moves a customer's cart or chats.
+
+## Troubleshooting
+
+| Symptom | Cause |
+| --- | --- |
+| `42501 ... row level security` on every write | policies missing or wrong: run `fix-rls.sql` |
+| `PGRST205 Could not find the table` | `schema.sql` never ran against this project |
+| `PGRST205` only for `vehicles` / `orders` | views missing: run `fix-rls.sql` |
+| Settings save says “only staff” | no staff session, or the account is not in `public.staff` |
+| App shows “offline” | anonymous sign-ins are disabled, or the tables are unreachable |
 
 ## Where the data lives
 

@@ -1,4 +1,5 @@
 import { supabaseClient, describeSupabaseError } from "@/lib/supabase";
+import { staffClient } from "@/lib/staff-auth";
 import { applySiteSettings } from "@/lib/site";
 
 /**
@@ -58,13 +59,14 @@ export async function loadSiteSettings(): Promise<Partial<SiteSettings> | null> 
 
 /**
  * Save one or more settings. Writes are allowed for signed-in staff only
- * (`is_staff()` in the schema), so an anonymous visitor sees a clear error
- * instead of a silent failure.
+ * (`is_staff()` in the schema), so they go through the staff client — the
+ * visitor's anonymous session must keep owning the public data. Without a staff
+ * sign-in the database refuses the write and the panel shows why.
  */
 export async function saveSiteSettings(
   patch: Partial<SiteSettings>,
 ): Promise<{ ok: boolean; error?: string }> {
-  const client = supabaseClient();
+  const client = staffClient();
   if (!client) return { ok: false, error: "The database is not configured for this build." };
 
   const rows = (Object.keys(SETTINGS_KEYS) as (keyof SiteSettings)[])
@@ -80,7 +82,7 @@ export async function saveSiteSettings(
   if (error)
     return {
       ok: false,
-      error: `${describeSupabaseError(error)} — only signed-in staff can change site settings.`,
+      error: `${describeSupabaseError(error)} — sign in below with a staff account, then save again.`,
     };
   applySiteSettings(patch);
   return { ok: true };
