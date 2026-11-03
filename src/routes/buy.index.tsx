@@ -6,15 +6,8 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { StickyActions } from "@/components/site/StickyActions";
 import { EnquiryDialog, type EnquiryField } from "@/components/site/EnquiryDialog";
 import { BuyHub } from "@/components/buy/BuyHub";
-import {
-  BuyServiceSidebar,
-  type BuyServiceFilters,
-} from "@/components/buy/BuySidebar";
-import {
-  BuyFilterBar,
-  BuyActiveFilters,
-  type BuyFilters,
-} from "@/components/buy/BuyFilterBar";
+import { BuyServiceSidebar, type BuyServiceFilters } from "@/components/buy/BuySidebar";
+import { BuyFilterBar, BuyActiveFilters, type BuyFilters } from "@/components/buy/BuyFilterBar";
 import { BuyBrandRail } from "@/components/buy/BuyBrandRail";
 import { BuyListingCard } from "@/components/buy/BuyListingCard";
 import { BuyServiceCard } from "@/components/buy/BuyServiceCard";
@@ -203,9 +196,7 @@ function BuyPage() {
       if (next.model && !models.includes(next.model)) next.model = "";
       const keptFuels = next.fuels.filter((fuel) => fuels.includes(fuel));
       next.fuels = keptFuels.length === next.fuels.length ? next.fuels : keptFuels;
-      return next.brand === prev.brand &&
-        next.model === prev.model &&
-        next.fuels === prev.fuels
+      return next.brand === prev.brand && next.model === prev.model && next.fuels === prev.fuels
         ? prev
         : next;
     });
@@ -217,9 +208,7 @@ function BuyPage() {
     return listingsInCategory(categoryId)
       .filter((listing) => !filters.brand || listing.brand === filters.brand)
       .filter((listing) => !filters.model || listing.model === filters.model)
-      .filter(
-        (listing) => filters.fuels.length === 0 || filters.fuels.includes(listing.fuel),
-      )
+      .filter((listing) => filters.fuels.length === 0 || filters.fuels.includes(listing.fuel))
       .filter((listing) => !filters.city || listing.city === filters.city)
       .filter((listing) => listing.year >= filters.yearMin && listing.year <= filters.yearMax)
       .filter((listing) => {
@@ -364,11 +353,7 @@ function BuyPage() {
           </>
         ) : (
           <div className="home-container" id="buy-browse">
-            <div
-              className={
-                category ? "mw-buy-layout mw-buy-layout--flow" : "mw-buy-layout"
-              }
-            >
+            <div className={category ? "mw-buy-layout mw-buy-layout--flow" : "mw-buy-layout"}>
               {service ? (
                 <BuyServiceSidebar
                   service={service}
@@ -459,8 +444,12 @@ function BuyPage() {
                           <Link to="/buy/offers" className="mw-results-link">
                             My Offers
                           </Link>
-                          <Link to={category.to} className="mw-results-link">
-                            Open {category.label} page
+                          <Link
+                            to="/buy"
+                            search={{ category: category.id }}
+                            className="mw-results-link"
+                          >
+                            View all {category.label}
                           </Link>
                         </>
                       )}

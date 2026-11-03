@@ -56,7 +56,12 @@ function BuyPillHeader() {
           <Link to="/locations" aria-label="Choose location" className="mw-buy-header-action">
             <MapPin className="mb-0.5 h-4 w-4" /> Location
           </Link>
-          <Link to="/cars" aria-label="View favorites" className="mw-buy-header-action">
+          <Link
+            to="/account"
+            search={{ tab: "favorites" }}
+            aria-label="View favorites"
+            className="mw-buy-header-action"
+          >
             <Heart className="mb-0.5 h-4 w-4" /> Favorites
           </Link>
           <Link to="/account" aria-label="My account" className="mw-buy-header-action">
@@ -114,9 +119,10 @@ export function SiteHeader({
                 <div className="invisible absolute left-0 top-full z-50 pt-3 opacity-0 transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
                   <ul className="w-60 border border-ink-foreground/10 bg-ink py-2 shadow-lg">
                     {BUY_CATEGORIES.map((c) => (
-                      <li key={c.to}>
+                      <li key={c.category}>
                         <Link
-                          to={c.to}
+                          to="/buy"
+                          search={{ category: c.category }}
                           className="block px-4 py-2 text-xs font-semibold uppercase tracking-wide text-ink-foreground/85 hover:bg-primary hover:text-primary-foreground"
                         >
                           Buy {c.label}
@@ -149,7 +155,8 @@ export function SiteHeader({
             <MapPin className="mb-0.5 h-4 w-4" /> Location
           </Link>
           <Link
-            to="/cars"
+            to="/account"
+            search={{ tab: "favorites" }}
             aria-label="View favorites"
             className="hidden flex-col items-center text-[0.55rem] text-ink-foreground/70 hover:text-primary sm:flex"
           >

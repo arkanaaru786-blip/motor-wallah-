@@ -20,32 +20,20 @@ export const MAIN_NAV = [
   { label: "Franchise", to: "/franchise" },
 ] as const;
 
+/**
+ * The eight BUY categories. There is exactly ONE listing page — the unified
+ * BUY catalogue — so a category is identified by its `category` slug and every
+ * link builds `/buy?category=<slug>` from it. No category has its own route.
+ */
 export const BUY_CATEGORIES = [
-  // `to` keeps the long-standing category URLs (they now redirect into the
-  // unified BUY catalogue); `category` is used to deep-link it directly.
-  { label: "Cars", category: "cars", to: "/cars", blurb: "Hatchbacks, sedans & SUVs" },
-  { label: "Bikes", category: "bikes", to: "/buy/bikes", blurb: "Motorcycles & scooters" },
-  {
-    label: "3-Wheelers",
-    category: "three-wheelers",
-    to: "/buy/three-wheelers",
-    blurb: "Autos & e-rickshaws",
-  },
-  {
-    label: "SCV / Mini Trucks",
-    category: "scv",
-    to: "/buy/scv",
-    blurb: "Mini trucks & pickups",
-  },
-  { label: "Trucks", category: "trucks", to: "/buy/trucks", blurb: "Light to heavy trucks" },
-  { label: "Buses", category: "buses", to: "/buy/buses", blurb: "School, staff & tourist" },
-  { label: "Tractors", category: "tractors", to: "/buy/tractors", blurb: "Farm tractors" },
-  {
-    label: "Taxi / Commercial Cars",
-    category: "taxi",
-    to: "/buy/taxi",
-    blurb: "Yellow-plate commercial cars",
-  },
+  { label: "Cars", category: "cars", blurb: "Hatchbacks, sedans & SUVs" },
+  { label: "Bikes", category: "bikes", blurb: "Motorcycles & scooters" },
+  { label: "3-Wheelers", category: "three-wheelers", blurb: "Autos & e-rickshaws" },
+  { label: "SCV / Mini Trucks", category: "scv", blurb: "Mini trucks & pickups" },
+  { label: "Trucks", category: "trucks", blurb: "Light to heavy trucks" },
+  { label: "Buses", category: "buses", blurb: "School, staff & tourist" },
+  { label: "Tractors", category: "tractors", blurb: "Farm tractors" },
+  { label: "Taxi / Commercial Cars", category: "taxi", blurb: "Yellow-plate commercial cars" },
 ] as const;
 
 export const SERVICE_LINKS = [

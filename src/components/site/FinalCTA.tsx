@@ -9,7 +9,8 @@ export function FinalCTA() {
         </h2>
         <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
           <Link
-            to="/cars"
+            to="/buy"
+            search={{ category: "cars" }}
             className="inline-flex items-center justify-center gap-2 bg-primary px-6 py-3 text-xs font-bold uppercase tracking-[0.1em] text-primary-foreground transition-transform hover:-translate-y-0.5"
           >
             View Cars

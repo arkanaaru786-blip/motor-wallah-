@@ -7,10 +7,9 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
     title: "Quick Links",
     links: [...MAIN_NAV],
   },
-  {
-    title: "Vehicle Categories",
-    links: [...BUY_CATEGORIES],
-  },
+  // Filled in by SiteFooter from BUY_CATEGORIES, so each link carries its
+  // category slug into the one BUY listing page.
+  { title: "Vehicle Categories", links: [] },
   {
     title: "Services",
     links: [
@@ -46,7 +45,8 @@ export function SiteFooter() {
             Drive Trust. Drive Quality.
           </p>
           <p className="mt-4 max-w-xs text-sm text-ink-foreground/70">
-            One marketplace to discover, buy, sell, exchange, value and service every kind of vehicle.
+            One marketplace to discover, buy, sell, exchange, value and service every kind of
+            vehicle.
           </p>
         </div>
 
@@ -54,16 +54,28 @@ export function SiteFooter() {
           <div key={col.title}>
             <h3 className="text-sm font-bold uppercase tracking-wide">{col.title}</h3>
             <ul className="mt-4 space-y-2">
-              {col.links.map((l) => (
-                <li key={l.label}>
-                  <Link
-                    to={l.to}
-                    className="text-sm text-ink-foreground/70 transition-colors hover:text-primary"
-                  >
-                    {l.label}
-                  </Link>
-                </li>
-              ))}
+              {col.title === "Vehicle Categories"
+                ? BUY_CATEGORIES.map((c) => (
+                    <li key={c.category}>
+                      <Link
+                        to="/buy"
+                        search={{ category: c.category }}
+                        className="text-sm text-ink-foreground/70 transition-colors hover:text-primary"
+                      >
+                        {c.label}
+                      </Link>
+                    </li>
+                  ))
+                : col.links.map((l) => (
+                    <li key={l.label}>
+                      <Link
+                        to={l.to}
+                        className="text-sm text-ink-foreground/70 transition-colors hover:text-primary"
+                      >
+                        {l.label}
+                      </Link>
+                    </li>
+                  ))}
               {col.title === "Support" && (
                 <li>
                   <a
@@ -79,9 +91,33 @@ export function SiteFooter() {
             </ul>
             {col.title === "Support" && (
               <div className="mt-5 flex gap-2">
-                <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="grid h-9 w-9 place-items-center border border-ink-foreground/20 hover:border-primary hover:text-primary"><Instagram className="h-4 w-4" /></a>
-                <a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="grid h-9 w-9 place-items-center border border-ink-foreground/20 hover:border-primary hover:text-primary"><Facebook className="h-4 w-4" /></a>
-                <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" aria-label="YouTube" className="grid h-9 w-9 place-items-center border border-ink-foreground/20 hover:border-primary hover:text-primary"><Youtube className="h-4 w-4" /></a>
+                <a
+                  href="https://www.instagram.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Instagram"
+                  className="grid h-9 w-9 place-items-center border border-ink-foreground/20 hover:border-primary hover:text-primary"
+                >
+                  <Instagram className="h-4 w-4" />
+                </a>
+                <a
+                  href="https://www.facebook.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Facebook"
+                  className="grid h-9 w-9 place-items-center border border-ink-foreground/20 hover:border-primary hover:text-primary"
+                >
+                  <Facebook className="h-4 w-4" />
+                </a>
+                <a
+                  href="https://www.youtube.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="YouTube"
+                  className="grid h-9 w-9 place-items-center border border-ink-foreground/20 hover:border-primary hover:text-primary"
+                >
+                  <Youtube className="h-4 w-4" />
+                </a>
               </div>
             )}
           </div>
@@ -93,7 +129,10 @@ export function SiteFooter() {
           <a href={PHONE_HREF} className="flex items-center gap-2 hover:text-primary">
             <Phone className="h-4 w-4 text-primary" /> {PHONE_DISPLAY}
           </a>
-          <a href="mailto:care@motorwallah.in" className="flex items-center gap-2 hover:text-primary">
+          <a
+            href="mailto:care@motorwallah.in"
+            className="flex items-center gap-2 hover:text-primary"
+          >
             <Mail className="h-4 w-4 text-primary" /> care@motorwallah.in
           </a>
           <span className="flex items-center gap-2">

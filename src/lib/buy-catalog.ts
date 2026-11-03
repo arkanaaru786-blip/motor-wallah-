@@ -21,10 +21,7 @@ import busCategoryImage from "@/assets/homepage/Bus.png";
 import tractorCategoryImage from "@/assets/homepage/Tractor.png";
 import taxiCategoryImage from "@/assets/homepage/Taxi.png";
 import { VEHICLES, placeholderFor } from "@/lib/cars-data";
-import {
-  EXTRA_DEMO_CARS,
-  EXTRA_DEMO_LISTINGS,
-} from "@/lib/buy-demo-inventory";
+import { EXTRA_DEMO_CARS, EXTRA_DEMO_LISTINGS } from "@/lib/buy-demo-inventory";
 import { modelsForBrand, BRAND_NAMES } from "@/lib/vehicle-catalog";
 import { hasBrandLogo } from "@/components/buy/BrandArt";
 import {
@@ -42,8 +39,6 @@ export type BuyCategory = {
   singular: string;
   blurb: string;
   image: string;
-  /** Existing listing page for this category (never a new duplicate route). */
-  to: string;
 };
 
 export const BUY_CATEGORY_LIST: BuyCategory[] = [
@@ -53,7 +48,6 @@ export const BUY_CATEGORY_LIST: BuyCategory[] = [
     singular: "Car",
     blurb: "Sedans, SUVs, Hatchbacks & more",
     image: carCategoryImage,
-    to: "/cars",
   },
   {
     id: "bikes",
@@ -61,7 +55,6 @@ export const BUY_CATEGORY_LIST: BuyCategory[] = [
     singular: "Bike",
     blurb: "Sports, Commuters, Scooters & more",
     image: bikeCategoryImage,
-    to: "/buy/bikes",
   },
   {
     id: "three-wheelers",
@@ -69,7 +62,6 @@ export const BUY_CATEGORY_LIST: BuyCategory[] = [
     singular: "3-Wheeler",
     blurb: "Passenger & Cargo",
     image: threeWheelerCategoryImage,
-    to: "/buy/three-wheelers",
   },
   {
     id: "scv",
@@ -77,7 +69,6 @@ export const BUY_CATEGORY_LIST: BuyCategory[] = [
     singular: "Small Commercial Vehicle",
     blurb: "Ace, Intra, Dost & more",
     image: scvCategoryImage,
-    to: "/buy/scv",
   },
   {
     id: "trucks",
@@ -85,7 +76,6 @@ export const BUY_CATEGORY_LIST: BuyCategory[] = [
     singular: "Truck",
     blurb: "Heavy & Medium Duty",
     image: truckCategoryImage,
-    to: "/buy/trucks",
   },
   {
     id: "buses",
@@ -93,7 +83,6 @@ export const BUY_CATEGORY_LIST: BuyCategory[] = [
     singular: "Bus",
     blurb: "Mini, Mid, Luxury & more",
     image: busCategoryImage,
-    to: "/buy/buses",
   },
   {
     id: "tractors",
@@ -101,7 +90,6 @@ export const BUY_CATEGORY_LIST: BuyCategory[] = [
     singular: "Tractor",
     blurb: "Farm & Utility",
     image: tractorCategoryImage,
-    to: "/buy/tractors",
   },
   {
     id: "taxi",
@@ -109,7 +97,6 @@ export const BUY_CATEGORY_LIST: BuyCategory[] = [
     singular: "Taxi",
     blurb: "Commercial & Fleet Vehicles",
     image: taxiCategoryImage,
-    to: "/buy/taxi",
   },
 ];
 
