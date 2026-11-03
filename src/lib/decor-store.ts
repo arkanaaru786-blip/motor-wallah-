@@ -29,6 +29,7 @@ import {
   Truck,
   type LucideIcon,
 } from "lucide-react";
+import { AutoRickshawIcon } from "@/components/icons/AutoRickshawIcon";
 
 /**
  * Vehicle-context icons — the Exterior Styling card (and any vehicle-specific
@@ -38,7 +39,7 @@ export const VEHICLE_DECOR_ICON: Record<string, LucideIcon> = {
   cars: Car,
   taxi: Car,
   bikes: Bike,
-  "three-wheelers": Bike,
+  "three-wheelers": AutoRickshawIcon,
   scv: Truck,
   trucks: Truck,
   buses: Bus,
