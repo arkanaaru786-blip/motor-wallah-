@@ -139,6 +139,15 @@ export const AUDIT_ACTIONS = [
   "employee.password",
   "auth.sign_in",
   "access.denied",
+  "case.priority",
+  "rule.create",
+  "rule.update",
+  "rule.toggle",
+  "rule.delete",
+  "rule.run",
+  "automation.denied",
+  "reconcile.run",
+  "reconcile.repair",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -154,6 +163,15 @@ export const AUDIT_CATEGORY: Record<AuditAction, string> = {
   "employee.password": "Password reset",
   "auth.sign_in": "Sign in",
   "access.denied": "Access refused",
+  "case.priority": "Priority change",
+  "rule.create": "Rule created",
+  "rule.update": "Rule edited",
+  "rule.toggle": "Rule switched",
+  "rule.delete": "Rule deleted",
+  "rule.run": "Automation run",
+  "automation.denied": "Automation refused",
+  "reconcile.run": "Reconciliation",
+  "reconcile.repair": "Gap repaired",
 };
 
 export type AuditEntry = {
@@ -183,6 +201,7 @@ const LEGACY_EMPLOYEES_KEY = "mw_admin_employees_v1";
 const AUDIT_KEY = "mw_admin_audit_v1";
 const LEGACY_ACTIVITY_KEY = "mw_admin_activity_v1";
 const SEED_FLAG_KEY = "mw_admin_seeded_v1";
+const JOURNAL_KEY = "mw_admin_case_journal_v1";
 
 /** First-response SLA in hours, per business line. */
 export const SLA_HOURS: Record<CaseType, number> = {
@@ -213,12 +232,14 @@ function readJson<T>(key: string, fallback: T): T {
   }
 }
 
-function writeJson(key: string, value: unknown): void {
-  if (typeof window === "undefined") return;
+function writeJson(key: string, value: unknown): boolean {
+  if (typeof window === "undefined") return false;
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
+    return true;
   } catch {
     /* storage unavailable — the panel still renders with in-memory state */
+    return false;
   }
 }
 
@@ -1021,8 +1042,77 @@ function auditActor(actor: Actor) {
   return { actorId: actor.id, actorName: actor.name, actorRole: actor.role };
 }
 
-function saveCases(cases: CrmCase[]): void {
-  writeJson(CASES_KEY, cases);
+/**
+ * Write-ahead journal for case saves.
+ *
+ * Every case write is journalled before the table is replaced, and the entry is
+ * cleared only after the write reports success. A save that never landed — full
+ * storage, a closed tab mid-write — therefore leaves a pending entry behind,
+ * which the reconciliation check finds and replays instead of losing the case.
+ */
+export type CaseWriteJournalEntry = {
+  id: string;
+  at: string;
+  caseId: string;
+  /** The exact record the write intended to persist. */
+  case: CrmCase;
+};
+
+export function readCaseJournal(): CaseWriteJournalEntry[] {
+  return readJson<CaseWriteJournalEntry[]>(JOURNAL_KEY, []);
+}
+
+/** Drops a replayed entry once the case is safely stored. */
+export function clearCaseJournalEntry(id: string): void {
+  writeJson(
+    JOURNAL_KEY,
+    readCaseJournal().filter((entry) => entry.id !== id),
+  );
+}
+
+function saveCases(cases: CrmCase[], attempted?: CrmCase): void {
+  if (!attempted) {
+    writeJson(CASES_KEY, cases);
+    return;
+  }
+  const entry: CaseWriteJournalEntry = {
+    id: uniqueId("jrnl"),
+    at: new Date().toISOString(),
+    caseId: attempted.id,
+    case: attempted,
+  };
+  writeJson(JOURNAL_KEY, [entry, ...readCaseJournal()].slice(0, 40));
+  const stored = writeJson(CASES_KEY, cases);
+  if (stored) {
+    writeJson(
+      JOURNAL_KEY,
+      readCaseJournal().filter((item) => item.id !== entry.id),
+    );
+  }
+}
+
+/**
+ * Re-applies a journalled save whose write never landed. Used by the
+ * reconciliation check, never by the normal edit path.
+ */
+export function replayCaseWrite(entry: CaseWriteJournalEntry): { ok: boolean; error?: string } {
+  const snapshot = readSnapshot();
+  const exists = snapshot.cases.some((item) => item.id === entry.caseId);
+  const next = exists
+    ? snapshot.cases.map((item) => (item.id === entry.caseId ? entry.case : item))
+    : [entry.case, ...snapshot.cases];
+  const stored = writeJson(CASES_KEY, next);
+  if (!stored) return { ok: false, error: "Storage is still refusing writes." };
+  clearCaseJournalEntry(entry.id);
+  notify();
+  return { ok: true };
+}
+
+/** Public audit sink so automation and reconciliation log like every other actor. */
+export function logAudit(entry: Omit<AuditEntry, "id" | "at">): AuditEntry {
+  const written = record(entry);
+  notify();
+  return written;
 }
 
 /**
@@ -1099,7 +1189,10 @@ export function updateCaseStatus(
       },
     ],
   };
-  saveCases(snapshot.cases.map((item) => (item.id === id ? updated : item)));
+  saveCases(
+    snapshot.cases.map((item) => (item.id === id ? updated : item)),
+    updated,
+  );
   record({
     ...auditActor(actor),
     action: "case.status",
@@ -1163,7 +1256,10 @@ export function assignCase(
       },
     ],
   };
-  saveCases(snapshot.cases.map((item) => (item.id === id ? updated : item)));
+  saveCases(
+    snapshot.cases.map((item) => (item.id === id ? updated : item)),
+    updated,
+  );
   record({
     ...auditActor(actor),
     action: "case.assign",
@@ -1205,7 +1301,10 @@ export function addCaseNote(
       { id: uniqueId("evt"), at: new Date().toISOString(), by: actor.name, label: "Note added" },
     ],
   };
-  saveCases(snapshot.cases.map((item) => (item.id === id ? updated : item)));
+  saveCases(
+    snapshot.cases.map((item) => (item.id === id ? updated : item)),
+    updated,
+  );
   record({
     ...auditActor(actor),
     action: "case.note",
@@ -1219,6 +1318,86 @@ export function addCaseNote(
 }
 
 /* ------------------------------------------------------------ employees */
+
+/** Priority is a triage decision, so it follows the same gate as a status edit. */
+export function setCasePriority(
+  id: string,
+  priority: CasePriority,
+  actor: Actor,
+): { ok: boolean; error?: string } {
+  const snapshot = ensureAdminDatabase();
+  const current = snapshot.cases.find((item) => item.id === id);
+  if (!current) return { ok: false, error: "That case no longer exists." };
+
+  const denial = caseDenial(actor, current, "status");
+  if (denial) return denyCaseWrite(actor, current, "prioritise", denial);
+
+  if (current.priority === priority) return { ok: false, error: "That priority is already set." };
+
+  const updated: CrmCase = {
+    ...current,
+    priority,
+    updatedAt: new Date().toISOString(),
+    events: [
+      ...current.events,
+      {
+        id: uniqueId("evt"),
+        at: new Date().toISOString(),
+        by: actor.name,
+        label: `Priority ${current.priority} → ${priority}`,
+      },
+    ],
+  };
+  saveCases(
+    snapshot.cases.map((item) => (item.id === id ? updated : item)),
+    updated,
+  );
+  record({
+    ...auditActor(actor),
+    action: "case.priority",
+    target: id,
+    summary: `raised the priority of ${id} from ${current.priority} to ${priority}`,
+    department: departmentForCaseType(current.type),
+    outcome: "allowed",
+  });
+  notify();
+  return { ok: true };
+}
+
+/**
+ * Imports every lead the public site captured that has not become a case yet.
+ * Journalled like any other case write, so a refused write stays recoverable.
+ */
+export function importQueuedLeads(): { ok: boolean; imported: string[]; error?: string } {
+  const snapshot = readSnapshot();
+  const known = new Set(snapshot.cases.map((item) => item.sourceKey));
+  const created: CrmCase[] = [];
+  for (const [index, lead] of readLeadQueue().entries()) {
+    const candidate = leadToCase(lead, index);
+    if (known.has(candidate.sourceKey)) continue;
+    known.add(candidate.sourceKey);
+    created.push(candidate);
+  }
+  if (!created.length) return { ok: true, imported: [] };
+
+  const entries: CaseWriteJournalEntry[] = created.map((item) => ({
+    id: uniqueId("jrnl"),
+    at: new Date().toISOString(),
+    caseId: item.id,
+    case: item,
+  }));
+  writeJson(JOURNAL_KEY, [...entries, ...readCaseJournal()].slice(0, 40));
+  const stored = writeJson(CASES_KEY, [...created, ...snapshot.cases]);
+  if (!stored) return { ok: false, imported: [], error: "Storage refused the write." };
+
+  const done = new Set(entries.map((entry) => entry.id));
+  writeJson(
+    JOURNAL_KEY,
+    readCaseJournal().filter((entry) => !done.has(entry.id)),
+  );
+  notify();
+  return { ok: true, imported: created.map((item) => item.id) };
+}
 
 export type EmployeeInput = {
   name: string;

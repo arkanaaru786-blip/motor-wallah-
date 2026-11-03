@@ -52,6 +52,7 @@ import { Route as FranchiseApplyRouteImport } from './routes/franchise.apply'
 import { Route as InternalEvaluationsRouteImport } from './routes/internal.evaluations'
 import { Route as MasterAdminIndexRouteImport } from './routes/master-admin.index'
 import { Route as MasterAdminAuditRouteImport } from './routes/master-admin.audit'
+import { Route as MasterAdminAutomationRouteImport } from './routes/master-admin.automation'
 import { Route as MasterAdminEmployeesRouteImport } from './routes/master-admin.employees'
 import { Route as MasterAdminTrackerRouteImport } from './routes/master-admin.tracker'
 import { Route as MasterAdminLoginRouteImport } from './routes/master-admin_.login'
@@ -272,6 +273,11 @@ const MasterAdminAuditRoute = MasterAdminAuditRouteImport.update({
   path: '/audit',
   getParentRoute: () => MasterAdminRoute,
 } as any)
+const MasterAdminAutomationRoute = MasterAdminAutomationRouteImport.update({
+  id: '/automation',
+  path: '/automation',
+  getParentRoute: () => MasterAdminRoute,
+} as any)
 const MasterAdminEmployeesRoute = MasterAdminEmployeesRouteImport.update({
   id: '/employees',
   path: '/employees',
@@ -334,6 +340,7 @@ export interface FileRoutesByFullPath {
   '/franchise/apply': typeof FranchiseApplyRoute
   '/internal/evaluations': typeof InternalEvaluationsRoute
   '/master-admin/audit': typeof MasterAdminAuditRoute
+  '/master-admin/automation': typeof MasterAdminAutomationRoute
   '/master-admin/employees': typeof MasterAdminEmployeesRoute
   '/master-admin/tracker': typeof MasterAdminTrackerRoute
   '/master-admin/login': typeof MasterAdminLoginRoute
@@ -382,6 +389,7 @@ export interface FileRoutesByTo {
   '/franchise/apply': typeof FranchiseApplyRoute
   '/internal/evaluations': typeof InternalEvaluationsRoute
   '/master-admin/audit': typeof MasterAdminAuditRoute
+  '/master-admin/automation': typeof MasterAdminAutomationRoute
   '/master-admin/employees': typeof MasterAdminEmployeesRoute
   '/master-admin/tracker': typeof MasterAdminTrackerRoute
   '/master-admin/login': typeof MasterAdminLoginRoute
@@ -432,6 +440,7 @@ export interface FileRoutesById {
   '/franchise/apply': typeof FranchiseApplyRoute
   '/internal/evaluations': typeof InternalEvaluationsRoute
   '/master-admin/audit': typeof MasterAdminAuditRoute
+  '/master-admin/automation': typeof MasterAdminAutomationRoute
   '/master-admin/employees': typeof MasterAdminEmployeesRoute
   '/master-admin/tracker': typeof MasterAdminTrackerRoute
   '/master-admin_/login': typeof MasterAdminLoginRoute
@@ -483,6 +492,7 @@ export interface FileRouteTypes {
     | '/franchise/apply'
     | '/internal/evaluations'
     | '/master-admin/audit'
+    | '/master-admin/automation'
     | '/master-admin/employees'
     | '/master-admin/tracker'
     | '/master-admin/login'
@@ -531,6 +541,7 @@ export interface FileRouteTypes {
     | '/franchise/apply'
     | '/internal/evaluations'
     | '/master-admin/audit'
+    | '/master-admin/automation'
     | '/master-admin/employees'
     | '/master-admin/tracker'
     | '/master-admin/login'
@@ -580,6 +591,7 @@ export interface FileRouteTypes {
     | '/franchise/apply'
     | '/internal/evaluations'
     | '/master-admin/audit'
+    | '/master-admin/automation'
     | '/master-admin/employees'
     | '/master-admin/tracker'
     | '/master-admin_/login'
@@ -937,6 +949,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MasterAdminAuditRouteImport
       parentRoute: typeof MasterAdminRoute
     }
+    '/master-admin/automation': {
+      id: '/master-admin/automation'
+      path: '/automation'
+      fullPath: '/master-admin/automation'
+      preLoaderRoute: typeof MasterAdminAutomationRouteImport
+      parentRoute: typeof MasterAdminRoute
+    }
     '/master-admin/employees': {
       id: '/master-admin/employees'
       path: '/employees'
@@ -982,6 +1001,7 @@ const FranchiseRouteWithChildren = FranchiseRoute._addFileChildren(
 
 interface MasterAdminRouteChildren {
   MasterAdminAuditRoute: typeof MasterAdminAuditRoute
+  MasterAdminAutomationRoute: typeof MasterAdminAutomationRoute
   MasterAdminEmployeesRoute: typeof MasterAdminEmployeesRoute
   MasterAdminTrackerRoute: typeof MasterAdminTrackerRoute
   MasterAdminIndexRoute: typeof MasterAdminIndexRoute
@@ -989,6 +1009,7 @@ interface MasterAdminRouteChildren {
 
 const MasterAdminRouteChildren: MasterAdminRouteChildren = {
   MasterAdminAuditRoute: MasterAdminAuditRoute,
+  MasterAdminAutomationRoute: MasterAdminAutomationRoute,
   MasterAdminEmployeesRoute: MasterAdminEmployeesRoute,
   MasterAdminTrackerRoute: MasterAdminTrackerRoute,
   MasterAdminIndexRoute: MasterAdminIndexRoute,

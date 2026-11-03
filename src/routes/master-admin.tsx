@@ -17,6 +17,7 @@ import {
   visibleEmployees,
 } from "@/lib/admin-crm";
 import { actorFromSession } from "@/lib/admin-rbac";
+import { ensureAutopilot, listRules, visibleRules } from "@/lib/admin-automation";
 
 /**
  * Master control room layout.
@@ -61,12 +62,17 @@ const HEADINGS: Record<string, { title: string; subtitle: string }> = {
     title: "Audit Log",
     subtitle: "Every sensitive action, attributed to a person and a role.",
   },
+  automation: {
+    title: "MW Autopilot",
+    subtitle: "Rules that run themselves — and a check that no submission goes missing.",
+  },
 };
 
 function headingFor(pathname: string) {
   if (pathname.startsWith("/master-admin/tracker")) return HEADINGS["tracker"]!;
   if (pathname.startsWith("/master-admin/employees")) return HEADINGS["employees"]!;
   if (pathname.startsWith("/master-admin/audit")) return HEADINGS["audit"]!;
+  if (pathname.startsWith("/master-admin/automation")) return HEADINGS["automation"]!;
   return HEADINGS["overview"]!;
 }
 
@@ -86,14 +92,16 @@ function MasterAdminLayout() {
 
   const counts = useMemo(() => {
     void version;
-    if (!session) return { open: 0, mine: 0, employees: 0 };
+    if (!session) return { open: 0, mine: 0, employees: 0, rules: 0 };
     const data = ensureAdminDatabase();
+    ensureAutopilot();
     const actor = actorFromSession(session);
     const cases = visibleCases(actor, data.cases);
     return {
       open: cases.filter((item) => isOpenStatus(item.status)).length,
       mine: openCasesFor(cases, actor.id).length,
       employees: visibleEmployees(actor, data.employees).length,
+      rules: visibleRules(actor, listRules()).filter((rule) => rule.enabled).length,
     };
   }, [session, version]);
 
@@ -116,6 +124,7 @@ function MasterAdminLayout() {
       openCount={counts.open}
       myCount={counts.mine}
       employeeCount={counts.employees}
+      ruleCount={counts.rules}
     >
       <Outlet />
     </AdminShell>

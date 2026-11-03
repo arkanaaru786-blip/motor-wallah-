@@ -34,6 +34,8 @@ import {
 } from "@/lib/admin-crm";
 import { ROLE_LABEL, actorFromSession, scopeLabel, type Actor } from "@/lib/admin-rbac";
 import type { AdminSession } from "@/lib/admin-auth";
+import { AiAssistant } from "./AiAssistant";
+import { ReliabilityCard } from "./ReliabilityCard";
 
 const toneForPriority = (priority: CrmCase["priority"]) => `is-${priority.toLowerCase()}`;
 
@@ -159,6 +161,11 @@ export function AdminDashboard({ session }: { session: AdminSession }) {
           My tasks ({mine.length}) <ArrowUpRight size={13} />
         </Link>
       </section>
+
+      <div className="mw-admin-bento" data-testid="intelligence-row">
+        <AiAssistant session={session} />
+        <ReliabilityCard session={session} />
+      </div>
 
       <div className="mw-admin-bento mw-admin-bento--lower">
         <section className="mw-admin-panel mw-admin-span-5" aria-labelledby="action-required">

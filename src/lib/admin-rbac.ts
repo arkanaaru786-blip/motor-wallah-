@@ -76,7 +76,11 @@ export type Permission =
   | "case.note"
   | "employee.view"
   | "employee.manage"
-  | "audit.view";
+  | "audit.view"
+  | "automation.view"
+  | "automation.manage"
+  | "reliability.view"
+  | "intelligence.use";
 
 const PERMISSIONS: Record<Role, Permission[]> = {
   super_admin: [
@@ -89,6 +93,10 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     "employee.view",
     "employee.manage",
     "audit.view",
+    "automation.view",
+    "automation.manage",
+    "reliability.view",
+    "intelligence.use",
   ],
   manager: [
     "case.view.department",
@@ -98,10 +106,14 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     "case.note",
     "employee.view",
     "audit.view",
+    "automation.view",
+    "automation.manage",
+    "reliability.view",
+    "intelligence.use",
   ],
   // Executives read the whole desk queue, but may only change their own work.
-  executive: ["case.view.department", "case.update_status", "case.note"],
-  read_only: ["case.view.department"],
+  executive: ["case.view.department", "case.update_status", "case.note", "intelligence.use"],
+  read_only: ["case.view.department", "intelligence.use"],
 };
 
 /** The signed-in person, as the data layer sees them. */
@@ -181,6 +193,19 @@ export function scopeLabel(actor: Actor): string {
 
 /** Toggle availability: "All tasks" needs department-level visibility. */
 export const canViewAllTasks = (actor: Actor): boolean => canReadWholeDesk(actor);
+
+/**
+ * Autopilot rules are admin-level automation. Only a super admin writes rules
+ * for every desk; a manager may tune the rules that touch their own department.
+ */
+export const canViewAutomation = (actor: Actor): boolean => can(actor, "automation.view");
+export const canManageAutomation = (actor: Actor): boolean => can(actor, "automation.manage");
+export const canViewReliability = (actor: Actor): boolean => can(actor, "reliability.view");
+export const canUseIntelligence = (actor: Actor): boolean => can(actor, "intelligence.use");
+
+/** Which desk a new rule belongs to — managers can never author cross-desk rules. */
+export const ruleDepartmentFor = (actor: Actor): Department | null =>
+  isSuperAdmin(actor) ? null : actor.department;
 
 /** Every change is attributed, so the log always names a person and a role. */
 export function actorFromSession(session: {

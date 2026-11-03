@@ -13,6 +13,7 @@ import {
   ScrollText,
   Users,
   Wallet,
+  Zap,
 } from "lucide-react";
 import {
   ADMIN_SOURCE_LABEL,
@@ -20,7 +21,7 @@ import {
   signOutAdmin,
   type AdminSession,
 } from "@/lib/admin-auth";
-import { actorFromSession, can } from "@/lib/admin-rbac";
+import { actorFromSession, can, canViewAutomation } from "@/lib/admin-rbac";
 
 type NavItem = {
   to: string;
@@ -32,10 +33,10 @@ type NavItem = {
 };
 
 const LOCKED: { label: string; icon: typeof LayoutDashboard; phase: string }[] = [
-  { label: "Inventory & Listings", icon: Boxes, phase: "Phase 3" },
-  { label: "Finance Desk", icon: Wallet, phase: "Phase 3" },
-  { label: "Reports & Analytics", icon: BarChart3, phase: "Phase 3" },
-  { label: "Partners & Studios", icon: Building2, phase: "Phase 3" },
+  { label: "Inventory & Listings", icon: Boxes, phase: "Phase 4" },
+  { label: "Finance Desk", icon: Wallet, phase: "Phase 4" },
+  { label: "Reports & Analytics", icon: BarChart3, phase: "Phase 4" },
+  { label: "Partners & Studios", icon: Building2, phase: "Phase 4" },
 ];
 
 const initials = (name: string) =>
@@ -57,6 +58,7 @@ export function AdminShell({
   openCount,
   myCount,
   employeeCount,
+  ruleCount,
 }: {
   session: AdminSession;
   title: string;
@@ -66,6 +68,7 @@ export function AdminShell({
   openCount?: number;
   myCount?: number;
   employeeCount?: number;
+  ruleCount?: number;
 }) {
   const actor = actorFromSession(session);
   const nav: NavItem[] = [
@@ -95,6 +98,14 @@ export function AdminShell({
   }
   if (can(actor, "audit.view")) {
     nav.push({ to: "/master-admin/audit", label: "Audit Log", icon: ScrollText });
+  }
+  if (canViewAutomation(actor)) {
+    nav.push({
+      to: "/master-admin/automation",
+      label: "Autopilot",
+      icon: Zap,
+      ...(typeof ruleCount === "number" ? { count: ruleCount } : {}),
+    });
   }
 
   return (
