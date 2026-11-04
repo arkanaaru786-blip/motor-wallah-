@@ -9,14 +9,37 @@ export let PHONE_DISPLAY = "1800 123 4567";
 export let PHONE_HREF = "tel:18001234567";
 export let WHATSAPP_BASE = "https://wa.me/919999999999";
 
-/** Optional support inbox; empty unless the admin fills it in Settings. */
-export let SUPPORT_EMAIL = "";
+/**
+ * Support inbox. The footer shows this; leaving the field empty in Settings keeps
+ * this address rather than removing a contact route from the site.
+ */
+export let SUPPORT_EMAIL = "care@motorwallah.in";
 
 export function whatsappLink(message: string) {
   return `${WHATSAPP_BASE}?text=${encodeURIComponent(message)}`;
 }
 
 export let WHATSAPP = whatsappLink("Hi Motor Wallah, I need help with a car");
+
+/**
+ * Revision counter for the contact details.
+ *
+ * The values above are plain module bindings, which is what keeps every existing
+ * component able to import them. The catch is that a component already on screen
+ * never re-renders just because the binding changed. The revision lets the root
+ * route remount the tree once, so a page opened before the settings arrived still
+ * shows the saved numbers.
+ */
+let revision = 0;
+const revisionListeners = new Set<() => void>();
+
+export const siteSettingsRevision = () => revision;
+export function subscribeSiteSettings(listener: () => void) {
+  revisionListeners.add(listener);
+  return () => {
+    revisionListeners.delete(listener);
+  };
+}
 
 /** Called once by the site-settings loader after the cloud values arrive. */
 export function applySiteSettings(settings: {
@@ -25,6 +48,7 @@ export function applySiteSettings(settings: {
   whatsappBase?: string;
   supportEmail?: string;
 }) {
+  const before = [PHONE_DISPLAY, PHONE_HREF, WHATSAPP_BASE, SUPPORT_EMAIL].join("\u0000");
   if (settings.phoneDisplay) PHONE_DISPLAY = settings.phoneDisplay;
   if (settings.phoneHref) PHONE_HREF = settings.phoneHref;
   else if (settings.phoneDisplay) {
@@ -32,8 +56,21 @@ export function applySiteSettings(settings: {
     if (digits) PHONE_HREF = `tel:${digits}`;
   }
   if (settings.whatsappBase) WHATSAPP_BASE = settings.whatsappBase;
-  if (typeof settings.supportEmail === "string") SUPPORT_EMAIL = settings.supportEmail;
+  if (settings.supportEmail && settings.supportEmail.trim())
+    SUPPORT_EMAIL = settings.supportEmail.trim();
   WHATSAPP = whatsappLink("Hi Motor Wallah, I need help with a car");
+
+  // Only bump when something actually moved: the common case is that the saved
+  // values match the fallbacks, and then no remount is needed at all.
+  if (before === [PHONE_DISPLAY, PHONE_HREF, WHATSAPP_BASE, SUPPORT_EMAIL].join("\u0000")) return;
+  revision += 1;
+  revisionListeners.forEach((listener) => {
+    try {
+      listener();
+    } catch {
+      /* one broken listener must not stop the others */
+    }
+  });
 }
 
 export const MAIN_NAV = [

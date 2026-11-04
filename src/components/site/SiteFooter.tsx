@@ -1,6 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { Facebook, Instagram, Mail, MapPin, Phone, Youtube } from "lucide-react";
-import { BUY_CATEGORIES, MAIN_NAV, PHONE_DISPLAY, PHONE_HREF, WHATSAPP } from "@/lib/site";
+import {
+  BUY_CATEGORIES,
+  MAIN_NAV,
+  PHONE_DISPLAY,
+  PHONE_HREF,
+  SUPPORT_EMAIL,
+  WHATSAPP,
+} from "@/lib/site";
 
 const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
   {
@@ -129,12 +136,14 @@ export function SiteFooter() {
           <a href={PHONE_HREF} className="flex items-center gap-2 hover:text-primary">
             <Phone className="h-4 w-4 text-primary" /> {PHONE_DISPLAY}
           </a>
-          <a
-            href="mailto:care@motorwallah.in"
-            className="flex items-center gap-2 hover:text-primary"
-          >
-            <Mail className="h-4 w-4 text-primary" /> care@motorwallah.in
-          </a>
+          {SUPPORT_EMAIL ? (
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="flex items-center gap-2 hover:text-primary"
+            >
+              <Mail className="h-4 w-4 text-primary" /> {SUPPORT_EMAIL}
+            </a>
+          ) : null}
           <span className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-primary" /> Indore, Madhya Pradesh
           </span>

@@ -7,11 +7,12 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { useCloudSync } from "../lib/cloud-sync";
+import { siteSettingsRevision, subscribeSiteSettings } from "../lib/site";
 
 function NotFoundComponent() {
   return (
@@ -79,10 +80,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Motor Wallah | Every Vehicle. One Marketplace." },
-      { name: "description", content: "Motor Wallah is a marketplace for cars, bikes, 3-wheelers, commercial vehicles and tractors." },
+      {
+        name: "description",
+        content:
+          "Motor Wallah is a marketplace for cars, bikes, 3-wheelers, commercial vehicles and tractors.",
+      },
       { name: "author", content: "Motor Wallah" },
       { property: "og:title", content: "Motor Wallah | Every Vehicle. One Marketplace." },
-      { property: "og:description", content: "Discover, buy, sell, exchange, value and service vehicles with Motor Wallah." },
+      {
+        property: "og:description",
+        content: "Discover, buy, sell, exchange, value and service vehicles with Motor Wallah.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -99,7 +107,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
-
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -128,10 +135,19 @@ function RootComponent() {
   // render picks up the authoritative data without a page reload.
   useCloudSync();
 
+  // Contact details are module bindings, so a page that rendered before the saved
+  // settings arrived keeps the old number. Remounting the outlet once when they
+  // change is what makes a saved phone/WhatsApp/email visible everywhere.
+  const settingsRevision = useSyncExternalStore(
+    subscribeSiteSettings,
+    siteSettingsRevision,
+    siteSettingsRevision,
+  );
+
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <Outlet key={settingsRevision} />
     </QueryClientProvider>
   );
 }

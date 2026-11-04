@@ -240,7 +240,7 @@ export function SiteSettingsPanel({ session }: { session: AdminSession }) {
                   data-testid="settings-phone-display"
                 />
                 <small className="mw-admin-hint">
-                  Appears in the header, footer and contact pages.
+                  Appears in the call buttons and the footer on every page.
                 </small>
               </label>
 
@@ -285,7 +285,8 @@ export function SiteSettingsPanel({ session }: { session: AdminSession }) {
                   data-testid="settings-email"
                 />
                 <small className="mw-admin-hint">
-                  Optional. Leave empty to keep email off the site.
+                  Shown in the footer and used by every “email us” link. Leave empty to keep the
+                  default care@motorwallah.in.
                 </small>
               </label>
             </div>
@@ -339,7 +340,7 @@ export function SiteSettingsPanel({ session }: { session: AdminSession }) {
           <ul className="mw-admin-actionlist" data-testid="settings-preview">
             <li className="mw-admin-actionmain">
               <span className="mw-admin-actiontype">
-                <Phone size={14} /> Header &amp; footer
+                <Phone size={14} /> Call buttons &amp; footer
               </span>
               <a className="mw-admin-activity-link" href={draft.phoneHref || "#"}>
                 {draft.phoneDisplay || "—"}
@@ -353,15 +354,14 @@ export function SiteSettingsPanel({ session }: { session: AdminSession }) {
             </li>
             <li className="mw-admin-actionmain">
               <span className="mw-admin-actiontype">
-                <Mail size={14} /> Contact page
+                <Mail size={14} /> Footer &amp; email links
               </span>
-              {draft.supportEmail ? (
-                <a className="mw-admin-activity-link" href={`mailto:${draft.supportEmail}`}>
-                  {draft.supportEmail}
-                </a>
-              ) : (
-                <span className="mw-admin-audittext">Hidden — no email set</span>
-              )}
+              <a
+                className="mw-admin-activity-link"
+                href={`mailto:${draft.supportEmail || "care@motorwallah.in"}`}
+              >
+                {draft.supportEmail || "care@motorwallah.in (default)"}
+              </a>
             </li>
           </ul>
 

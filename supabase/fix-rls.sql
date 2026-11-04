@@ -166,10 +166,12 @@ create temp table _cloud_selftest (step text, result text);
 do $$
 declare
   test_uid uuid;
+  test_uid2 uuid;
   original_role text := current_user;
   n int;
 begin
   select id into test_uid from auth.users order by created_at limit 1;
+  select id into test_uid2 from auth.users where id <> test_uid order by created_at limit 1;
   if test_uid is null then
     insert into _cloud_selftest values ('user', 'no users yet — open the site once, then re-run');
     return;
@@ -199,6 +201,49 @@ begin
   exception when others then
     insert into _cloud_selftest values ('insert as signed-in user', 'FAILED ' || sqlstate || ' ' || sqlerrm);
   end;
+
+  -- Isolation: one signed-in visitor must never see another one's rows. Without
+  -- this check a completely open table still reports "insert ok", because the
+  -- insert path works fine when row level security is switched off.
+  if test_uid2 is null then
+    insert into _cloud_selftest values
+      ('row isolation', 'needs two users — open the site in another browser, then re-run');
+  else
+    begin
+      perform set_config('role', 'authenticated', true);
+      perform set_config(
+        'request.jwt.claims',
+        json_build_object('sub', test_uid, 'role', 'authenticated')::text,
+        true
+      );
+      insert into public.app_records (owner_id, key, value)
+      values (test_uid, '__iso__', 'true'::jsonb)
+      on conflict (owner_id, key) do update set value = excluded.value;
+
+      perform set_config(
+        'request.jwt.claims',
+        json_build_object('sub', test_uid2, 'role', 'authenticated')::text,
+        true
+      );
+      select count(*) into n from public.app_records where owner_id = test_uid;
+      insert into _cloud_selftest values (
+        'row isolation',
+        case
+          when n = 0 then 'ok — another user''s rows are hidden'
+          else 'FAILED — ' || n || ' foreign row(s) visible; row level security is not enforced'
+        end
+      );
+
+      perform set_config(
+        'request.jwt.claims',
+        json_build_object('sub', test_uid, 'role', 'authenticated')::text,
+        true
+      );
+      delete from public.app_records where key = '__iso__' and owner_id = test_uid;
+    exception when others then
+      insert into _cloud_selftest values ('row isolation', 'FAILED ' || sqlstate || ' ' || sqlerrm);
+    end;
+  end if;
 
   begin
     perform set_config('role', 'authenticated', true);
@@ -239,4 +284,14 @@ from _cloud_selftest
 union all
 select 'seeded settings', count(*)::text from public.site_settings
 union all
-select 'vehicles view', case when to_regclass('public.vehicles') is null then 'missing' else 'ok' end;
+select 'vehicles view', case when to_regclass('public.vehicles') is null then 'missing' else 'ok' end
+union all
+select
+  'rls ' || c.relname,
+  case when c.relrowsecurity then 'enabled' else 'DISABLED — every signed-in visitor can read every row' end
+from pg_class c
+join pg_namespace ns on ns.oid = c.relnamespace
+where ns.nspname = 'public'
+  and c.relkind = 'r'
+  and c.relname in ('app_records', 'profiles', 'leads', 'site_settings', 'staff')
+order by 1;

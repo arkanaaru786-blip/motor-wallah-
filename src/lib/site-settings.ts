@@ -52,7 +52,7 @@ export async function loadSiteSettings(): Promise<Partial<SiteSettings> | null> 
   if (phoneDisplay) settings.phoneDisplay = phoneDisplay;
   if (phoneHref) settings.phoneHref = phoneHref;
   if (whatsappBase) settings.whatsappBase = whatsappBase;
-  if (typeof supportEmail === "string") settings.supportEmail = supportEmail;
+  if (supportEmail) settings.supportEmail = supportEmail;
   applySiteSettings(settings);
   return settings;
 }
