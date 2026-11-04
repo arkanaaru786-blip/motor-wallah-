@@ -49,6 +49,8 @@ export const CLOUD_COLLECTIONS = [
   "mw_listing_offers",
   "mw_decor_cart",
   "mw_parts_cart",
+  /** Prepaid orders confirmed by Razorpay (see lib/razorpay-checkout.ts). */
+  "mw_payments",
   // Admin console
   "mw_admin_accounts",
   "mw_admin_cases_v1",

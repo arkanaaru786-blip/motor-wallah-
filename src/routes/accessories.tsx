@@ -26,6 +26,7 @@ import {
   type BuyCategoryId,
 } from "@/lib/buy-catalog";
 import { submitLead } from "@/lib/leads";
+import { payPrepaid } from "@/lib/razorpay-checkout";
 import {
   PART_CATEGORY_LIST,
   buildProducts,
@@ -90,17 +91,18 @@ type PartsSearch = {
 const isCategoryId = (value: unknown): value is BuyCategoryId =>
   typeof value === "string" && BUY_CATEGORY_LIST.some((c) => c.id === value);
 
-const STEP_STRIP = [
-  "Vehicle",
-  "Brand & Model",
-  "Part Category",
-  "Products",
-  "Order",
-] as const;
+const STEP_STRIP = ["Vehicle", "Brand & Model", "Part Category", "Products", "Order"] as const;
 
 type Step = "vehicle" | "brand" | "model" | "parts" | "shop" | "checkout" | "done";
 
-type Order = { id: string; name: string; mobile: string; total: number; items: number };
+type Order = {
+  id: string;
+  name: string;
+  mobile: string;
+  total: number;
+  items: number;
+  paymentId?: string | undefined;
+};
 
 function Page() {
   const navigate = useNavigate();
@@ -112,6 +114,7 @@ function Page() {
   const [sort, setSort] = useState<"price" | "discount">("price");
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
+  const [paying, setPaying] = useState(false);
   const pendingScroll = useRef<string | null>(null);
 
   // Cart survives step navigation (per device).
@@ -131,7 +134,10 @@ function Page() {
   const modelOk = Boolean(model && models.includes(model));
   const partCat = getPartCategory(part);
   const products = useMemo(
-    () => (activeStep === "shop" && partCat && brandOk && modelOk ? buildProducts(partCat.id, brand!, model!) : []),
+    () =>
+      activeStep === "shop" && partCat && brandOk && modelOk
+        ? buildProducts(partCat.id, brand!, model!)
+        : [],
     [activeStep, partCat, brandOk, modelOk, brand, model],
   );
 
@@ -239,17 +245,38 @@ function Page() {
   const placeOrder = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const value = (key: string) => String(data.get(key) ?? "").trim().slice(0, 500);
+    const value = (key: string) =>
+      String(data.get(key) ?? "")
+        .trim()
+        .slice(0, 500);
     const name = value("name");
     const mobile = value("mobile");
     const city = value("city");
 
     if (!name || !city) return setError("Please fill in your name and delivery city.");
-    if (!/^[0-9+ ]{10,15}$/.test(mobile)) return setError("Please enter a valid 10-digit mobile number.");
+    if (!/^[0-9+ ]{10,15}$/.test(mobile))
+      return setError("Please enter a valid 10-digit mobile number.");
     if (cart.length === 0) return setError("Your cart is empty.");
 
     const total = cartTotal(cart);
     const id = newOrderId();
+
+    // Razorpay order -> checkout modal -> signature check on the server. The
+    // order is only recorded once the gateway confirms the payment.
+    setError(null);
+    setPaying(true);
+    const payment = await payPrepaid({
+      amount: total,
+      receipt: id,
+      description: `${brand ?? ""} ${model ?? ""}`.trim() || "Motor Wallah parts",
+      customer: { name, mobile, city },
+      notes: { orderId: id, vehicle: `${brand ?? ""} ${model ?? ""}`.trim() },
+    });
+    setPaying(false);
+
+    if (payment.status === "cancelled")
+      return setError("Payment cancelled — nothing was charged and your cart is still saved.");
+    if (payment.status === "unavailable") return setError(payment.message);
 
     // Saved to the project's lead queue (and CRM endpoint when configured).
     await submitLead({
@@ -268,10 +295,20 @@ function Page() {
         total: String(total),
         items: cart.map((l) => `${l.name} x${l.qty} (${rupees(l.price)})`).join("; "),
         itemLines: String(cartCount(cart)),
+        paymentStatus: "Paid",
+        paymentId: payment.paymentId,
+        razorpayOrderId: payment.orderId,
       },
     });
 
-    setOrder({ id, name, mobile, total, items: cartCount(cart) });
+    setOrder({
+      id,
+      name,
+      mobile,
+      total,
+      items: cartCount(cart),
+      paymentId: payment.paymentId,
+    });
     updateCart([]);
     pendingScroll.current = "parts-step";
     go({ step: "done", cat: cat!, brand: brand!, model: model! });
@@ -280,9 +317,7 @@ function Page() {
   const whatsapp = whatsappLink("Hi Motor Wallah, I want to order vehicle parts.");
   const shownProducts = products
     .filter((p) => condition === "all" || p.condition === condition)
-    .sort((a, b) =>
-      sort === "price" ? a.price - b.price : b.discount - a.discount,
-    );
+    .sort((a, b) => (sort === "price" ? a.price - b.price : b.discount - a.discount));
   const count = cartCount(cart);
 
   return (
@@ -303,7 +338,12 @@ function Page() {
               checkout with fast delivery, backed by the Motor Wallah team.
             </p>
             <div className="mw-sell-hero-actions">
-              <a className="mw-sell-ghost-btn" href={whatsapp} target="_blank" rel="noopener noreferrer">
+              <a
+                className="mw-sell-ghost-btn"
+                href={whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <MessageCircle size={14} /> WhatsApp Us
               </a>
               <a className="mw-sell-ghost-btn" href={PHONE_HREF}>
@@ -338,7 +378,11 @@ function Page() {
 
         {/* ---------------- Step 1: vehicle category grid (FIRST screen) ---------------- */}
         {activeStep === "vehicle" && (
-          <section id="parts-step" className="mw-sell-section" aria-labelledby="parts-vehicle-title">
+          <section
+            id="parts-step"
+            className="mw-sell-section"
+            aria-labelledby="parts-vehicle-title"
+          >
             <div className="home-container">
               <p className="mw-sell-kicker">
                 <span aria-hidden="true" /> Step 1 · Choose your vehicle
@@ -347,8 +391,8 @@ function Page() {
                 What do you need <span>parts for?</span>
               </h2>
               <p className="mw-sell-text">
-                Pick a vehicle category first — we then show brands and models so you only see
-                parts that actually fit.
+                Pick a vehicle category first — we then show brands and models so you only see parts
+                that actually fit.
               </p>
 
               <div className="mw-sell-grid">
@@ -422,7 +466,9 @@ function Page() {
                     <span className="mw-parts-brand-logo">
                       <BrandArt brand={item.brand} />
                     </span>
-                    <span className="mw-parts-brand-name">{item.brand.replace(/\s*\(.*?\)\s*/g, "")}</span>
+                    <span className="mw-parts-brand-name">
+                      {item.brand.replace(/\s*\(.*?\)\s*/g, "")}
+                    </span>
                     <span className="mw-parts-brand-count">
                       {item.count} listing{item.count === 1 ? "" : "s"}
                     </span>
@@ -438,7 +484,11 @@ function Page() {
           <section id="parts-step" className="mw-sell-section" aria-labelledby="parts-model-title">
             <div className="home-container">
               <div className="mw-sell-form-head">
-                <button type="button" className="mw-sell-back" onClick={() => go({ step: "brand", cat: cat! })}>
+                <button
+                  type="button"
+                  className="mw-sell-back"
+                  onClick={() => go({ step: "brand", cat: cat! })}
+                >
                   <ArrowLeft size={14} /> Change brand
                 </button>
                 <span className="mw-sell-chip">
@@ -455,9 +505,7 @@ function Page() {
               <h2 id="parts-model-title" className="mw-sell-title">
                 Select a <span>model</span>
               </h2>
-              <p className="mw-sell-text">
-                Only parts listed for {brand} models will be shown.
-              </p>
+              <p className="mw-sell-text">Only parts listed for {brand} models will be shown.</p>
 
               <div className="mw-parts-models" data-testid="model-list">
                 {models.map((m) => (
@@ -536,21 +584,24 @@ function Page() {
             <div className="home-container">
               {/* Glass breadcrumb — every earlier step is one click away. */}
               <nav className="mw-parts-crumbs" aria-label="Store path">
-                <button type="button" onClick={() => go({})}>Vehicle</button>
+                <button type="button" onClick={() => go({})}>
+                  Vehicle
+                </button>
                 <ChevronRight size={13} aria-hidden="true" />
                 <button type="button" onClick={() => go({ step: "brand", cat: cat! })}>
                   {vehicle.label}
                 </button>
                 <ChevronRight size={13} aria-hidden="true" />
-                <button type="button" onClick={() => go({ step: "model", cat: cat!, brand: brand! })}>
+                <button
+                  type="button"
+                  onClick={() => go({ step: "model", cat: cat!, brand: brand! })}
+                >
                   {brand}
                 </button>
                 <ChevronRight size={13} aria-hidden="true" />
                 <button
                   type="button"
-                  onClick={() =>
-                    go({ step: "parts", cat: cat!, brand: brand!, model: model! })
-                  }
+                  onClick={() => go({ step: "parts", cat: cat!, brand: brand!, model: model! })}
                 >
                   {model}
                 </button>
@@ -611,10 +662,16 @@ function Page() {
                   {shownProducts.map((product) => {
                     const Icon = partCat.icon;
                     return (
-                      <article key={product.id} className="mw-parts-product" data-testid="product-card">
+                      <article
+                        key={product.id}
+                        className="mw-parts-product"
+                        data-testid="product-card"
+                      >
                         <div className="mw-parts-product-media" aria-hidden="true">
                           <Icon size={54} strokeWidth={1.2} />
-                          <span className={`mw-parts-badge${product.condition === "Used" ? " is-used" : ""}`}>
+                          <span
+                            className={`mw-parts-badge${product.condition === "Used" ? " is-used" : ""}`}
+                          >
                             {product.condition}
                           </span>
                         </div>
@@ -635,9 +692,10 @@ function Page() {
                           </p>
                           <p className="mw-parts-product-eta">
                             Free delivery by{" "}
-                            {new Date(
-                              Date.now() + product.etaDays * 86400000,
-                            ).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                            {new Date(Date.now() + product.etaDays * 86400000).toLocaleDateString(
+                              "en-IN",
+                              { day: "numeric", month: "short" },
+                            )}
                           </p>
                           <div className="mw-parts-product-actions">
                             <button
@@ -673,7 +731,11 @@ function Page() {
 
         {/* ---------------- Step 5: prepaid checkout ---------------- */}
         {activeStep === "checkout" && cart.length > 0 && (
-          <section id="parts-step" className="mw-sell-form-section" aria-labelledby="parts-checkout-title">
+          <section
+            id="parts-step"
+            className="mw-sell-form-section"
+            aria-labelledby="parts-checkout-title"
+          >
             <div className="home-container">
               <div className="mw-sell-form-head">
                 <button
@@ -688,7 +750,10 @@ function Page() {
                 <span className="mw-sell-chip">
                   <ShoppingBag size={15} aria-hidden="true" />
                   <span>
-                    Checkout <small>{count} item{count === 1 ? "" : "s"}</small>
+                    Checkout{" "}
+                    <small>
+                      {count} item{count === 1 ? "" : "s"}
+                    </small>
                   </span>
                 </span>
               </div>
@@ -722,7 +787,9 @@ function Page() {
                           <Plus size={12} />
                         </button>
                       </span>
-                      <span className="mw-parts-orderline-price">{rupees(line.price * line.qty)}</span>
+                      <span className="mw-parts-orderline-price">
+                        {rupees(line.price * line.qty)}
+                      </span>
                       <button
                         type="button"
                         className="mw-parts-orderline-remove"
@@ -742,8 +809,9 @@ function Page() {
                 <div className="mw-parts-payment" data-testid="prepaid-notice">
                   <strong>Payment: Prepaid only</strong>
                   <p>
-                    Pay online with UPI, Card or Net Banking. Cash on Delivery is not available
-                    for parts orders. Your parts are dispatched after payment is confirmed.
+                    Pay online with UPI, Card, Net Banking or Wallet. Cash on Delivery is not
+                    available for parts orders. Your parts are dispatched after payment is
+                    confirmed.
                   </p>
                 </div>
 
@@ -793,12 +861,18 @@ function Page() {
                 )}
 
                 <div className="mw-sell-form-foot">
-                  <button type="submit" className="mw-sell-submit" data-testid="place-order">
-                    Place Prepaid Order · {rupees(cartTotal(cart))}
+                  <button
+                    type="submit"
+                    className="mw-sell-submit"
+                    data-testid="place-order"
+                    disabled={paying}
+                  >
+                    {paying ? "Opening secure payment…" : `Pay ${rupees(cartTotal(cart))} securely`}
                   </button>
                   <p className="mw-sell-form-sub">
-                    Your order is saved to Motor Wallah's lead queue — the team confirms
-                    fitment, stock and the prepaid payment link with you on your mobile.
+                    UPI, card, net banking or wallet — paid through Razorpay. Your order is
+                    confirmed only after the payment is verified, then the team calls you about
+                    fitment and delivery.
                   </p>
                 </div>
               </form>
@@ -817,18 +891,23 @@ function Page() {
                 aria-hidden="true"
               />
               <h2 className="mw-sell-done-title">
-                Order Placed! Our team will confirm fitment and share the prepaid payment link.
+                Payment received! Our team will confirm fitment and dispatch your parts.
               </h2>
               <p className="mw-sell-done-text">
-                Thanks {order.name} — order <strong>{order.id}</strong> for {order.items}{" "}
-                item{order.items === 1 ? "" : "s"} ({rupees(order.total)}) is saved with the
-                Motor Wallah team. We will contact you on {order.mobile}. Prepaid only — no
-                Cash on Delivery.
+                Thanks {order.name} — order <strong>{order.id}</strong> for {order.items} item
+                {order.items === 1 ? "" : "s"} ({rupees(order.total)}) is paid and saved with the
+                Motor Wallah team. We will contact you on {order.mobile}.
               </p>
               <div className="mw-parts-orderid" data-testid="order-id">
                 <span>Order ID</span>
                 <strong>{order.id}</strong>
               </div>
+              {order.paymentId && (
+                <div className="mw-parts-orderid" data-testid="payment-id">
+                  <span>Razorpay Payment ID</span>
+                  <strong>{order.paymentId}</strong>
+                </div>
+              )}
               <div className="mw-sell-done-actions">
                 <button
                   type="button"
@@ -840,7 +919,12 @@ function Page() {
                 >
                   Continue Shopping
                 </button>
-                <a className="mw-sell-ghost-btn" href={whatsapp} target="_blank" rel="noopener noreferrer">
+                <a
+                  className="mw-sell-ghost-btn"
+                  href={whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <MessageCircle size={14} /> WhatsApp
                 </a>
                 <a className="mw-sell-ghost-btn" href={PHONE_HREF}>
@@ -864,7 +948,9 @@ function Page() {
             <header className="mw-parts-drawer-head">
               <h2>
                 <ShoppingCart size={17} aria-hidden="true" /> Your Cart{" "}
-                <small>({count} item{count === 1 ? "" : "s"})</small>
+                <small>
+                  ({count} item{count === 1 ? "" : "s"})
+                </small>
               </h2>
               <button type="button" aria-label="Close cart" onClick={() => setDrawerOpen(false)}>
                 <X size={17} />

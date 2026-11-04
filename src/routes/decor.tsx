@@ -21,12 +21,9 @@ import {
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { StickyActions } from "@/components/site/StickyActions";
-import {
-  BUY_CATEGORY_LIST,
-  getBuyCategory,
-  type BuyCategoryId,
-} from "@/lib/buy-catalog";
+import { BUY_CATEGORY_LIST, getBuyCategory, type BuyCategoryId } from "@/lib/buy-catalog";
 import { submitLead } from "@/lib/leads";
+import { payPrepaid } from "@/lib/razorpay-checkout";
 import {
   buildDecorProducts,
   decorCategoriesFor,
@@ -88,7 +85,14 @@ const STEP_STRIP = ["Vehicle", "Decor Category", "Products", "Cart & Fitter"] as
 
 type Step = "vehicle" | "decor" | "shop" | "checkout" | "done";
 
-type Order = { id: string; name: string; mobile: string; total: number; items: number };
+type Order = {
+  id: string;
+  name: string;
+  mobile: string;
+  total: number;
+  items: number;
+  paymentId?: string | undefined;
+};
 
 type PriceBand = "all" | "u1000" | "1000-5000" | "o5000";
 
@@ -119,6 +123,7 @@ function Page() {
   const [minRating, setMinRating] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
+  const [paying, setPaying] = useState(false);
 
   // Contact Fitter modal (exclusive to Vehicle Decor).
   const [fitterOpen, setFitterOpen] = useState(false);
@@ -171,13 +176,7 @@ function Page() {
   );
 
   const stepIndex =
-    activeStep === "vehicle"
-      ? 0
-      : activeStep === "decor"
-        ? 1
-        : activeStep === "shop"
-          ? 2
-          : 3;
+    activeStep === "vehicle" ? 0 : activeStep === "decor" ? 1 : activeStep === "shop" ? 2 : 3;
 
   // Deferred scroll: runs only after the step change has actually rendered.
   useEffect(() => {
@@ -267,7 +266,10 @@ function Page() {
   const submitFitter = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const value = (key: string) => String(data.get(key) ?? "").trim().slice(0, 500);
+    const value = (key: string) =>
+      String(data.get(key) ?? "")
+        .trim()
+        .slice(0, 500);
     const name = value("name");
     const mobile = value("mobile");
     const model = value("model");
@@ -307,7 +309,10 @@ function Page() {
   const submitRegistration = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const value = (key: string) => String(data.get(key) ?? "").trim().slice(0, 500);
+    const value = (key: string) =>
+      String(data.get(key) ?? "")
+        .trim()
+        .slice(0, 500);
     const name = value("name");
     const shop = value("shop");
     const mobile = value("mobile");
@@ -337,7 +342,10 @@ function Page() {
   const placeOrder = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const value = (key: string) => String(data.get(key) ?? "").trim().slice(0, 500);
+    const value = (key: string) =>
+      String(data.get(key) ?? "")
+        .trim()
+        .slice(0, 500);
     const name = value("name");
     const mobile = value("mobile");
     const city = value("city");
@@ -349,6 +357,23 @@ function Page() {
 
     const total = cartTotal(cart);
     const id = newDecorOrderId();
+
+    // Razorpay order -> checkout modal -> signature check on the server. The
+    // order is only recorded once the gateway confirms the payment.
+    setError(null);
+    setPaying(true);
+    const payment = await payPrepaid({
+      amount: total,
+      receipt: id,
+      description: `Vehicle decor · ${vehicle?.label ?? "Motor Wallah"}`,
+      customer: { name, mobile, city },
+      notes: { orderId: id, vehicle: vehicle?.label ?? "" },
+    });
+    setPaying(false);
+
+    if (payment.status === "cancelled")
+      return setError("Payment cancelled — nothing was charged and your cart is still saved.");
+    if (payment.status === "unavailable") return setError(payment.message);
 
     await submitLead({
       type: "decor_order",
@@ -364,10 +389,20 @@ function Page() {
         total: String(total),
         items: cart.map((l) => `${l.name} x${l.qty} (${rupees(l.price)})`).join("; "),
         itemLines: String(cartCount(cart)),
+        paymentStatus: "Paid",
+        paymentId: payment.paymentId,
+        razorpayOrderId: payment.orderId,
       },
     });
 
-    setOrder({ id, name, mobile, total, items: cartCount(cart) });
+    setOrder({
+      id,
+      name,
+      mobile,
+      total,
+      items: cartCount(cart),
+      paymentId: payment.paymentId,
+    });
     updateCart([]);
     pendingScroll.current = "decor-step";
     go({ step: "done", cat: cat! });
@@ -390,9 +425,8 @@ function Page() {
               Vehicle <em>Decor</em>
             </h1>
             <p className="mw-sell-hero-text">
-              Interior, exterior, lighting, audio and care accessories for every vehicle —
-              order online or tap "Contact Fitter" and a nearby fitter will quote the
-              installation.
+              Interior, exterior, lighting, audio and care accessories for every vehicle — order
+              online or tap "Contact Fitter" and a nearby fitter will quote the installation.
             </p>
             <div className="mw-sell-hero-actions">
               <button
@@ -406,7 +440,12 @@ function Page() {
               >
                 <Store size={14} /> Register as a Decor Shop / Fitter
               </button>
-              <a className="mw-sell-ghost-btn" href={whatsapp} target="_blank" rel="noopener noreferrer">
+              <a
+                className="mw-sell-ghost-btn"
+                href={whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <MessageCircle size={14} /> WhatsApp Us
               </a>
               <a className="mw-sell-ghost-btn" href={PHONE_HREF}>
@@ -441,7 +480,11 @@ function Page() {
 
         {/* ---------------- Step 1: vehicle category grid (FIRST screen) ---------------- */}
         {activeStep === "vehicle" && (
-          <section id="decor-step" className="mw-sell-section" aria-labelledby="decor-vehicle-title">
+          <section
+            id="decor-step"
+            className="mw-sell-section"
+            aria-labelledby="decor-vehicle-title"
+          >
             <div className="home-container">
               <p className="mw-sell-kicker">
                 <span aria-hidden="true" /> Step 1 · Choose your vehicle
@@ -503,7 +546,11 @@ function Page() {
               </div>
 
               {/* Glass breadcrumb — Bug 1: always name the selected vehicle. */}
-              <nav className="mw-parts-crumbs" aria-label="Store path" data-testid="decor-breadcrumb">
+              <nav
+                className="mw-parts-crumbs"
+                aria-label="Store path"
+                data-testid="decor-breadcrumb"
+              >
                 <button type="button" onClick={() => go({})}>
                   Vehicle: {vehicle.label}
                 </button>
@@ -551,8 +598,14 @@ function Page() {
           <section id="decor-step" className="mw-sell-section" aria-labelledby="decor-shop-title">
             <div className="home-container">
               {/* Glass breadcrumb — every earlier step is one click away. */}
-              <nav className="mw-parts-crumbs" aria-label="Store path" data-testid="decor-breadcrumb">
-                <button type="button" onClick={() => go({})}>Vehicle: {vehicle.label}</button>
+              <nav
+                className="mw-parts-crumbs"
+                aria-label="Store path"
+                data-testid="decor-breadcrumb"
+              >
+                <button type="button" onClick={() => go({})}>
+                  Vehicle: {vehicle.label}
+                </button>
                 <ChevronRight size={13} aria-hidden="true" />
                 <button type="button" onClick={() => go({ step: "decor", cat: cat! })}>
                   Choose Decor Category
@@ -631,7 +684,11 @@ function Page() {
                   {shownProducts.map((product) => {
                     const Icon = decorIconFor(decorCat, vehicle.id);
                     return (
-                      <article key={product.id} className="mw-parts-product" data-testid="product-card">
+                      <article
+                        key={product.id}
+                        className="mw-parts-product"
+                        data-testid="product-card"
+                      >
                         <div className="mw-parts-product-media" aria-hidden="true">
                           <Icon size={54} strokeWidth={1.2} />
                           <span className="mw-parts-badge">-{product.discount}%</span>
@@ -647,9 +704,13 @@ function Page() {
                             </span>
                             <span className="mw-decor-fitchip">
                               {product.installation === "Fitter available" ? (
-                                <><Wrench size={11} aria-hidden="true" /> Fitter available</>
+                                <>
+                                  <Wrench size={11} aria-hidden="true" /> Fitter available
+                                </>
                               ) : (
-                                <><Package size={11} aria-hidden="true" /> DIY product</>
+                                <>
+                                  <Package size={11} aria-hidden="true" /> DIY product
+                                </>
                               )}
                             </span>
                           </p>
@@ -660,9 +721,10 @@ function Page() {
                           </p>
                           <p className="mw-parts-product-eta">
                             Free delivery by{" "}
-                            {new Date(
-                              Date.now() + product.etaDays * 86400000,
-                            ).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                            {new Date(Date.now() + product.etaDays * 86400000).toLocaleDateString(
+                              "en-IN",
+                              { day: "numeric", month: "short" },
+                            )}
                           </p>
                           <div className="mw-parts-product-actions">
                             <button
@@ -730,7 +792,11 @@ function Page() {
 
         {/* ---------------- Step 4: prepaid checkout ---------------- */}
         {activeStep === "checkout" && cart.length > 0 && (
-          <section id="decor-step" className="mw-sell-form-section" aria-labelledby="decor-checkout-title">
+          <section
+            id="decor-step"
+            className="mw-sell-form-section"
+            aria-labelledby="decor-checkout-title"
+          >
             <div className="home-container">
               <div className="mw-sell-form-head">
                 <button
@@ -743,7 +809,10 @@ function Page() {
                 <span className="mw-sell-chip">
                   <ShoppingBag size={15} aria-hidden="true" />
                   <span>
-                    Checkout <small>{count} item{count === 1 ? "" : "s"}</small>
+                    Checkout{" "}
+                    <small>
+                      {count} item{count === 1 ? "" : "s"}
+                    </small>
                   </span>
                 </span>
               </div>
@@ -777,7 +846,9 @@ function Page() {
                           <Plus size={12} />
                         </button>
                       </span>
-                      <span className="mw-parts-orderline-price">{rupees(line.price * line.qty)}</span>
+                      <span className="mw-parts-orderline-price">
+                        {rupees(line.price * line.qty)}
+                      </span>
                       <button
                         type="button"
                         className="mw-parts-orderline-remove"
@@ -797,8 +868,8 @@ function Page() {
                 <div className="mw-parts-payment" data-testid="prepaid-notice">
                   <strong>Payment: Prepaid only</strong>
                   <p>
-                    Pay online with UPI, Card or Net Banking. Cash on Delivery is not available
-                    for decor orders.
+                    Pay online with UPI, Card, Net Banking or Wallet. Cash on Delivery is not
+                    available for decor orders.
                   </p>
                 </div>
 
@@ -848,12 +919,18 @@ function Page() {
                 )}
 
                 <div className="mw-sell-form-foot">
-                  <button type="submit" className="mw-sell-submit" data-testid="place-order">
-                    Place Prepaid Order · {rupees(cartTotal(cart))}
+                  <button
+                    type="submit"
+                    className="mw-sell-submit"
+                    data-testid="place-order"
+                    disabled={paying}
+                  >
+                    {paying ? "Opening secure payment…" : `Pay ${rupees(cartTotal(cart))} securely`}
                   </button>
                   <p className="mw-sell-form-sub">
-                    Need help fitting it? Use "Contact Fitter" on any product — our network
-                    quotes installation separately.
+                    UPI, card, net banking or wallet — paid through Razorpay. Need help fitting it?
+                    Use "Contact Fitter" on any product — our network quotes installation
+                    separately.
                   </p>
                 </div>
               </form>
@@ -872,17 +949,23 @@ function Page() {
                 aria-hidden="true"
               />
               <h2 className="mw-sell-done-title">
-                Decor Order Placed! Our team will confirm stock and share the prepaid payment link.
+                Payment received! Our team will confirm stock and dispatch your decor order.
               </h2>
               <p className="mw-sell-done-text">
                 Thanks {order.name} — order <strong>{order.id}</strong> for {order.items} item
-                {order.items === 1 ? "" : "s"} ({rupees(order.total)}) is saved with the Motor
-                Wallah team. We will contact you on {order.mobile}.
+                {order.items === 1 ? "" : "s"} ({rupees(order.total)}) is paid and saved with the
+                Motor Wallah team. We will contact you on {order.mobile}.
               </p>
               <div className="mw-parts-orderid" data-testid="order-id">
                 <span>Order ID</span>
                 <strong>{order.id}</strong>
               </div>
+              {order.paymentId && (
+                <div className="mw-parts-orderid" data-testid="payment-id">
+                  <span>Razorpay Payment ID</span>
+                  <strong>{order.paymentId}</strong>
+                </div>
+              )}
               <div className="mw-sell-done-actions">
                 <button
                   type="button"
@@ -894,7 +977,12 @@ function Page() {
                 >
                   Continue Shopping
                 </button>
-                <a className="mw-sell-ghost-btn" href={whatsapp} target="_blank" rel="noopener noreferrer">
+                <a
+                  className="mw-sell-ghost-btn"
+                  href={whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <MessageCircle size={14} /> WhatsApp
                 </a>
                 <a className="mw-sell-ghost-btn" href={PHONE_HREF}>
@@ -932,8 +1020,8 @@ function Page() {
                   Fitter Request Sent! Nearby fitters will contact you with their quotes.
                 </p>
                 <p className="mw-decor-modal-done-text">
-                  Keep your mobile handy — fitters usually respond within a few hours. You can
-                  also call {PHONE_DISPLAY}.
+                  Keep your mobile handy — fitters usually respond within a few hours. You can also
+                  call {PHONE_DISPLAY}.
                 </p>
                 <button
                   type="button"
@@ -1028,7 +1116,11 @@ function Page() {
 
       {/* ---------------- Register as Decor Shop / Fitter modal ---------------- */}
       {registerOpen && (
-        <div className="mw-parts-overlay" role="presentation" onClick={() => setRegisterOpen(false)}>
+        <div
+          className="mw-parts-overlay"
+          role="presentation"
+          onClick={() => setRegisterOpen(false)}
+        >
           <div
             className="mw-decor-modal"
             role="dialog"
@@ -1052,8 +1144,7 @@ function Page() {
                   Registration Received! Our team will contact you to verify and onboard you.
                 </p>
                 <p className="mw-decor-modal-done-text">
-                  You will start receiving decor and installation leads for your area once
-                  verified.
+                  You will start receiving decor and installation leads for your area once verified.
                 </p>
                 <button
                   type="button"
@@ -1152,7 +1243,9 @@ function Page() {
             <header className="mw-parts-drawer-head">
               <h2>
                 <ShoppingCart size={17} aria-hidden="true" /> Your Cart{" "}
-                <small>({count} item{count === 1 ? "" : "s"})</small>
+                <small>
+                  ({count} item{count === 1 ? "" : "s"})
+                </small>
               </h2>
               <button type="button" aria-label="Close cart" onClick={() => setDrawerOpen(false)}>
                 <X size={17} />

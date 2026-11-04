@@ -38,3 +38,6 @@ artifacts/*
 !artifacts/admin-e2e.mjs
 !artifacts/rbac-e2e.mjs
 !artifacts/autopilot-e2e.mjs
+
+# Razorpay keys (never commit real secrets)
+.env.local
