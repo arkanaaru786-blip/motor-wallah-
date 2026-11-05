@@ -68,6 +68,9 @@ export const CLOUD_COLLECTIONS = [
   "mw_admin_autopilot_seeded_v1",
   "mw_admin_autopilot_marks_v1",
   "mw_admin_reconcile_v1",
+  // Dealer portal
+  "mw_dealers_v1",
+  "mw_dealer_portal_v1",
 ] as const;
 
 const CLOUD_KEYS = new Set<string>(CLOUD_COLLECTIONS);

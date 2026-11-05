@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   ScrollText,
   Settings,
+  Store,
   Users,
   Wallet,
   Zap,
@@ -96,6 +97,9 @@ export function AdminShell({
       icon: Users,
       ...(typeof employeeCount === "number" ? { count: employeeCount } : {}),
     });
+  }
+  if (can(actor, "employee.view")) {
+    nav.push({ to: "/master-admin/dealers", label: "Dealers", icon: Store });
   }
   if (can(actor, "audit.view")) {
     nav.push({ to: "/master-admin/audit", label: "Audit Log", icon: ScrollText });

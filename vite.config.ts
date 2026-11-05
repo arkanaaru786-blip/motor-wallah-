@@ -38,27 +38,7 @@ export default defineConfig({
       // The preview browser reaches this dev server through one exact
       // hostname; allow only that host (never a blanket allowedHosts rule).
       allowedHosts: [
-        "pv-6c4a0adeccea-3986cb7e-15b4-42dd-9fa2-728d34179c1e.style.dev",
-        "pv-6c4a0adeccea-0bb3b435-4873-4d79-a2b3-c3a7d88ae544.style.dev",
-        "pv-6c4a0adeccea-0fc82963-e7f4-4e4e-8162-71d1f85f88dd.style.dev",
-        "pv-6c4a0adeccea-f9a8c981-ac85-43c8-9fbe-90846984cf15.style.dev",
-        "pv-6c4a0adeccea-f9a8c981-ac85-43c8-9fbe-90846984cf15.style.dev",
-        "pv-6c4a0adeccea-9f8cd8a9-b8e2-499b-abb6-4c89f9f3b1de.style.dev",
-        "pv-6c4a0adeccea-b22496a9-e23e-4bed-a5dd-242d3ae0f52b.style.dev",
-        "pv-6c4a0adeccea-058b0f96-7978-44e9-b9b9-a3cbc9872708.style.dev",
-        "pv-6c4a0adeccea-36f09d23-db9b-4fb8-8569-69f85c8256ee.style.dev",
-        "pv-6c4a0adeccea-0e8bb73e-00ef-4429-9ef8-d27ccc07dd89.style.dev",
-        "pv-6c4a0adeccea-226b65c8-18e1-4f69-8bd2-bc519947866c.style.dev",
-        "pv-6c4a0adeccea-4943851b-ddd6-4c5a-b3e9-84a479e053f6.style.dev",
-        "pv-6c4a0adeccea-5d6b8e95-e39f-4085-9462-1d261e7a2c4e.style.dev",
-        "pv-6c4a0adeccea-db5a5dc2-bec1-4e0d-aae4-2006b56d13c1.style.dev",
-        "pv-6c4a0adeccea-30f8c1f0-0a93-4ad8-8dec-5999f9ec8a1a.style.dev",
-        "pv-6c4a0adeccea-3eb2e479-47dc-450f-8363-eb7f447feea9.style.dev",
-        "pv-6c4a0adeccea-5c64d229-3b1e-43d1-ab59-43353b3925a3.style.dev",
-        "pv-6c4a0adeccea-832ae8b7-59ad-4119-8a86-210b3c9c3ace.style.dev",
-        "pv-6c4a0adeccea-39338c94-c6d3-41f0-814b-15c25b0e6197.style.dev",
-        "pv-6c4a0adeccea-c3aba940-f33d-4642-813e-deb751607c84.style.dev",
-        "pv-6c4a0adeccea-d9a10b1b-6603-4aa2-a603-83d3f5eb5235.style.dev",
+        "pv-6c4a0adeccea-3e145cff-813f-428d-ad9c-23a44a32f784.style.dev",
       ],
     },
     plugins: [

@@ -1,0 +1,923 @@
+/* ==========================================================================
+   DEALER PORTAL (.mw-dealer) — Phase 1.
+   Light theme + glassmorphism, same palette as the rest of the site.
+   Every rule is scoped under .mw-dealer so no public route is affected.
+   ========================================================================== */
+
+.mw-dealer {
+  --dlr-bg: #f3f4f7;
+  --dlr-surface: rgba(255, 255, 255, 0.78);
+  --dlr-surface-solid: #ffffff;
+  --dlr-line: rgba(18, 19, 26, 0.09);
+  --dlr-line-strong: rgba(18, 19, 26, 0.16);
+  --dlr-ink: oklch(0.19 0.006 265);
+  --dlr-muted: oklch(0.5 0.01 265);
+  --dlr-red: var(--primary, oklch(0.55 0.223 27.5));
+  --dlr-red-soft: oklch(0.55 0.223 27.5 / 0.1);
+  --dlr-green: oklch(0.55 0.13 150);
+  --dlr-amber: oklch(0.62 0.13 75);
+  --dlr-shadow: 0 18px 44px -28px rgba(15, 17, 24, 0.4);
+  min-height: 100vh;
+  background: var(--dlr-bg);
+  color: var(--dlr-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.mw-dealer *,
+.mw-dealer *::before,
+.mw-dealer *::after {
+  box-sizing: border-box;
+}
+
+.mw-dealer button,
+.mw-dealer input,
+.mw-dealer select,
+.mw-dealer textarea {
+  font: inherit;
+  color: inherit;
+}
+
+.mw-dealer button {
+  cursor: pointer;
+}
+
+.mw-dealer a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.mw-dealer .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------------------------------------------------------------- loading */
+
+.mw-dealer-loading {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  padding: 80px 20px;
+  font-size: 0.9rem;
+  color: var(--dlr-muted);
+}
+
+.mw-dealer-loading-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--dlr-line-strong);
+  border-top-color: var(--dlr-red);
+  animation: dlr-spin 0.8s linear infinite;
+}
+
+@keyframes dlr-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ------------------------------------------------------------------ login */
+
+.mw-dealer-login {
+  display: grid;
+  place-items: center;
+  padding: 48px 20px 64px;
+  min-height: 100vh;
+}
+
+.mw-dealer-login-card {
+  width: min(940px, 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--dlr-surface);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 30px 70px -40px rgba(15, 17, 24, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.mw-dealer-login-main {
+  padding: 30px 32px 32px;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.mw-dealer-login-aside {
+  padding: 30px 28px 32px;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  background:
+    radial-gradient(420px 200px at 90% -10%, oklch(0.55 0.223 27.5 / 0.12), transparent 70%),
+    var(--dlr-surface-solid);
+  border-left: 1px solid var(--dlr-line);
+}
+
+.mw-dealer-login h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 2.4vw, 1.95rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+.mw-dealer-login-lede {
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--dlr-muted);
+}
+
+.mw-dealer-login-aside h2 {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dlr-muted);
+}
+
+.mw-dealer-demo-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mw-dealer-demo-list button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid var(--dlr-line);
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 0.78rem;
+  text-align: left;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.mw-dealer-demo-list button:hover {
+  border-color: var(--dlr-red);
+  transform: translateY(-1px);
+}
+
+.mw-dealer-demo-list strong {
+  font-weight: 650;
+}
+
+.mw-dealer-demo-list span {
+  font-size: 0.7rem;
+  color: var(--dlr-muted);
+  white-space: nowrap;
+}
+
+.mw-dealer-demo-note {
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--dlr-muted);
+}
+
+.mw-dealer-demo-note code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(15, 17, 24, 0.06);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------- shell */
+
+.mw-dealer-top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.72);
+  border-bottom: 1px solid var(--dlr-line);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.mw-dealer-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mw-dealer-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: var(--dlr-red);
+  color: #fff;
+  flex: none;
+}
+
+.mw-dealer-brand strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.mw-dealer-brand span {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--dlr-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 30ch;
+}
+
+.mw-dealer-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: var(--dlr-red-soft);
+  border: 1px solid oklch(0.55 0.223 27.5 / 0.22);
+  color: var(--dlr-red);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.mw-dealer-top-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mw-dealer-identity {
+  text-align: right;
+  line-height: 1.2;
+}
+
+.mw-dealer-identity strong {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.mw-dealer-identity span {
+  font-size: 0.68rem;
+  color: var(--dlr-muted);
+}
+
+.mw-dealer-nav {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 10px 24px;
+  background: rgba(255, 255, 255, 0.55);
+  border-bottom: 1px solid var(--dlr-line);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  position: sticky;
+  top: 60px;
+  z-index: 19;
+}
+
+.mw-dealer-nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 0.79rem;
+  font-weight: 600;
+  color: var(--dlr-muted);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.mw-dealer-nav button:hover {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--dlr-ink);
+}
+
+.mw-dealer-nav button[aria-current="page"] {
+  background: #fff;
+  border-color: var(--dlr-line-strong);
+  color: var(--dlr-ink);
+  box-shadow: 0 8px 18px -16px rgba(15, 17, 24, 0.6);
+}
+
+.mw-dealer-nav .mw-dealer-nav-count {
+  min-width: 19px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--dlr-red-soft);
+  color: var(--dlr-red);
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.mw-dealer-main {
+  padding: 20px 24px 52px;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+
+.mw-dealer-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.mw-dealer-head h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 2vw, 1.6rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.mw-dealer-head p {
+  margin-top: 3px;
+  font-size: 0.82rem;
+  color: var(--dlr-muted);
+  max-width: 62ch;
+  line-height: 1.45;
+}
+
+/* -------------------------------------------------------------------- kpis */
+
+.mw-dealer-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.mw-dealer-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 15px 16px;
+  border-radius: 14px;
+  background: var(--dlr-surface);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: var(--dlr-shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  min-height: 122px;
+  min-width: 0;
+}
+
+.mw-dealer-kpi.is-hero {
+  background:
+    radial-gradient(320px 150px at 92% -30%, oklch(0.55 0.223 27.5 / 0.18), transparent 70%),
+    var(--dlr-surface-solid);
+  border-color: oklch(0.55 0.223 27.5 / 0.22);
+}
+
+.mw-dealer-kpi header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mw-dealer-kpi-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(15, 17, 24, 0.045);
+  color: color-mix(in oklab, var(--dlr-ink) 70%, transparent);
+}
+
+.mw-dealer-kpi.is-hero .mw-dealer-kpi-icon {
+  background: var(--dlr-red-soft);
+  color: var(--dlr-red);
+}
+
+.mw-dealer-kpi-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--dlr-muted);
+}
+
+.mw-dealer-kpi-value {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 1.7vw, 1.8rem);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.mw-dealer-kpi.is-hero .mw-dealer-kpi-value {
+  color: var(--dlr-red);
+}
+
+.mw-dealer-kpi footer {
+  margin-top: auto;
+  font-size: 0.72rem;
+  color: var(--dlr-muted);
+  line-height: 1.35;
+}
+
+/* ------------------------------------------------------------------ panels */
+
+.mw-dealer-panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.mw-dealer-panel {
+  padding: 15px 17px 17px;
+  border-radius: 14px;
+  background: var(--dlr-surface);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: var(--dlr-shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  min-width: 0;
+}
+
+.mw-dealer-panel.is-wide {
+  grid-column: 1 / -1;
+}
+
+.mw-dealer-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 11px;
+  margin-bottom: 11px;
+  border-bottom: 1px solid var(--dlr-line);
+}
+
+.mw-dealer-panel-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.mw-dealer-panel-head h2 svg {
+  color: var(--dlr-red);
+}
+
+.mw-dealer-panel-head p {
+  margin-top: 3px;
+  font-size: 0.73rem;
+  color: var(--dlr-muted);
+  line-height: 1.4;
+}
+
+.mw-dealer-empty {
+  padding: 22px 4px;
+  font-size: 0.82rem;
+  color: var(--dlr-muted);
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------ tables */
+
+.mw-dealer-tablewrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 11px;
+  border: 1px solid var(--dlr-line);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.mw-dealer-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.79rem;
+  min-width: 720px;
+}
+
+.mw-dealer-table th {
+  text-align: left;
+  padding: 9px 11px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dlr-muted);
+  background: rgba(15, 17, 24, 0.035);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--dlr-line);
+}
+
+.mw-dealer-table td {
+  padding: 10px 11px;
+  border-bottom: 1px solid var(--dlr-line);
+  vertical-align: middle;
+}
+
+.mw-dealer-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.mw-dealer-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.mw-dealer-table td strong {
+  font-weight: 650;
+}
+
+.mw-dealer-table .is-muted {
+  color: var(--dlr-muted);
+  font-size: 0.74rem;
+}
+
+.mw-dealer-table .is-num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------ chips */
+
+.mw-dealer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.mw-dealer-chip.is-active,
+.mw-dealer-chip.is-accepted {
+  background: oklch(0.55 0.13 150 / 0.12);
+  border-color: oklch(0.55 0.13 150 / 0.28);
+  color: oklch(0.42 0.12 150);
+}
+
+.mw-dealer-chip.is-pending,
+.mw-dealer-chip.is-new {
+  background: oklch(0.62 0.13 75 / 0.14);
+  border-color: oklch(0.62 0.13 75 / 0.3);
+  color: oklch(0.47 0.12 70);
+}
+
+.mw-dealer-chip.is-sold,
+.mw-dealer-chip.is-closed {
+  background: rgba(15, 17, 24, 0.07);
+  border-color: var(--dlr-line-strong);
+  color: var(--dlr-muted);
+}
+
+.mw-dealer-chip.is-rejected {
+  background: oklch(0.55 0.223 27.5 / 0.12);
+  border-color: oklch(0.55 0.223 27.5 / 0.28);
+  color: var(--dlr-red);
+}
+
+.mw-dealer-chip.is-counter {
+  background: oklch(0.55 0.16 290 / 0.12);
+  border-color: oklch(0.55 0.16 290 / 0.28);
+  color: oklch(0.45 0.16 290);
+}
+
+/* ---------------------------------------------------------------- controls */
+
+.mw-dealer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mw-dealer-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 13px;
+  border-radius: 10px;
+  border: 1px solid var(--dlr-line-strong);
+  background: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--dlr-ink);
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease,
+    transform 0.15s ease;
+  white-space: nowrap;
+}
+
+.mw-dealer-btn:hover {
+  border-color: var(--dlr-red);
+  color: var(--dlr-red);
+}
+
+.mw-dealer-btn:active {
+  transform: translateY(1px);
+}
+
+.mw-dealer-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.mw-dealer-btn.is-primary {
+  background: var(--dlr-red);
+  border-color: var(--dlr-red);
+  color: #fff;
+}
+
+.mw-dealer-btn.is-primary:hover {
+  background: oklch(0.5 0.223 27.5);
+  color: #fff;
+}
+
+.mw-dealer-btn.is-quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--dlr-muted);
+}
+
+.mw-dealer-btn.is-quiet:hover {
+  background: rgba(15, 17, 24, 0.05);
+  color: var(--dlr-ink);
+}
+
+.mw-dealer-btn.is-small {
+  padding: 5px 9px;
+  font-size: 0.72rem;
+  border-radius: 8px;
+}
+
+.mw-dealer-btn.is-danger {
+  color: var(--dlr-red);
+  border-color: oklch(0.55 0.223 27.5 / 0.35);
+}
+
+.mw-dealer-btn.is-danger:hover {
+  background: var(--dlr-red-soft);
+}
+
+/* ------------------------------------------------------------------- forms */
+
+.mw-dealer-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.mw-dealer-field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.mw-dealer-field.is-span-3 {
+  grid-column: span 3;
+}
+
+.mw-dealer-field > span {
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--dlr-muted);
+}
+
+.mw-dealer-field input,
+.mw-dealer-field select,
+.mw-dealer-field textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: 9px;
+  border: 1px solid var(--dlr-line-strong);
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 0.83rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mw-dealer-field input:focus,
+.mw-dealer-field select:focus,
+.mw-dealer-field textarea:focus {
+  border-color: var(--dlr-red);
+  box-shadow: 0 0 0 3px oklch(0.55 0.223 27.5 / 0.12);
+}
+
+.mw-dealer-field input[readonly],
+.mw-dealer-field select:disabled {
+  background: rgba(15, 17, 24, 0.04);
+  color: var(--dlr-muted);
+}
+
+.mw-dealer-field-hint {
+  font-size: 0.7rem;
+  color: var(--dlr-muted);
+  line-height: 1.35;
+}
+
+.mw-dealer-form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+.mw-dealer-flash,
+.mw-dealer-error {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 0.79rem;
+  line-height: 1.4;
+}
+
+.mw-dealer-flash {
+  background: oklch(0.55 0.13 150 / 0.1);
+  border: 1px solid oklch(0.55 0.13 150 / 0.26);
+  color: oklch(0.4 0.11 150);
+}
+
+.mw-dealer-error {
+  background: oklch(0.55 0.223 27.5 / 0.09);
+  border: 1px solid oklch(0.55 0.223 27.5 / 0.26);
+  color: oklch(0.45 0.18 27.5);
+}
+
+.mw-dealer-inline-form {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mw-dealer-inline-form input {
+  width: 110px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--dlr-line-strong);
+  background: #fff;
+  font-size: 0.74rem;
+}
+
+/* ------------------------------------------------------------ list blocks */
+
+.mw-dealer-feed {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mw-dealer-feed li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid var(--dlr-line);
+  font-size: 0.79rem;
+  min-width: 0;
+}
+
+.mw-dealer-feed strong {
+  font-weight: 650;
+}
+
+.mw-dealer-feed .is-meta {
+  font-size: 0.71rem;
+  color: var(--dlr-muted);
+  white-space: nowrap;
+}
+
+.mw-dealer-scope-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px 13px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid var(--dlr-line);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--dlr-muted);
+}
+
+.mw-dealer-scope-note svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--dlr-red);
+}
+
+.mw-dealer-scope-note strong {
+  color: var(--dlr-ink);
+}
+
+.mw-dealer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.74rem;
+  font-weight: 650;
+  color: var(--dlr-red);
+}
+
+/* ------------------------------------------------------------- responsive */
+
+@media (max-width: 1120px) {
+  .mw-dealer-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mw-dealer-panels {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mw-dealer-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mw-dealer-field.is-span-3 {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 900px) {
+  .mw-dealer-login-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mw-dealer-login-aside {
+    border-left: 0;
+    border-top: 1px solid var(--dlr-line);
+  }
+}
+
+@media (max-width: 720px) {
+  .mw-dealer-top,
+  .mw-dealer-nav,
+  .mw-dealer-main {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .mw-dealer-nav {
+    top: 0;
+    position: static;
+  }
+  .mw-dealer-top-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .mw-dealer-kpis {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mw-dealer-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mw-dealer-field.is-span-3 {
+    grid-column: span 1;
+  }
+  .mw-dealer-identity {
+    display: none;
+  }
+}

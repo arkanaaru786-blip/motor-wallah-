@@ -58,6 +58,10 @@ const HEADINGS: Record<string, { title: string; subtitle: string }> = {
     title: "Employee Directory",
     subtitle: "Who works here, which desk they own and what they are allowed to do.",
   },
+  dealers: {
+    title: "Dealer Accounts",
+    subtitle: "Every dealer and the single vehicle category their portal is bound to.",
+  },
   audit: {
     title: "Audit Log",
     subtitle: "Every sensitive action, attributed to a person and a role.",
@@ -75,6 +79,7 @@ const HEADINGS: Record<string, { title: string; subtitle: string }> = {
 function headingFor(pathname: string) {
   if (pathname.startsWith("/master-admin/tracker")) return HEADINGS["tracker"]!;
   if (pathname.startsWith("/master-admin/employees")) return HEADINGS["employees"]!;
+  if (pathname.startsWith("/master-admin/dealers")) return HEADINGS["dealers"]!;
   if (pathname.startsWith("/master-admin/audit")) return HEADINGS["audit"]!;
   if (pathname.startsWith("/master-admin/automation")) return HEADINGS["automation"]!;
   if (pathname.startsWith("/master-admin/settings")) return HEADINGS["settings"]!;

@@ -17,6 +17,8 @@ import { Route as BookServiceRouteImport } from './routes/book-service'
 import { Route as CareersRouteImport } from './routes/careers'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as DealerRouteImport } from './routes/dealer'
+import { Route as DealerLoginRouteImport } from './routes/dealer-login'
 import { Route as DecorRouteImport } from './routes/decor'
 import { Route as ExchangeRouteImport } from './routes/exchange'
 import { Route as FaqRouteImport } from './routes/faq'
@@ -53,6 +55,7 @@ import { Route as InternalEvaluationsRouteImport } from './routes/internal.evalu
 import { Route as MasterAdminIndexRouteImport } from './routes/master-admin.index'
 import { Route as MasterAdminAuditRouteImport } from './routes/master-admin.audit'
 import { Route as MasterAdminAutomationRouteImport } from './routes/master-admin.automation'
+import { Route as MasterAdminDealersRouteImport } from './routes/master-admin.dealers'
 import { Route as MasterAdminEmployeesRouteImport } from './routes/master-admin.employees'
 import { Route as MasterAdminSettingsRouteImport } from './routes/master-admin.settings'
 import { Route as MasterAdminTrackerRouteImport } from './routes/master-admin.tracker'
@@ -97,6 +100,16 @@ const CompareRoute = CompareRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DealerRoute = DealerRouteImport.update({
+  id: '/dealer',
+  path: '/dealer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DealerLoginRoute = DealerLoginRouteImport.update({
+  id: '/dealer-login',
+  path: '/dealer-login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DecorRoute = DecorRouteImport.update({
@@ -279,6 +292,11 @@ const MasterAdminAutomationRoute = MasterAdminAutomationRouteImport.update({
   path: '/automation',
   getParentRoute: () => MasterAdminRoute,
 } as any)
+const MasterAdminDealersRoute = MasterAdminDealersRouteImport.update({
+  id: '/dealers',
+  path: '/dealers',
+  getParentRoute: () => MasterAdminRoute,
+} as any)
 const MasterAdminEmployeesRoute = MasterAdminEmployeesRouteImport.update({
   id: '/employees',
   path: '/employees',
@@ -314,6 +332,8 @@ export interface FileRoutesByFullPath {
   '/careers': typeof CareersRoute
   '/compare': typeof CompareRoute
   '/contact': typeof ContactRoute
+  '/dealer': typeof DealerRoute
+  '/dealer-login': typeof DealerLoginRoute
   '/decor': typeof DecorRoute
   '/exchange': typeof ExchangeRoute
   '/faq': typeof FaqRoute
@@ -347,6 +367,7 @@ export interface FileRoutesByFullPath {
   '/internal/evaluations': typeof InternalEvaluationsRoute
   '/master-admin/audit': typeof MasterAdminAuditRoute
   '/master-admin/automation': typeof MasterAdminAutomationRoute
+  '/master-admin/dealers': typeof MasterAdminDealersRoute
   '/master-admin/employees': typeof MasterAdminEmployeesRoute
   '/master-admin/settings': typeof MasterAdminSettingsRoute
   '/master-admin/tracker': typeof MasterAdminTrackerRoute
@@ -365,6 +386,8 @@ export interface FileRoutesByTo {
   '/careers': typeof CareersRoute
   '/compare': typeof CompareRoute
   '/contact': typeof ContactRoute
+  '/dealer': typeof DealerRoute
+  '/dealer-login': typeof DealerLoginRoute
   '/decor': typeof DecorRoute
   '/exchange': typeof ExchangeRoute
   '/faq': typeof FaqRoute
@@ -397,6 +420,7 @@ export interface FileRoutesByTo {
   '/internal/evaluations': typeof InternalEvaluationsRoute
   '/master-admin/audit': typeof MasterAdminAuditRoute
   '/master-admin/automation': typeof MasterAdminAutomationRoute
+  '/master-admin/dealers': typeof MasterAdminDealersRoute
   '/master-admin/employees': typeof MasterAdminEmployeesRoute
   '/master-admin/settings': typeof MasterAdminSettingsRoute
   '/master-admin/tracker': typeof MasterAdminTrackerRoute
@@ -416,6 +440,8 @@ export interface FileRoutesById {
   '/careers': typeof CareersRoute
   '/compare': typeof CompareRoute
   '/contact': typeof ContactRoute
+  '/dealer': typeof DealerRoute
+  '/dealer-login': typeof DealerLoginRoute
   '/decor': typeof DecorRoute
   '/exchange': typeof ExchangeRoute
   '/faq': typeof FaqRoute
@@ -449,6 +475,7 @@ export interface FileRoutesById {
   '/internal/evaluations': typeof InternalEvaluationsRoute
   '/master-admin/audit': typeof MasterAdminAuditRoute
   '/master-admin/automation': typeof MasterAdminAutomationRoute
+  '/master-admin/dealers': typeof MasterAdminDealersRoute
   '/master-admin/employees': typeof MasterAdminEmployeesRoute
   '/master-admin/settings': typeof MasterAdminSettingsRoute
   '/master-admin/tracker': typeof MasterAdminTrackerRoute
@@ -469,6 +496,8 @@ export interface FileRouteTypes {
     | '/careers'
     | '/compare'
     | '/contact'
+    | '/dealer'
+    | '/dealer-login'
     | '/decor'
     | '/exchange'
     | '/faq'
@@ -502,6 +531,7 @@ export interface FileRouteTypes {
     | '/internal/evaluations'
     | '/master-admin/audit'
     | '/master-admin/automation'
+    | '/master-admin/dealers'
     | '/master-admin/employees'
     | '/master-admin/settings'
     | '/master-admin/tracker'
@@ -520,6 +550,8 @@ export interface FileRouteTypes {
     | '/careers'
     | '/compare'
     | '/contact'
+    | '/dealer'
+    | '/dealer-login'
     | '/decor'
     | '/exchange'
     | '/faq'
@@ -552,6 +584,7 @@ export interface FileRouteTypes {
     | '/internal/evaluations'
     | '/master-admin/audit'
     | '/master-admin/automation'
+    | '/master-admin/dealers'
     | '/master-admin/employees'
     | '/master-admin/settings'
     | '/master-admin/tracker'
@@ -570,6 +603,8 @@ export interface FileRouteTypes {
     | '/careers'
     | '/compare'
     | '/contact'
+    | '/dealer'
+    | '/dealer-login'
     | '/decor'
     | '/exchange'
     | '/faq'
@@ -603,6 +638,7 @@ export interface FileRouteTypes {
     | '/internal/evaluations'
     | '/master-admin/audit'
     | '/master-admin/automation'
+    | '/master-admin/dealers'
     | '/master-admin/employees'
     | '/master-admin/settings'
     | '/master-admin/tracker'
@@ -622,6 +658,8 @@ export interface RootRouteChildren {
   CareersRoute: typeof CareersRoute
   CompareRoute: typeof CompareRoute
   ContactRoute: typeof ContactRoute
+  DealerRoute: typeof DealerRoute
+  DealerLoginRoute: typeof DealerLoginRoute
   DecorRoute: typeof DecorRoute
   ExchangeRoute: typeof ExchangeRoute
   FaqRoute: typeof FaqRoute
@@ -714,6 +752,20 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dealer': {
+      id: '/dealer'
+      path: '/dealer'
+      fullPath: '/dealer'
+      preLoaderRoute: typeof DealerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dealer-login': {
+      id: '/dealer-login'
+      path: '/dealer-login'
+      fullPath: '/dealer-login'
+      preLoaderRoute: typeof DealerLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/decor': {
@@ -968,6 +1020,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MasterAdminAutomationRouteImport
       parentRoute: typeof MasterAdminRoute
     }
+    '/master-admin/dealers': {
+      id: '/master-admin/dealers'
+      path: '/dealers'
+      fullPath: '/master-admin/dealers'
+      preLoaderRoute: typeof MasterAdminDealersRouteImport
+      parentRoute: typeof MasterAdminRoute
+    }
     '/master-admin/employees': {
       id: '/master-admin/employees'
       path: '/employees'
@@ -1021,6 +1080,7 @@ const FranchiseRouteWithChildren = FranchiseRoute._addFileChildren(
 interface MasterAdminRouteChildren {
   MasterAdminAuditRoute: typeof MasterAdminAuditRoute
   MasterAdminAutomationRoute: typeof MasterAdminAutomationRoute
+  MasterAdminDealersRoute: typeof MasterAdminDealersRoute
   MasterAdminEmployeesRoute: typeof MasterAdminEmployeesRoute
   MasterAdminSettingsRoute: typeof MasterAdminSettingsRoute
   MasterAdminTrackerRoute: typeof MasterAdminTrackerRoute
@@ -1030,6 +1090,7 @@ interface MasterAdminRouteChildren {
 const MasterAdminRouteChildren: MasterAdminRouteChildren = {
   MasterAdminAuditRoute: MasterAdminAuditRoute,
   MasterAdminAutomationRoute: MasterAdminAutomationRoute,
+  MasterAdminDealersRoute: MasterAdminDealersRoute,
   MasterAdminEmployeesRoute: MasterAdminEmployeesRoute,
   MasterAdminSettingsRoute: MasterAdminSettingsRoute,
   MasterAdminTrackerRoute: MasterAdminTrackerRoute,
@@ -1049,6 +1110,8 @@ const rootRouteChildren: RootRouteChildren = {
   CareersRoute: CareersRoute,
   CompareRoute: CompareRoute,
   ContactRoute: ContactRoute,
+  DealerRoute: DealerRoute,
+  DealerLoginRoute: DealerLoginRoute,
   DecorRoute: DecorRoute,
   ExchangeRoute: ExchangeRoute,
   FaqRoute: FaqRoute,
