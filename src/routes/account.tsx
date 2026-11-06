@@ -25,6 +25,7 @@ import { StickyActions } from "@/components/site/StickyActions";
 import { useCustomerSession, maskMobile, signOut, updateProfile } from "@/lib/account-store";
 import type { CustomerProfile } from "@/lib/account-store";
 import { ChatThreadView, BUYER_QUICK_REPLIES } from "@/components/chat/ChatThreadView";
+import { NotificationPermissionButton } from "@/components/notify/NotificationPermissionButton";
 import { useChatInbox, useUnreadChats } from "@/lib/live-chat";
 import {
   dashboardCounts,
@@ -186,14 +187,17 @@ function AccountPage() {
                 {maskMobile(customer.mobile)} · {customer.city}
               </p>
             </div>
-            <button
-              type="button"
-              className="mw-acct-ghostbtn"
-              data-testid="sign-out"
-              onClick={() => signOut()}
-            >
-              <LogOut size={15} aria-hidden="true" /> Sign out
-            </button>
+            <div className="mw-acct-hero-actions">
+              <NotificationPermissionButton />
+              <button
+                type="button"
+                className="mw-acct-ghostbtn"
+                data-testid="sign-out"
+                onClick={() => signOut()}
+              >
+                <LogOut size={15} aria-hidden="true" /> Sign out
+              </button>
+            </div>
           </header>
 
           <div className="mw-acct-grid">

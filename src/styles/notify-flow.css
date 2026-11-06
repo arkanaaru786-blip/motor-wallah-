@@ -1,0 +1,148 @@
+/* ==========================================================================
+   Foreground alerts — glass toasts and the browser-notification switch
+   Light theme, matching the chat and dashboard surfaces.
+   ========================================================================== */
+
+.mw-toaster {
+  z-index: 80;
+}
+
+/* Sonner already slides a top-right stack in from the right; this is the
+   surface it slides on. The background/border/shadow live in ToastHost's
+   inline options so the browser's own toast stylesheet cannot win. */
+.mw-toast {
+  position: relative !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 3px !important;
+  width: min(360px, calc(100vw - 32px)) !important;
+  padding: 13px 32px 13px 18px !important;
+  border-radius: 18px !important;
+  overflow: hidden;
+}
+
+/* Red edge, the same accent the dashboard cards use. */
+.mw-toast::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--primary), color-mix(in oklab, var(--primary) 35%, transparent));
+}
+
+.mw-toast [data-title] {
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.005em;
+  color: var(--ink);
+}
+
+.mw-toast [data-description] {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: color-mix(in oklab, var(--ink) 68%, transparent);
+}
+
+.mw-toast [data-button] {
+  align-self: flex-start;
+  margin: 7px 0 0;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--primary) 26%, var(--home-line));
+  background: color-mix(in oklab, var(--primary) 10%, transparent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.mw-toast [data-button]:hover {
+  background: color-mix(in oklab, var(--primary) 16%, transparent);
+}
+
+.mw-toast [data-close-button] {
+  top: 9px !important;
+  inset-inline-end: 9px !important;
+  inset-inline-start: auto !important;
+  left: auto !important;
+  right: 9px !important;
+  width: 20px;
+  height: 20px;
+  border: 1px solid color-mix(in oklab, var(--home-line) 90%, transparent);
+  background: color-mix(in oklab, var(--background) 70%, transparent);
+  color: color-mix(in oklab, var(--ink) 55%, transparent);
+}
+
+.mw-toast [data-close-button]:hover {
+  background: color-mix(in oklab, var(--background) 95%, transparent);
+  color: var(--ink);
+}
+
+/* ---------------------------------------------------------------- switch */
+
+.mw-notify-btn,
+.mw-notify-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding-inline: 14px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mw-notify-btn {
+  border: 1px solid color-mix(in oklab, var(--primary) 24%, var(--home-line));
+  background: color-mix(in oklab, var(--background) 70%, transparent);
+  backdrop-filter: blur(14px) saturate(130%);
+  box-shadow: 0 1px 0 oklch(100% 0 0 / 0.7) inset;
+  color: var(--primary);
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.mw-notify-btn:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--primary) 8%, var(--background));
+  border-color: color-mix(in oklab, var(--primary) 40%, var(--home-line));
+  transform: translateY(-1px);
+}
+
+.mw-notify-btn:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.mw-notify-pill {
+  border: 1px solid color-mix(in oklab, oklch(62% 0.15 150) 26%, var(--home-line));
+  background: color-mix(in oklab, oklch(62% 0.15 150) 10%, transparent);
+  color: oklch(45% 0.13 150);
+}
+
+.mw-notify-pill.is-blocked {
+  border-color: color-mix(in oklab, var(--primary) 22%, var(--home-line));
+  background: color-mix(in oklab, var(--primary) 8%, transparent);
+  color: var(--primary);
+}
+
+.mw-acct-hero-actions,
+.mw-dealer-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 560px) {
+  .mw-toast {
+    width: calc(100vw - 24px) !important;
+  }
+}

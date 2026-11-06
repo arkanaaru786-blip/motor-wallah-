@@ -1,5 +1,6 @@
 import { Car, Eye, HandCoins, PlusCircle, ShieldCheck, TrendingUp, Users } from "lucide-react";
 
+import { NotificationPermissionButton } from "@/components/notify/NotificationPermissionButton";
 import { dealerCategoryLabel, dealerCategorySingular } from "@/lib/dealer-categories";
 import type { DealerBook, DealerKpis } from "@/lib/dealer-data";
 import { compactRupees, relativeTime, rupees } from "@/lib/dealer-format";
@@ -32,9 +33,12 @@ export function DealerOverview({
             inventory, leads and offers appear here.
           </p>
         </div>
-        <button type="button" className="mw-dealer-btn is-primary" onClick={() => onTab("add")}>
-          <PlusCircle size={15} /> Add {singular}
-        </button>
+        <div className="mw-dealer-head-actions">
+          <NotificationPermissionButton />
+          <button type="button" className="mw-dealer-btn is-primary" onClick={() => onTab("add")}>
+            <PlusCircle size={15} /> Add {singular}
+          </button>
+        </div>
       </div>
 
       <p className="mw-dealer-scope-note" data-testid="dealer-scope-note">

@@ -13,6 +13,8 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { useCloudSync } from "../lib/cloud-sync";
 import { siteSettingsRevision, subscribeSiteSettings } from "../lib/site";
+import { AlertWatcher } from "../components/notify/AlertWatcher";
+import { ToastHost } from "../components/notify/ToastHost";
 
 function NotFoundComponent() {
   return (
@@ -148,6 +150,9 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet key={settingsRevision} />
+      {/* New-message / order alerts, and the glass toast they appear in. */}
+      <ToastHost />
+      <AlertWatcher />
     </QueryClientProvider>
   );
 }

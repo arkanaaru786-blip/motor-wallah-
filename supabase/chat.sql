@@ -238,6 +238,10 @@ begin
 end;
 $$;
 
+-- The pre-`p_as` signature would otherwise survive alongside the new one, and
+-- PostgREST answers an ambiguous 2-argument call with HTTP 300.
+drop function if exists public.send_chat_message(uuid, text);
+
 /** Send one message, as whoever the caller actually is on this chat. */
 create or replace function public.send_chat_message(
   p_chat_id uuid,
@@ -430,7 +434,8 @@ begin
   raise notice 'chat self-test: % RLS policies (expect 9) — %',
     v_policies, case when v_policies >= 9 then 'OK' else 'INCOMPLETE' end;
 
-  select count(*) into v_funcs
+  -- One row per name, so a leftover overload cannot inflate the count.
+  select count(distinct p.proname) into v_funcs
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public'
      and p.proname in ('open_chat', 'send_chat_message', 'mark_chat_read',
