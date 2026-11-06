@@ -39,6 +39,7 @@ import { Route as ServicesRouteImport } from './routes/services'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as WarrantyRouteImport } from './routes/warranty'
 import { Route as WorkshopRouteImport } from './routes/workshop'
+import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as BuyIndexRouteImport } from './routes/buy.index'
 import { Route as BuyBikesRouteImport } from './routes/buy.bikes'
 import { Route as BuyBusesRouteImport } from './routes/buy.buses'
@@ -60,7 +61,11 @@ import { Route as MasterAdminEmployeesRouteImport } from './routes/master-admin.
 import { Route as MasterAdminSettingsRouteImport } from './routes/master-admin.settings'
 import { Route as MasterAdminTrackerRouteImport } from './routes/master-admin.tracker'
 import { Route as MasterAdminLoginRouteImport } from './routes/master-admin_.login'
+import { Route as ApiOrdersIndexRouteImport } from './routes/api/orders/index'
 import { Route as BuyVehicleIdRouteImport } from './routes/buy.vehicle.$id'
+import { Route as ApiOrdersIdReportIssueRouteImport } from './routes/api/orders/$id/report-issue'
+import { Route as ApiShopsIdOrdersRouteImport } from './routes/api/shops/$id/orders'
+import { Route as ApiUsersIdOrdersRouteImport } from './routes/api/users/$id/orders'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -212,6 +217,11 @@ const WorkshopRoute = WorkshopRouteImport.update({
   path: '/workshop',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSplatRoute = ApiSplatRouteImport.update({
+  id: '/api/$',
+  path: '/api/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BuyIndexRoute = BuyIndexRouteImport.update({
   id: '/buy/',
   path: '/buy/',
@@ -317,9 +327,29 @@ const MasterAdminLoginRoute = MasterAdminLoginRouteImport.update({
   path: '/master-admin/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOrdersIndexRoute = ApiOrdersIndexRouteImport.update({
+  id: '/api/orders/',
+  path: '/api/orders/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BuyVehicleIdRoute = BuyVehicleIdRouteImport.update({
   id: '/buy/vehicle/$id',
   path: '/buy/vehicle/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOrdersIdReportIssueRoute = ApiOrdersIdReportIssueRouteImport.update({
+  id: '/api/orders/$id/report-issue',
+  path: '/api/orders/$id/report-issue',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiShopsIdOrdersRoute = ApiShopsIdOrdersRouteImport.update({
+  id: '/api/shops/$id/orders',
+  path: '/api/shops/$id/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiUsersIdOrdersRoute = ApiUsersIdOrdersRouteImport.update({
+  id: '/api/users/$id/orders',
+  path: '/api/users/$id/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -354,6 +384,7 @@ export interface FileRoutesByFullPath {
   '/track': typeof TrackRoute
   '/warranty': typeof WarrantyRoute
   '/workshop': typeof WorkshopRoute
+  '/api/$': typeof ApiSplatRoute
   '/buy/bikes': typeof BuyBikesRoute
   '/buy/buses': typeof BuyBusesRoute
   '/buy/offers': typeof BuyOffersRoute
@@ -376,6 +407,10 @@ export interface FileRoutesByFullPath {
   '/cars/': typeof CarsIndexRoute
   '/master-admin/': typeof MasterAdminIndexRoute
   '/buy/vehicle/$id': typeof BuyVehicleIdRoute
+  '/api/orders/': typeof ApiOrdersIndexRoute
+  '/api/orders/$id/report-issue': typeof ApiOrdersIdReportIssueRoute
+  '/api/shops/$id/orders': typeof ApiShopsIdOrdersRoute
+  '/api/users/$id/orders': typeof ApiUsersIdOrdersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -407,6 +442,7 @@ export interface FileRoutesByTo {
   '/track': typeof TrackRoute
   '/warranty': typeof WarrantyRoute
   '/workshop': typeof WorkshopRoute
+  '/api/$': typeof ApiSplatRoute
   '/buy/bikes': typeof BuyBikesRoute
   '/buy/buses': typeof BuyBusesRoute
   '/buy/offers': typeof BuyOffersRoute
@@ -429,6 +465,10 @@ export interface FileRoutesByTo {
   '/cars': typeof CarsIndexRoute
   '/master-admin': typeof MasterAdminIndexRoute
   '/buy/vehicle/$id': typeof BuyVehicleIdRoute
+  '/api/orders': typeof ApiOrdersIndexRoute
+  '/api/orders/$id/report-issue': typeof ApiOrdersIdReportIssueRoute
+  '/api/shops/$id/orders': typeof ApiShopsIdOrdersRoute
+  '/api/users/$id/orders': typeof ApiUsersIdOrdersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -462,6 +502,7 @@ export interface FileRoutesById {
   '/track': typeof TrackRoute
   '/warranty': typeof WarrantyRoute
   '/workshop': typeof WorkshopRoute
+  '/api/$': typeof ApiSplatRoute
   '/buy/bikes': typeof BuyBikesRoute
   '/buy/buses': typeof BuyBusesRoute
   '/buy/offers': typeof BuyOffersRoute
@@ -484,6 +525,10 @@ export interface FileRoutesById {
   '/cars/': typeof CarsIndexRoute
   '/master-admin/': typeof MasterAdminIndexRoute
   '/buy/vehicle/$id': typeof BuyVehicleIdRoute
+  '/api/orders/': typeof ApiOrdersIndexRoute
+  '/api/orders/$id/report-issue': typeof ApiOrdersIdReportIssueRoute
+  '/api/shops/$id/orders': typeof ApiShopsIdOrdersRoute
+  '/api/users/$id/orders': typeof ApiUsersIdOrdersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -518,6 +563,7 @@ export interface FileRouteTypes {
     | '/track'
     | '/warranty'
     | '/workshop'
+    | '/api/$'
     | '/buy/bikes'
     | '/buy/buses'
     | '/buy/offers'
@@ -540,6 +586,10 @@ export interface FileRouteTypes {
     | '/cars/'
     | '/master-admin/'
     | '/buy/vehicle/$id'
+    | '/api/orders/'
+    | '/api/orders/$id/report-issue'
+    | '/api/shops/$id/orders'
+    | '/api/users/$id/orders'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -571,6 +621,7 @@ export interface FileRouteTypes {
     | '/track'
     | '/warranty'
     | '/workshop'
+    | '/api/$'
     | '/buy/bikes'
     | '/buy/buses'
     | '/buy/offers'
@@ -593,6 +644,10 @@ export interface FileRouteTypes {
     | '/cars'
     | '/master-admin'
     | '/buy/vehicle/$id'
+    | '/api/orders'
+    | '/api/orders/$id/report-issue'
+    | '/api/shops/$id/orders'
+    | '/api/users/$id/orders'
   id:
     | '__root__'
     | '/'
@@ -625,6 +680,7 @@ export interface FileRouteTypes {
     | '/track'
     | '/warranty'
     | '/workshop'
+    | '/api/$'
     | '/buy/bikes'
     | '/buy/buses'
     | '/buy/offers'
@@ -647,6 +703,10 @@ export interface FileRouteTypes {
     | '/cars/'
     | '/master-admin/'
     | '/buy/vehicle/$id'
+    | '/api/orders/'
+    | '/api/orders/$id/report-issue'
+    | '/api/shops/$id/orders'
+    | '/api/users/$id/orders'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -680,6 +740,7 @@ export interface RootRouteChildren {
   TrackRoute: typeof TrackRoute
   WarrantyRoute: typeof WarrantyRoute
   WorkshopRoute: typeof WorkshopRoute
+  ApiSplatRoute: typeof ApiSplatRoute
   BuyBikesRoute: typeof BuyBikesRoute
   BuyBusesRoute: typeof BuyBusesRoute
   BuyOffersRoute: typeof BuyOffersRoute
@@ -694,6 +755,10 @@ export interface RootRouteChildren {
   BuyIndexRoute: typeof BuyIndexRoute
   CarsIndexRoute: typeof CarsIndexRoute
   BuyVehicleIdRoute: typeof BuyVehicleIdRoute
+  ApiOrdersIndexRoute: typeof ApiOrdersIndexRoute
+  ApiOrdersIdReportIssueRoute: typeof ApiOrdersIdReportIssueRoute
+  ApiShopsIdOrdersRoute: typeof ApiShopsIdOrdersRoute
+  ApiUsersIdOrdersRoute: typeof ApiUsersIdOrdersRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -908,6 +973,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkshopRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/$': {
+      id: '/api/$'
+      path: '/api/$'
+      fullPath: '/api/$'
+      preLoaderRoute: typeof ApiSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/buy/': {
       id: '/buy/'
       path: '/buy'
@@ -1055,11 +1127,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MasterAdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/orders/': {
+      id: '/api/orders/'
+      path: '/api/orders'
+      fullPath: '/api/orders/'
+      preLoaderRoute: typeof ApiOrdersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/buy/vehicle/$id': {
       id: '/buy/vehicle/$id'
       path: '/buy/vehicle/$id'
       fullPath: '/buy/vehicle/$id'
       preLoaderRoute: typeof BuyVehicleIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/orders/$id/report-issue': {
+      id: '/api/orders/$id/report-issue'
+      path: '/api/orders/$id/report-issue'
+      fullPath: '/api/orders/$id/report-issue'
+      preLoaderRoute: typeof ApiOrdersIdReportIssueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/shops/$id/orders': {
+      id: '/api/shops/$id/orders'
+      path: '/api/shops/$id/orders'
+      fullPath: '/api/shops/$id/orders'
+      preLoaderRoute: typeof ApiShopsIdOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/users/$id/orders': {
+      id: '/api/users/$id/orders'
+      path: '/api/users/$id/orders'
+      fullPath: '/api/users/$id/orders'
+      preLoaderRoute: typeof ApiUsersIdOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -1132,6 +1232,7 @@ const rootRouteChildren: RootRouteChildren = {
   TrackRoute: TrackRoute,
   WarrantyRoute: WarrantyRoute,
   WorkshopRoute: WorkshopRoute,
+  ApiSplatRoute: ApiSplatRoute,
   BuyBikesRoute: BuyBikesRoute,
   BuyBusesRoute: BuyBusesRoute,
   BuyOffersRoute: BuyOffersRoute,
@@ -1146,6 +1247,10 @@ const rootRouteChildren: RootRouteChildren = {
   BuyIndexRoute: BuyIndexRoute,
   CarsIndexRoute: CarsIndexRoute,
   BuyVehicleIdRoute: BuyVehicleIdRoute,
+  ApiOrdersIndexRoute: ApiOrdersIndexRoute,
+  ApiOrdersIdReportIssueRoute: ApiOrdersIdReportIssueRoute,
+  ApiShopsIdOrdersRoute: ApiShopsIdOrdersRoute,
+  ApiUsersIdOrdersRoute: ApiUsersIdOrdersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

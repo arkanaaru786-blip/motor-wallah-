@@ -134,7 +134,7 @@ select
 from public.leads l
 where l.type in ('sell_vehicle', 'sell_car');
 
-create or replace view public.orders
+create or replace view public.legacy_orders
 with (security_invoker = true)
 as
 select
@@ -150,8 +150,8 @@ select
 from public.leads l
 where l.type in ('decor_order', 'parts_enquiry');
 
-grant select on public.vehicles to authenticated;
-grant select on public.orders   to authenticated;
+grant select on public.vehicles      to authenticated;
+grant select on public.legacy_orders to authenticated;
 
 notify pgrst, 'reload schema';
 

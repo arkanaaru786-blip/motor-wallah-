@@ -242,8 +242,10 @@ select
 from public.leads l
 where l.type in ('sell_vehicle', 'sell_car');
 
--- Decor / parts purchases are captured as decor_order and parts_enquiry leads.
-create or replace view public.orders
+-- Decor / parts purchases used to be captured as decor_order and parts_enquiry
+-- leads. Real orders now live in public.orders (see orders-helpdesk.sql), so this
+-- export view is named legacy_orders to leave the table name free.
+create or replace view public.legacy_orders
 with (security_invoker = true)
 as
 select
@@ -259,8 +261,8 @@ select
 from public.leads l
 where l.type in ('decor_order', 'parts_enquiry');
 
-grant select on public.vehicles to authenticated;
-grant select on public.orders   to authenticated;
+grant select on public.vehicles      to authenticated;
+grant select on public.legacy_orders to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Make yourself (or a teammate) staff

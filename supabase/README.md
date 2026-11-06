@@ -16,6 +16,12 @@ Supabase dashboard → **SQL Editor** → **New query** → paste all of
 [`schema.sql`](./schema.sql) → **Run**. It is idempotent, so re-running is safe.
 Then run [`fix-rls.sql`](./fix-rls.sql) once and read its self-test output.
 
+Finally run [`orders-helpdesk.sql`](./orders-helpdesk.sql) — the Parts & Decor
+order tables, the help desk tickets and the two functions the API calls. It
+prints a self-test at the end; every row must say `OK`. It replaces the old
+`orders` reporting view with the real `orders` table and recreates that view as
+`legacy_orders`.
+
 ## 2. Enable anonymous sign-ins
 
 Dashboard → **Authentication** → **Sign In / Providers** → **Anonymous sign-ins**
@@ -54,7 +60,8 @@ from the visitor session, so signing in never moves a customer's cart or chats.
 | --- | --- |
 | `42501 ... row level security` on every write | policies missing or wrong: run `fix-rls.sql` |
 | `PGRST205 Could not find the table` | `schema.sql` never ran against this project |
-| `PGRST205` only for `vehicles` / `orders` | views missing: run `fix-rls.sql` |
+| `PGRST205` only for `vehicles` / `legacy_orders` | views missing: run `fix-rls.sql` |
+| API returns 503 `database_not_ready` | `orders-helpdesk.sql` has not been run |
 | Settings save says “only staff” | no staff session, or the account is not in `public.staff` |
 | App shows “offline” | anonymous sign-ins are disabled, or the tables are unreachable |
 
@@ -68,6 +75,8 @@ from the visitor session, so signing in never moves a customer's cart or chats.
 | `mw_listing_chat`, `mw_chat_read`, `mw_chat_pending` | `app_records` (keys) |
 | `mw_listing_offers`, `mw_my_listing_status` | `app_records` (keys) |
 | `mw_decor_cart`, `mw_parts_cart` | `app_records` (keys) |
+| parts / decor orders placed by the mobile apps | `orders` + `order_items` (via `POST /api/orders`) |
+| wrong / damaged item reports | `help_desk_tickets` (via `POST /api/orders/{id}/report-issue`) |
 | `mw_admin_*` (cases, employees, audit, rules, runs, reconcile) | `app_records` (keys) |
 | `PHONE_DISPLAY` / `WHATSAPP` constants | `site_settings` (world-readable, staff-writable) |
 
