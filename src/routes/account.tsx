@@ -8,9 +8,12 @@ import {
   ClipboardList,
   Heart,
   Inbox,
+  LifeBuoy,
   LogOut,
   MessageSquare,
+  PackageSearch,
   Pencil,
+  ShoppingBag,
   Store,
   Trash2,
   UserRound,
@@ -36,6 +39,19 @@ import {
   type TrackedLead,
 } from "@/lib/account-data";
 import { listOffers, type ListingOffer, type OfferStatus } from "@/lib/listing-offers";
+import {
+  ISSUE_TYPES,
+  issueLabel,
+  listMyOrders,
+  orderDate,
+  orderRefLabel,
+  reportOrderIssue,
+  rupeesFrom,
+  statusLabel,
+  statusTone,
+  type IssueType,
+  type Order,
+} from "@/lib/orders-api";
 import { useShortlist } from "@/lib/shortlist";
 import { buyListingName, getBuyListing, lakhLabel, rupees } from "@/lib/buy-catalog";
 
@@ -45,6 +61,7 @@ const DESCRIPTION =
 
 const TABS = [
   { id: "profile", label: "My Profile", blurb: "Name, email, city, mobile", icon: UserRound },
+  { id: "orders", label: "My Orders", blurb: "Parts & decor history", icon: ShoppingBag },
   { id: "favorites", label: "My Favorites", blurb: "Vehicles you hearted", icon: Heart },
   { id: "chats", label: "My Chats", blurb: "Seller conversations", icon: MessageSquare },
   { id: "ads", label: "My Ads", blurb: "Vehicles you listed", icon: Store },
@@ -222,6 +239,7 @@ function AccountPage() {
 
             <section className="mw-acct-panel" data-testid="account-panel" data-panel={tab}>
               {tab === "profile" && <ProfileTab customer={customer} />}
+              {tab === "orders" && <OrdersTab />}
               {tab === "favorites" && <FavoritesTab />}
               {tab === "chats" && <ChatsTab selectedId={chat} />}
               {tab === "ads" && <AdsTab />}
@@ -852,6 +870,264 @@ function AdsTab() {
 }
 
 /* ------------------------------------------------------------ tab: requests */
+
+/* -------------------------------------------------------------- tab: orders */
+
+const ticketStatus = (status: string) => (status === "resolved" ? "Resolved" : "With our team");
+
+function OrdersTab() {
+  const [orders, setOrders] = useState<Order[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [reportFor, setReportFor] = useState<string | null>(null);
+  const [issueType, setIssueType] = useState<IssueType>("wrong_item");
+  const [detail, setDetail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  // History comes from the API, not from this device: the server decides which
+  // orders belong to the signed-in customer.
+  useEffect(() => {
+    let live = true;
+    setOrders(null);
+    setError(null);
+    void listMyOrders().then((result) => {
+      if (!live) return;
+      if (result.ok) {
+        setOrders(result.data);
+      } else {
+        setOrders([]);
+        setError(result.message);
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, [reloadKey]);
+
+  const openReport = (orderId: string) => {
+    setReportFor(orderId);
+    setIssueType("wrong_item");
+    setDetail("");
+    setFormError(null);
+    setNotice(null);
+  };
+
+  const submitReport = async (order: Order) => {
+    if (detail.trim().length < 10) {
+      setFormError("Tell us what went wrong in at least 10 characters.");
+      return;
+    }
+    setSending(true);
+    setFormError(null);
+    const result = await reportOrderIssue({
+      orderId: order.id,
+      issueType,
+      description: detail.trim(),
+    });
+    setSending(false);
+    if (!result.ok) {
+      setFormError(result.message);
+      return;
+    }
+    // The endpoint returns the new ticket, so re-read the history to show it
+    // beside the order together with anything else the shop changed.
+    const refreshed = await listMyOrders();
+    if (refreshed.ok) setOrders(refreshed.data);
+    setReportFor(null);
+    setNotice(
+      `Report sent for ${orderRefLabel(order)}. Our team will get back to you on your mobile.`,
+    );
+  };
+
+  return (
+    <>
+      <div className="mw-acct-panel-head">
+        <div>
+          <h2 className="mw-acct-panel-title">My Orders</h2>
+          <p className="mw-acct-panel-sub">
+            Every parts and vehicle-decor order you have paid for, with its status — and a help desk
+            report if something arrived wrong or damaged.
+          </p>
+        </div>
+      </div>
+
+      {notice && (
+        <p className="mw-acct-success" data-testid="order-notice">
+          {notice}
+        </p>
+      )}
+
+      {error ? (
+        <div className="mw-acct-empty" data-testid="orders-error">
+          <PackageSearch size={26} aria-hidden="true" />
+          <p className="mw-acct-empty-title">Order history is unavailable</p>
+          <p className="mw-acct-empty-text">{error}</p>
+          <button
+            type="button"
+            className="mw-acct-cta mw-acct-cta--inline"
+            onClick={() => setReloadKey((key) => key + 1)}
+          >
+            Try again
+          </button>
+        </div>
+      ) : orders === null ? (
+        <p className="mw-acct-note">Loading your orders…</p>
+      ) : orders.length === 0 ? (
+        <div className="mw-acct-empty" data-testid="orders-empty">
+          <ShoppingBag size={26} aria-hidden="true" />
+          <p className="mw-acct-empty-title">No orders yet</p>
+          <p className="mw-acct-empty-text">
+            Parts and decor you buy with prepaid checkout appear here with their order ID.
+          </p>
+          <Link to="/accessories" className="mw-acct-cta mw-acct-cta--inline">
+            Shop parts <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+        </div>
+      ) : (
+        <ul className="mw-orders" data-testid="orders-list">
+          {orders.map((order) => {
+            const reporting = reportFor === order.id;
+            return (
+              <li
+                className="mw-order-card"
+                key={order.id}
+                data-testid="order-card"
+                data-order-ref={orderRefLabel(order)}
+                data-order-status={order.status}
+              >
+                <div className="mw-order-head">
+                  <span className="mw-order-ref">{orderRefLabel(order)}</span>
+                  <span
+                    className={`mw-acct-status mw-acct-status--${statusTone(order.status)}`}
+                    data-testid="order-status"
+                  >
+                    {statusLabel(order.status)}
+                  </span>
+                  <span className="mw-order-total">{rupeesFrom(order.total_amount)}</span>
+                </div>
+
+                <p className="mw-order-meta">
+                  {order.item_type === "decor" ? "Vehicle decor" : "Parts"}
+                  {order.created_at ? ` · ${orderDate(order.created_at)}` : ""}
+                  {order.shop?.name ? ` · ${order.shop.name}` : ""}
+                </p>
+
+                <ul className="mw-order-items">
+                  {order.items.map((item) => (
+                    <li key={item.id}>
+                      <span className="mw-order-item-name">{item.name ?? item.product_id}</span>
+                      <span className="mw-order-item-qty">×{item.quantity}</span>
+                      <span className="mw-order-item-price">
+                        {rupeesFrom(item.price * item.quantity)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                {order.tickets.length > 0 && (
+                  <ul className="mw-order-tickets" data-testid="order-tickets">
+                    {order.tickets.map((ticket) => (
+                      <li
+                        key={ticket.id}
+                        className="mw-order-ticket"
+                        data-ticket-status={ticket.status}
+                      >
+                        <span className="mw-order-ticket-title">
+                          <LifeBuoy size={14} aria-hidden="true" /> {issueLabel(ticket.issue_type)}
+                          <span
+                            className={`mw-acct-status mw-acct-status--${
+                              ticket.status === "resolved" ? "done" : "pending"
+                            }`}
+                          >
+                            {ticketStatus(ticket.status)}
+                          </span>
+                        </span>
+                        {ticket.resolution_note && (
+                          <span className="mw-order-ticket-note">
+                            Our reply: {ticket.resolution_note}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {reporting ? (
+                  <div className="mw-order-report" data-testid="report-issue-form">
+                    <label className="mw-order-field">
+                      <span>What went wrong?</span>
+                      <select
+                        value={issueType}
+                        onChange={(event) => setIssueType(event.target.value as IssueType)}
+                        data-testid="report-issue-type"
+                      >
+                        {ISSUE_TYPES.map((type) => (
+                          <option key={type.id} value={type.id}>
+                            {type.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="mw-order-field">
+                      <span>Tell us more</span>
+                      <textarea
+                        rows={3}
+                        maxLength={2000}
+                        value={detail}
+                        placeholder="e.g. The left tail lamp arrived cracked."
+                        onChange={(event) => setDetail(event.target.value)}
+                        data-testid="report-issue-text"
+                      />
+                    </label>
+                    {formError && (
+                      <p className="mw-acct-error" data-testid="report-issue-error">
+                        {formError}
+                      </p>
+                    )}
+                    <div className="mw-order-report-actions">
+                      <button
+                        type="button"
+                        className="mw-acct-cta mw-acct-cta--inline"
+                        disabled={sending}
+                        onClick={() => void submitReport(order)}
+                        data-testid="report-issue-submit"
+                      >
+                        {sending ? "Sending…" : "Send to help desk"}
+                      </button>
+                      <button
+                        type="button"
+                        className="mw-order-cancel"
+                        onClick={() => setReportFor(null)}
+                      >
+                        <X size={14} aria-hidden="true" /> Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="mw-order-report-btn"
+                    onClick={() => openReport(order.id)}
+                    data-testid="report-issue-open"
+                  >
+                    <LifeBuoy size={15} aria-hidden="true" /> Report a wrong or damaged item
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <p className="mw-acct-hint">
+        Orders are stored server-side against your Motor Wallah account on this browser, so they
+        survive clearing the cache. Help desk reports reach our team with the order ID attached.
+      </p>
+    </>
+  );
+}
 
 function RequestsTab() {
   const [leads, setLeads] = useState<TrackedLead[]>([]);

@@ -22,6 +22,12 @@ prints a self-test at the end; every row must say `OK`. It replaces the old
 `orders` reporting view with the real `orders` table and recreates that view as
 `legacy_orders`.
 
+Then run [`storefront-shop.sql`](./storefront-shop.sql) once: every order points
+at a shop, and this creates the marketplace-owned "Motor Wallah Store" the
+website's Parts and Decor checkout sells through. Until it runs, the site
+creates that shop itself under the first visitor's session, so the order owner
+ends up in the `shops` table — running the file clears it again.
+
 ## 2. Enable anonymous sign-ins
 
 Dashboard → **Authentication** → **Sign In / Providers** → **Anonymous sign-ins**

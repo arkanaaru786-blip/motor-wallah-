@@ -37,7 +37,7 @@ export default defineConfig({
     server: {
       // The preview browser reaches this dev server through one exact
       // hostname; allow only that host (never a blanket allowedHosts rule).
-      allowedHosts: ["pv-6c4a0adeccea-d45ce519-ac74-4d45-9286-06ed402f2227.style.dev"],
+      allowedHosts: ["pv-6c4a0adeccea-8b98d261-48b6-4d09-a038-776d4235cf7c.style.dev"],
     },
     plugins: [
       {

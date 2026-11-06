@@ -788,3 +788,17 @@
 .mw-parts-note {
   display: none;
 }
+
+/* Checkout started but the order row could not be saved */
+.mw-order-sync-note {
+  max-width: 62ch;
+  margin: 10px auto 0;
+  padding: 10px 13px;
+  border-radius: 10px;
+  border: 1px solid oklch(0.8 0.1 80 / 0.6);
+  background: oklch(0.96 0.05 85);
+  color: oklch(0.4 0.09 70);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  text-align: left;
+}

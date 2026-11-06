@@ -26,6 +26,7 @@ import {
   type BuyCategoryId,
 } from "@/lib/buy-catalog";
 import { submitLead } from "@/lib/leads";
+import { placeOrder as saveOrderToApi } from "@/lib/orders-api";
 import { payPrepaid } from "@/lib/razorpay-checkout";
 import {
   PART_CATEGORY_LIST,
@@ -102,6 +103,10 @@ type Order = {
   total: number;
   items: number;
   paymentId?: string | undefined;
+  /** Server-side `MW-ORD-…` reference once the order row exists. */
+  orderRef?: string | undefined;
+  /** Why the order row could not be saved, when that happened. */
+  syncNote?: string | undefined;
 };
 
 function Page() {
@@ -278,6 +283,21 @@ function Page() {
       return setError("Payment cancelled — nothing was charged and your cart is still saved.");
     if (payment.status === "unavailable") return setError(payment.message);
 
+    // The paid cart becomes a real order row, which is what the customer's
+    // dashboard reads. Money is already captured, so a failure here is reported
+    // on the confirmation screen instead of blocking it.
+    const placed = await saveOrderToApi({
+      itemType: "parts",
+      lines: cart.map((line) => ({
+        productId: line.productId,
+        name: line.name,
+        quantity: line.qty,
+        price: line.price,
+      })),
+      delivery: { name, mobile, city },
+      notes: `Prepaid · Razorpay ${payment.paymentId}`,
+    });
+
     // Saved to the project's lead queue (and CRM endpoint when configured).
     await submitLead({
       type: "parts_enquiry",
@@ -308,6 +328,8 @@ function Page() {
       total,
       items: cartCount(cart),
       paymentId: payment.paymentId,
+      orderRef: placed.ok ? placed.order.order_ref : undefined,
+      syncNote: placed.ok ? undefined : placed.message,
     });
     updateCart([]);
     pendingScroll.current = "parts-step";
@@ -900,7 +922,7 @@ function Page() {
               </p>
               <div className="mw-parts-orderid" data-testid="order-id">
                 <span>Order ID</span>
-                <strong>{order.id}</strong>
+                <strong>{order.orderRef ?? order.id}</strong>
               </div>
               {order.paymentId && (
                 <div className="mw-parts-orderid" data-testid="payment-id">
@@ -908,10 +930,18 @@ function Page() {
                   <strong>{order.paymentId}</strong>
                 </div>
               )}
+              {order.syncNote && (
+                <p className="mw-order-sync-note" data-testid="order-sync-note">
+                  {order.syncNote} Quote your payment id when you contact us.
+                </p>
+              )}
               <div className="mw-sell-done-actions">
+                <Link to="/account" search={{ tab: "orders" }} className="mw-sell-submit">
+                  View my orders
+                </Link>
                 <button
                   type="button"
-                  className="mw-sell-submit"
+                  className="mw-sell-ghost-btn"
                   onClick={() => {
                     setOrder(null);
                     go({});

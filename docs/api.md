@@ -229,4 +229,15 @@ dealer/workshop, path ids are only checked against it, and RLS backs every query
 | `src/lib/api/auth.ts` | Bearer token → verified caller, error mapping |
 | `src/lib/api/http.ts` | JSON, CORS, validation-error helpers |
 | `src/lib/api/orders.ts` | Zod schemas, row → response mapping, list filters |
+| `src/lib/orders-api.ts` | Browser client: token, `placeOrder`, `listMyOrders`, `reportOrderIssue` |
+| `src/routes/account.tsx` | "My Orders" dashboard tab + help desk form |
+| `src/routes/accessories.tsx`, `src/routes/decor.tsx` | Checkout posts the paid cart to `POST /api/orders` |
 | `supabase/orders-helpdesk.sql` | Tables, RLS, `place_order`, `report_order_issue` |
+| `supabase/storefront-shop.sql` | The marketplace shop the website checkout sells through |
+
+Both storefront checkouts post the paid cart themselves (`saveOrderToApi` in the
+routes, `placeOrder` in the client). The shop id is the constant
+`STOREFRONT_SHOP_ID`; it must match the row created by
+`supabase/storefront-shop.sql`, or be overridden with `VITE_STOREFRONT_SHOP_ID`.
+If the order cannot be saved the customer still sees the confirmation screen,
+with the payment id and a note to quote it.
