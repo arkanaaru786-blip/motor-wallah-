@@ -4,6 +4,7 @@ import {
   HandCoins,
   LayoutDashboard,
   LogOut,
+  MessageSquare,
   PlusCircle,
   ShieldCheck,
   Store,
@@ -13,13 +14,14 @@ import {
 import { dealerCategoryLabel } from "@/lib/dealer-categories";
 import { signOutDealer, type DealerSession } from "@/lib/dealer-session";
 
-export type DealerTab = "overview" | "inventory" | "add" | "leads" | "offers";
+export type DealerTab = "overview" | "inventory" | "add" | "leads" | "chats" | "offers";
 
 const TABS: { id: DealerTab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "inventory", label: "My Inventory", icon: Car },
   { id: "add", label: "Add Vehicle", icon: PlusCircle },
   { id: "leads", label: "Leads", icon: Users },
+  { id: "chats", label: "My Chats", icon: MessageSquare },
   { id: "offers", label: "Offers", icon: HandCoins },
 ];
 

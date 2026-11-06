@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CheckCheck, Send, Sparkles } from "lucide-react";
+import { CheckCheck, Loader2, Send, Sparkles } from "lucide-react";
 import { buyListingName, rupees, type BuyListing } from "@/lib/buy-catalog";
-import { MAX_MESSAGE_LENGTH, useChatThread } from "@/lib/listing-chat";
+import { MAX_MESSAGE_LENGTH, useChatMessages } from "@/lib/live-chat";
 
 export type QuickReply = { label: string; body: string };
 
@@ -50,11 +50,13 @@ const dayLabel = (iso: string) => {
 };
 
 /**
- * Shared message list + composer for the vehicle chat and the Seller Desk.
- * Buyer/seller wording flips with `role`, so both sides read one thread.
+ * Shared message list + composer for the vehicle chat, the buyer's My Chats and
+ * the dealer's My Chats tab. Both sides read the same stored conversation
+ * (`chatId`), and buyer/dealer wording flips with `role`.
  */
 export function ChatThreadView({
   listing,
+  chatId,
   role,
   quickReplies,
   note,
@@ -62,6 +64,8 @@ export function ChatThreadView({
   onFirstMessage,
 }: {
   listing: BuyListing;
+  /** The stored conversation. Null while it is still being opened. */
+  chatId: string | null;
   role: "buyer" | "seller";
   quickReplies: QuickReply[];
   note?: string;
@@ -69,12 +73,22 @@ export function ChatThreadView({
   /** Fires once, with the opening message of a brand-new thread. */
   onFirstMessage?: (body: string) => void;
 }) {
-  const { messages, send, typing } = useChatThread(listing.id, role);
+  const live = useChatMessages(chatId);
   const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const vehicle = buyListingName(listing);
   const price = rupees(Math.round(listing.priceLakh * 100000));
+
+  // The stored rows carry "dealer"; this view words that side as the seller so
+  // both surfaces read the same way they always have.
+  const messages = live.messages.map((row) => ({
+    id: row.id,
+    role: row.role === "dealer" ? ("seller" as const) : ("buyer" as const),
+    body: row.text,
+    createdAt: row.createdAt,
+  }));
 
   const scrollToEnd = useCallback(() => {
     endRef.current?.scrollIntoView({ block: "end" });
@@ -82,7 +96,7 @@ export function ChatThreadView({
 
   useEffect(() => {
     scrollToEnd();
-  }, [messages.length, typing, scrollToEnd]);
+  }, [messages.length, scrollToEnd]);
 
   useEffect(() => {
     const input = inputRef.current;
@@ -91,9 +105,13 @@ export function ChatThreadView({
     input.style.height = `${Math.min(input.scrollHeight, 120)}px`;
   }, [draft]);
 
-  const submit = (body: string) => {
+  const submit = async (body: string) => {
+    if (!body.trim() || sending || !chatId) return;
     const opening = messages.length === 0;
-    if (!send(body)) return;
+    setSending(true);
+    const saved = await live.send(body);
+    setSending(false);
+    if (!saved) return;
     setDraft("");
     inputRef.current?.focus();
     if (opening) onFirstMessage?.(body.trim());
@@ -111,7 +129,14 @@ export function ChatThreadView({
         aria-live="polite"
         aria-label={`Conversation about ${vehicle}`}
       >
-        {messages.length === 0 ? (
+        {!chatId || live.loading ? (
+          <div className="mw-chat-empty" data-testid="chat-loading">
+            <span className="mw-chat-empty-icon" aria-hidden="true">
+              <Loader2 size={18} className="mw-chat-spin" />
+            </span>
+            <p className="mw-chat-empty-title">Opening the conversation…</p>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="mw-chat-empty" data-testid="chat-empty">
             <span className="mw-chat-empty-icon" aria-hidden="true">
               <Sparkles size={18} />
@@ -136,21 +161,16 @@ export function ChatThreadView({
             <div key={message.id} className="mw-chat-block">
               {showDay ? <p className="mw-chat-day">{day}</p> : null}
               <div
-                className={`mw-chat-row ${mine ? "mw-chat-row--out" : "mw-chat-row--in"}${
-                  message.role === "system" ? " mw-chat-row--system" : ""
-                }`}
+                className={`mw-chat-row ${mine ? "mw-chat-row--out" : "mw-chat-row--in"}`}
+                data-message-id={message.id}
               >
                 <div
-                  className={`mw-chat-bubble ${mine ? "mw-chat-bubble--out" : "mw-chat-bubble--in"}${
-                    message.role === "system" ? " mw-chat-bubble--system" : ""
-                  }`}
+                  className={`mw-chat-bubble ${mine ? "mw-chat-bubble--out" : "mw-chat-bubble--in"}`}
                   data-testid="chat-bubble"
                   data-role={message.role}
                 >
-                  {message.role === "seller" || message.role === "system" ? (
-                    <span className="mw-chat-author">
-                      {message.role === "seller" ? `${listing.model} Seller` : "Motor Wallah"}
-                    </span>
+                  {message.role === "seller" ? (
+                    <span className="mw-chat-author">{`${listing.model} Seller`}</span>
                   ) : null}
                   <p>{message.body}</p>
                   <span className="mw-chat-meta">
@@ -163,21 +183,14 @@ export function ChatThreadView({
           );
         })}
 
-        {typing ? (
-          <div className="mw-chat-row mw-chat-row--in" data-testid="chat-typing">
-            <div className="mw-chat-bubble mw-chat-bubble--in mw-chat-bubble--typing">
-              <span className="mw-chat-author">{listing.model} Seller</span>
-              <span className="mw-chat-dots" aria-label="Seller is typing">
-                <i />
-                <i />
-                <i />
-              </span>
-            </div>
-          </div>
-        ) : null}
-
         <div ref={endRef} />
       </div>
+
+      {live.error ? (
+        <p className="mw-chat-error" role="alert" data-testid="chat-error">
+          {live.error}
+        </p>
+      ) : null}
 
       {quickReplies.length > 0 ? (
         <div className="mw-chat-quick" role="group" aria-label="Quick replies">
@@ -190,7 +203,8 @@ export function ChatThreadView({
                 type="button"
                 className="mw-chat-chip"
                 data-testid="chat-quick-reply"
-                onClick={() => submit(reply.body)}
+                disabled={!chatId}
+                onClick={() => void submit(reply.body)}
               >
                 {reply.label}
               </button>
@@ -202,7 +216,7 @@ export function ChatThreadView({
         className="mw-chat-composer"
         onSubmit={(event) => {
           event.preventDefault();
-          submit(draft);
+          void submit(draft);
         }}
       >
         <label className="mw-chat-field">
@@ -214,11 +228,12 @@ export function ChatThreadView({
             maxLength={MAX_MESSAGE_LENGTH}
             placeholder={role === "buyer" ? "Write to the seller…" : "Reply to the buyer…"}
             data-testid="chat-input"
+            disabled={!chatId}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
-                submit(draft);
+                void submit(draft);
               }
             }}
           />
@@ -227,19 +242,19 @@ export function ChatThreadView({
           type="submit"
           className="mw-chat-send"
           data-testid="chat-send"
-          disabled={!draft.trim()}
+          disabled={!draft.trim() || sending || !chatId}
           aria-label="Send message"
         >
           <Send size={16} aria-hidden="true" />
-          <span>Send</span>
+          <span>{sending ? "Sending…" : "Send"}</span>
         </button>
       </form>
 
       <p className="mw-chat-note">
         {note ??
           (role === "buyer"
-            ? `Saved on this device — the ${listing.model} seller reads it in their Seller Desk.`
-            : `Replies reach the buyer's My Chats instantly. ${price} asking price on this ${vehicle}.`)}
+            ? `Saved to your account — the ${listing.model} seller replies from their dealer portal.`
+            : `Replies reach the buyer instantly. ${price} asking price on this ${vehicle}.`)}
       </p>
     </div>
   );

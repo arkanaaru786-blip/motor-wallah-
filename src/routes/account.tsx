@@ -25,16 +25,14 @@ import { StickyActions } from "@/components/site/StickyActions";
 import { useCustomerSession, maskMobile, signOut, updateProfile } from "@/lib/account-store";
 import type { CustomerProfile } from "@/lib/account-store";
 import { ChatThreadView, BUYER_QUICK_REPLIES } from "@/components/chat/ChatThreadView";
-import { subscribeToChat } from "@/lib/listing-chat";
+import { useChatInbox, useUnreadChats } from "@/lib/live-chat";
 import {
-  chatThreads,
   dashboardCounts,
   deleteOwnListing,
   ownListings,
   setOwnListingStatus,
   trackedLeads,
   updateOwnListing,
-  type ChatThread,
   type OwnListing,
   type TrackedLead,
 } from "@/lib/account-data";
@@ -136,6 +134,8 @@ function AccountPage() {
     listings: 0,
     leads: 0,
   });
+  // Unread dealer messages drive the red badge on My Chats.
+  const unreadChats = useUnreadChats("buyer");
 
   useEffect(() => {
     setCounts(dashboardCounts());
@@ -165,7 +165,7 @@ function AccountPage() {
     if (id === "favorites") return counts.saved;
     if (id === "ads") return counts.listings;
     if (id === "requests") return counts.leads;
-    if (id === "chats") return counts.chats;
+    if (id === "chats") return unreadChats;
     return null;
   };
 
@@ -220,7 +220,13 @@ function AccountPage() {
                       <span className="mw-acct-nav-blurb">{item.blurb}</span>
                     </span>
                     {count !== null && count > 0 && (
-                      <span className="mw-acct-nav-count">{count}</span>
+                      <span
+                        className="mw-acct-nav-count"
+                        data-alert={item.id === "chats" ? "true" : "false"}
+                        data-testid={`account-tab-count-${item.id}`}
+                      >
+                        {count}
+                      </span>
                     )}
                   </Link>
                 );
@@ -491,21 +497,11 @@ function FavoritesTab() {
 /* --------------------------------------------------------------- tab: chats */
 
 function ChatsTab({ selectedId }: { selectedId?: string | undefined }) {
-  const [threads, setThreads] = useState<ChatThread[]>([]);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    const sync = () => {
-      setThreads(chatThreads());
-      setLoaded(true);
-    };
-    sync();
-    return subscribeToChat(sync);
-  }, []);
-
-  const activeId = selectedId ?? threads[0]?.listingId ?? null;
-  const active = threads.find((thread) => thread.listingId === activeId) ?? null;
-  const listing = active ? getBuyListing(active.listingId) : undefined;
+  // Real, stored conversations — the dealer's replies land in this list.
+  const { chats, loading, error } = useChatInbox("buyer");
+  const activeId = selectedId ?? chats[0]?.id ?? null;
+  const active = chats.find((chat) => chat.id === activeId) ?? null;
+  const listing = active ? getBuyListing(active.vehicleId) : undefined;
 
   return (
     <>
@@ -525,9 +521,13 @@ function ChatsTab({ selectedId }: { selectedId?: string | undefined }) {
         </Link>
       </div>
 
-      {!loaded ? (
+      {loading ? (
         <p className="mw-acct-note">Loading your chats…</p>
-      ) : threads.length === 0 ? (
+      ) : error ? (
+        <p className="mw-acct-note" data-testid="chats-error">
+          {error}
+        </p>
+      ) : chats.length === 0 ? (
         <div className="mw-acct-empty" data-testid="chats-empty">
           <MessageSquare size={26} aria-hidden="true" />
           <p className="mw-acct-empty-title">No seller chats yet</p>
@@ -541,18 +541,19 @@ function ChatsTab({ selectedId }: { selectedId?: string | undefined }) {
       ) : (
         <div className="mw-acct-chat">
           <ul className="mw-acct-chat-list" data-testid="chat-list">
-            {threads.map((thread) => {
-              const threadListing = getBuyListing(thread.listingId);
-              const name = threadListing ? buyListingName(threadListing) : thread.listingId;
+            {chats.map((chat) => {
+              const chatListing = getBuyListing(chat.vehicleId);
+              const name = chatListing ? buyListingName(chatListing) : chat.vehicleLabel;
               return (
-                <li key={thread.listingId}>
+                <li key={chat.id}>
                   <Link
                     to="/account"
-                    search={{ tab: "chats", chat: thread.listingId }}
+                    search={{ tab: "chats", chat: chat.id }}
                     className="mw-acct-chat-thread"
                     data-testid="chat-thread"
-                    data-chat-id={thread.listingId}
-                    data-active={thread.listingId === activeId ? "true" : "false"}
+                    data-chat-id={chat.id}
+                    data-unread={chat.unread}
+                    data-active={chat.id === activeId ? "true" : "false"}
                   >
                     <span className="mw-acct-chat-avatar" aria-hidden="true">
                       {name.slice(0, 1).toUpperCase()}
@@ -560,11 +561,16 @@ function ChatsTab({ selectedId }: { selectedId?: string | undefined }) {
                     <span className="mw-acct-chat-thread-main">
                       <span className="mw-acct-chat-name">{name}</span>
                       <span className="mw-acct-chat-preview">
-                        {thread.lastMessage.role === "seller" ? "Seller: " : ""}
-                        {thread.lastMessage.body}
+                        {chat.lastSenderRole === "dealer" ? "Seller: " : ""}
+                        {chat.lastMessage}
                       </span>
                     </span>
-                    <span className="mw-acct-chat-time">{formatWhen(thread.lastAt)}</span>
+                    {chat.unread > 0 ? (
+                      <span className="mw-chat-badge" data-testid="chat-unread">
+                        {chat.unread}
+                      </span>
+                    ) : null}
+                    <span className="mw-acct-chat-time">{formatWhen(chat.lastMessageAt)}</span>
                   </Link>
                 </li>
               );
@@ -581,13 +587,18 @@ function ChatsTab({ selectedId }: { selectedId?: string | undefined }) {
                   {listing ? buyListingName(listing) : "Seller"}
                 </span>
                 <span className="mw-acct-chat-status">
-                  {listing ? `${listing.model} Seller · replies in a few seconds` : "Seller"}
+                  {listing ? `${listing.model} Seller · replies appear live` : "Seller"}
                 </span>
               </span>
             </div>
 
             {listing ? (
-              <ChatThreadView listing={listing} role="buyer" quickReplies={BUYER_QUICK_REPLIES} />
+              <ChatThreadView
+                listing={listing}
+                chatId={active?.id ?? null}
+                role="buyer"
+                quickReplies={BUYER_QUICK_REPLIES}
+              />
             ) : (
               <p className="mw-acct-chat-hint">Select a conversation to continue.</p>
             )}

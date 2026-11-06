@@ -1,10 +1,5 @@
 import { replicaRead, replicaWrite } from "@/lib/cloud-store";
 import { LEAD_QUEUE_KEY, readLeadQueue, type Lead } from "@/lib/leads";
-import {
-  chatThreads as readChatThreads,
-  sendChatMessage,
-  type ChatThread,
-} from "@/lib/listing-chat";
 import { listOffers, type ListingOffer, type OfferStatus } from "@/lib/listing-offers";
 import { SERVICE_STATUSES, liveStageIndex } from "@/lib/service-tracking";
 
@@ -31,27 +26,6 @@ function readJson<T>(key: string, fallback: T): T {
 export function savedVehicleIds(): string[] {
   const raw = readJson<unknown>(SHORTLIST_KEY, []);
   return Array.isArray(raw) ? raw.filter((id): id is string => typeof id === "string") : [];
-}
-
-/* ------------------------------------------------------------------ chats */
-
-/** The buyer's side of the shared listing conversations. */
-export type { ChatThread };
-
-export function chatThreads(): ChatThread[] {
-  return readChatThreads("buyer");
-}
-
-/** Append one follow-up buyer message to a thread. */
-export function appendChatMessage(
-  listingId: string,
-  body: string,
-): { ok: boolean; error?: string } {
-  if (!body.trim()) return { ok: false, error: "Type a message first." };
-  const message = sendChatMessage(listingId, "buyer", body);
-  return message
-    ? { ok: true }
-    : { ok: false, error: "Your message could not be saved. Please check your connection and retry." };
 }
 
 /* --------------------------------------------------------------- listings */
@@ -135,7 +109,10 @@ export function updateOwnListing(
   });
   if (!found) return { ok: false, error: "This ad could not be found." };
   if (!writeLeadQueue(next))
-    return { ok: false, error: "Your changes could not be saved. Please check your connection and retry." };
+    return {
+      ok: false,
+      error: "Your changes could not be saved. Please check your connection and retry.",
+    };
   return { ok: true };
 }
 
@@ -145,7 +122,10 @@ export function deleteOwnListing(id: string): { ok: boolean; error?: string } {
   const next = queue.filter((lead) => !(lead.type === "sell_vehicle" && lead.createdAt === id));
   if (next.length === queue.length) return { ok: false, error: "This ad could not be found." };
   if (!writeLeadQueue(next))
-    return { ok: false, error: "Your ad could not be removed. Please check your connection and retry." };
+    return {
+      ok: false,
+      error: "Your ad could not be removed. Please check your connection and retry.",
+    };
   const statuses = readListingStatuses();
   delete statuses[id];
   replicaWrite(LISTING_STATUS_KEY, statuses);
@@ -160,7 +140,10 @@ export function setOwnListingStatus(
   statuses[id] = status;
   return replicaWrite(LISTING_STATUS_KEY, statuses)
     ? { ok: true }
-    : { ok: false, error: "The status could not be saved. Please check your connection and retry." };
+    : {
+        ok: false,
+        error: "The status could not be saved. Please check your connection and retry.",
+      };
 }
 
 /* ------------------------------------------------------------------ leads */
@@ -280,7 +263,9 @@ export function trackedLeads(): TrackedLead[] {
 export function dashboardCounts() {
   return {
     saved: savedVehicleIds().length,
-    chats: chatThreads().length,
+    // Chats are stored in Supabase; the dashboard fills this from the live
+    // unread count (see ChatsTab / AccountPage) instead of the replica.
+    chats: 0,
     offers: listOffers().length,
     listings: ownListings().length,
     leads: trackedLeads().length,

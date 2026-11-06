@@ -22,6 +22,14 @@ prints a self-test at the end; every row must say `OK`. It replaces the old
 `orders` reporting view with the real `orders` table and recreates that view as
 `legacy_orders`.
 
+Then run [`chat.sql`](./chat.sql) once — buyer ↔ dealer chat. It creates `chats`,
+`messages` and `dealer_claims`, the six functions the browser calls, the RLS
+policies that keep each conversation to its buyer and its dealer, and adds
+`messages` to the `supabase_realtime` publication. Without it the chat surfaces
+say "Chat is not switched on yet" instead of failing silently; with the
+tables but no realtime the app still polls every 5 seconds. Its self-test prints
+one line per check in the SQL editor output panel.
+
 Then run [`storefront-shop.sql`](./storefront-shop.sql) once: every order points
 at a shop, and this creates the marketplace-owned "Motor Wallah Store" the
 website's Parts and Decor checkout sells through. Until it runs, the site

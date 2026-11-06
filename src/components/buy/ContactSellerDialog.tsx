@@ -1,15 +1,19 @@
+import { useEffect, useState } from "react";
 import { MessageCircle, Phone, ShieldCheck, X } from "lucide-react";
 import { buyListingName, rupees, type BuyListing } from "@/lib/buy-catalog";
 import { ChatThreadView, BUYER_QUICK_REPLIES } from "@/components/chat/ChatThreadView";
+import { useCustomerSession } from "@/lib/account-store";
+import { dealerForCategory, openBuyerChat } from "@/lib/live-chat";
 import { submitLead } from "@/lib/leads";
 import { PHONE_HREF, whatsappLink } from "@/lib/site";
 
 /**
  * Vehicle chat — the buyer's side of the conversation.
  *
- * Messages are stored in this browser (see src/lib/listing-chat.ts) so the
- * seller can read and answer the same thread from the Seller Desk. A seller
- * reply is simulated three seconds after each buyer message.
+ * Opening the dialog resolves the dealer that owns this listing's category and
+ * asks the database for the conversation (`open_chat`), which creates it the
+ * first time and reopens the same thread afterwards. Messages are stored in
+ * Supabase, so the dealer reads and answers them from the dealer portal.
  */
 export function ContactSellerDialog({
   listing,
@@ -20,9 +24,41 @@ export function ContactSellerDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const { customer } = useCustomerSession();
+  const [chatId, setChatId] = useState<string | null>(null);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const vehicle = buyListingName(listing);
+  const buyerName = customer?.name ?? "";
+  const buyerMobile = customer?.mobile ?? "";
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setChatId(null);
+    setChatError(null);
+
+    void (async () => {
+      const dealer = await dealerForCategory(listing.categoryId);
+      const result = await openBuyerChat({
+        dealerId: dealer.id,
+        dealerName: dealer.name,
+        vehicleId: listing.id,
+        vehicleLabel: vehicle,
+        buyerName,
+        buyerMobile,
+      });
+      if (cancelled) return;
+      if (result.ok) setChatId(result.chatId);
+      else setChatError(result.error);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, listing.id, listing.categoryId, vehicle, buyerName, buyerMobile]);
+
   if (!open) return null;
 
-  const vehicle = buyListingName(listing);
   const price = rupees(Math.round(listing.priceLakh * 100000));
   const seller = `${listing.model} Seller`;
 
@@ -47,7 +83,7 @@ export function ContactSellerDialog({
               {vehicle} · {price}
             </span>
             <span className="mw-chat-head-status">
-              <i aria-hidden="true" /> Online · replies in a few seconds
+              <i aria-hidden="true" /> Dealer inbox · replies arrive here live
             </span>
           </span>
           <a
@@ -71,24 +107,33 @@ export function ContactSellerDialog({
         <div className="mw-chat-body">
           <p className="mw-chat-banner">
             <ShieldCheck size={13} aria-hidden="true" />
-            Enquiries for this listing are saved to your dashboard.
+            This enquiry is saved to your dashboard and reaches the dealer.
           </p>
 
-          <ChatThreadView
-            listing={listing}
-            role="buyer"
-            quickReplies={BUYER_QUICK_REPLIES}
-            onFirstMessage={(body) => {
-              void submitLead({
-                type: "listing_enquiry",
-                source: "listing_chat",
-                vehicleId: listing.id,
-                vehicleName: vehicle,
-                location: listing.city,
-                fields: { message: body, listingCategory: listing.categoryLabel },
-              });
-            }}
-          />
+          {chatError ? (
+            <p className="mw-chat-error" role="alert" data-testid="chat-unavailable">
+              {chatError}
+            </p>
+          ) : (
+            <ChatThreadView
+              listing={listing}
+              chatId={chatId}
+              role="buyer"
+              quickReplies={BUYER_QUICK_REPLIES}
+              onFirstMessage={(body) => {
+                void submitLead({
+                  type: "listing_enquiry",
+                  source: "listing_chat",
+                  vehicleId: listing.id,
+                  vehicleName: vehicle,
+                  location: listing.city,
+                  name: buyerName || undefined,
+                  mobile: buyerMobile || undefined,
+                  fields: { message: body, listingCategory: listing.categoryLabel },
+                });
+              }}
+            />
+          )}
         </div>
 
         <footer className="mw-chat-foot">
@@ -105,7 +150,7 @@ export function ContactSellerDialog({
           >
             <MessageCircle size={14} aria-hidden="true" /> WhatsApp
           </a>
-          <span className="mw-chat-foot-note">Demo chat · stored in this browser</span>
+          <span className="mw-chat-foot-note">Stored in your account</span>
         </footer>
       </div>
     </div>
