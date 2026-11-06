@@ -73,7 +73,7 @@ export function ChatThreadView({
   /** Fires once, with the opening message of a brand-new thread. */
   onFirstMessage?: (body: string) => void;
 }) {
-  const live = useChatMessages(chatId);
+  const live = useChatMessages(chatId, role === "seller" ? "dealer" : "buyer");
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);

@@ -206,6 +206,7 @@ export async function loadMessages(
 export async function sendChatMessage(
   chatId: string,
   text: string,
+  side: ChatSide = "buyer",
 ): Promise<{ ok: true; message: LiveMessage } | { ok: false; error: string }> {
   const body = text.trim().slice(0, MAX_MESSAGE_LENGTH);
   if (!body) return { ok: false, error: "Type a message first." };
@@ -213,10 +214,19 @@ export async function sendChatMessage(
   const session = await ready();
   if ("error" in session) return { ok: false, error: session.error };
 
-  const { data, error } = await session.client.rpc("send_chat_message", {
-    p_chat_id: chatId,
-    p_message_text: body,
+  const params = { p_chat_id: chatId, p_message_text: body };
+  let { data, error } = await session.client.rpc("send_chat_message", {
+    ...params,
+    // The surface the message was typed on, so a browser signed in as both a
+    // buyer and a dealer still attributes the right side.
+    p_as: side,
   });
+
+  // A database set up before the side argument existed has the older function;
+  // it infers the side itself, so the message still goes through.
+  if (error && (error.code === "PGRST202" || /p_as/.test(error.message))) {
+    ({ data, error } = await session.client.rpc("send_chat_message", params));
+  }
 
   if (error) return { ok: false, error: fail(error).error };
   if (!data) return { ok: false, error: "Your message could not be saved. Please retry." };
@@ -298,12 +308,14 @@ function watchChat(chatId: string, onChange: () => void): () => void {
   };
 }
 
-export function useChatMessages(chatId: string | null) {
+export function useChatMessages(chatId: string | null, side: ChatSide = "buyer") {
   const [messages, setMessages] = useState<LiveMessage[]>([]);
   const [loading, setLoading] = useState(Boolean(chatId));
   const [error, setError] = useState<string | null>(null);
   const chatRef = useRef(chatId);
   chatRef.current = chatId;
+  const sideRef = useRef(side);
+  sideRef.current = side;
 
   useEffect(() => {
     if (!chatId) {
@@ -349,7 +361,7 @@ export function useChatMessages(chatId: string | null) {
 
   const send = async (text: string) => {
     if (!chatRef.current) return false;
-    const result = await sendChatMessage(chatRef.current, text);
+    const result = await sendChatMessage(chatRef.current, text, sideRef.current);
     if (!result.ok) {
       setError(result.error);
       return false;

@@ -103,6 +103,32 @@ as $$
   where c.id = p_chat_id;
 $$;
 
+/**
+ * May the caller write as `p_role` in this chat?
+ *
+ * One browser can be both a buyer and a dealer account (chat on a listing,
+ * then sign into the portal). The side is therefore chosen by the surface the
+ * message was typed on, and checked here: a buyer may only write as the buyer
+ * of their own chat, a dealer only for a dealer account it has claimed.
+ */
+create or replace function public.can_send_as(p_chat_id uuid, p_role text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.chats c
+    where c.id = p_chat_id
+      and case p_role
+            when 'buyer'  then c.buyer_id = auth.uid()
+            when 'dealer' then public.is_my_dealer(c.dealer_id)
+            else false
+          end
+  );
+$$;
+
 /* ------------------------------------------------------------------- RLS */
 
 alter table public.chats         enable row level security;
@@ -136,7 +162,7 @@ create policy messages_read on public.messages
 -- cannot post as the dealer, and a dealer cannot post into a stranger's chat.
 create policy messages_insert on public.messages
   for insert with check (
-    sender_id = auth.uid() and public.my_chat_role(chat_id) = sender_role
+    sender_id = auth.uid() and public.can_send_as(chat_id, sender_role)
   );
 
 -- Only used to flip is_read.
@@ -213,7 +239,11 @@ end;
 $$;
 
 /** Send one message, as whoever the caller actually is on this chat. */
-create or replace function public.send_chat_message(p_chat_id uuid, p_message_text text)
+create or replace function public.send_chat_message(
+  p_chat_id uuid,
+  p_message_text text,
+  p_as text default null
+)
 returns public.messages
 language plpgsql
 security definer
@@ -223,8 +253,16 @@ declare
   v_role text;
   v_row public.messages;
 begin
-  v_role := public.my_chat_role(p_chat_id);
+  -- The surface says which side is typing; the database decides whether the
+  -- caller really holds that side. Without a preference, infer it.
+  v_role := nullif(btrim(coalesce(p_as, '')), '');
   if v_role is null then
+    v_role := public.my_chat_role(p_chat_id);
+  end if;
+
+  if v_role is null
+     or v_role not in ('buyer', 'dealer')
+     or not public.can_send_as(p_chat_id, v_role) then
     raise exception 'not_a_participant' using errcode = '42501';
   end if;
 

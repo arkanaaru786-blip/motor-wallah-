@@ -346,8 +346,8 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
               </div>
 
               <p className="buy-action-note">
-                Enquiries are captured in this project&apos;s lead queue (stored on this device). A
-                live chat server is not connected yet.
+                Enquiries reach the seller&apos;s dealer inbox and are saved to your dashboard.
+                Replies arrive in this window while you are here.
               </p>
               <p className="buy-action-note">
                 Test drive requests are requests only — a slot is confirmed after the seller
