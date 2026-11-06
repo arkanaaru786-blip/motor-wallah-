@@ -916,7 +916,8 @@ function Page() {
                 Payment received! Our team will confirm fitment and dispatch your parts.
               </h2>
               <p className="mw-sell-done-text">
-                Thanks {order.name} — order <strong>{order.id}</strong> for {order.items} item
+                Thanks {order.name} — order <strong>{order.orderRef ?? order.id}</strong> for{" "}
+                {order.items} item
                 {order.items === 1 ? "" : "s"} ({rupees(order.total)}) is paid and saved with the
                 Motor Wallah team. We will contact you on {order.mobile}.
               </p>
