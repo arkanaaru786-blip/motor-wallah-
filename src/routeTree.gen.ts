@@ -20,6 +20,8 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DealerRouteImport } from './routes/dealer'
 import { Route as DealerLoginRouteImport } from './routes/dealer-login'
 import { Route as DecorRouteImport } from './routes/decor'
+import { Route as EmployeeRouteImport } from './routes/employee'
+import { Route as EmployeeLoginRouteImport } from './routes/employee-login'
 import { Route as ExchangeRouteImport } from './routes/exchange'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as FinanceRouteImport } from './routes/finance'
@@ -121,6 +123,16 @@ const DealerLoginRoute = DealerLoginRouteImport.update({
 const DecorRoute = DecorRouteImport.update({
   id: '/decor',
   path: '/decor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmployeeRoute = EmployeeRouteImport.update({
+  id: '/employee',
+  path: '/employee',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmployeeLoginRoute = EmployeeLoginRouteImport.update({
+  id: '/employee-login',
+  path: '/employee-login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExchangeRoute = ExchangeRouteImport.update({
@@ -371,6 +383,8 @@ export interface FileRoutesByFullPath {
   '/dealer': typeof DealerRoute
   '/dealer-login': typeof DealerLoginRoute
   '/decor': typeof DecorRoute
+  '/employee': typeof EmployeeRoute
+  '/employee-login': typeof EmployeeLoginRoute
   '/exchange': typeof ExchangeRoute
   '/faq': typeof FaqRoute
   '/finance': typeof FinanceRoute
@@ -431,6 +445,8 @@ export interface FileRoutesByTo {
   '/dealer': typeof DealerRoute
   '/dealer-login': typeof DealerLoginRoute
   '/decor': typeof DecorRoute
+  '/employee': typeof EmployeeRoute
+  '/employee-login': typeof EmployeeLoginRoute
   '/exchange': typeof ExchangeRoute
   '/faq': typeof FaqRoute
   '/finance': typeof FinanceRoute
@@ -491,6 +507,8 @@ export interface FileRoutesById {
   '/dealer': typeof DealerRoute
   '/dealer-login': typeof DealerLoginRoute
   '/decor': typeof DecorRoute
+  '/employee': typeof EmployeeRoute
+  '/employee-login': typeof EmployeeLoginRoute
   '/exchange': typeof ExchangeRoute
   '/faq': typeof FaqRoute
   '/finance': typeof FinanceRoute
@@ -553,6 +571,8 @@ export interface FileRouteTypes {
     | '/dealer'
     | '/dealer-login'
     | '/decor'
+    | '/employee'
+    | '/employee-login'
     | '/exchange'
     | '/faq'
     | '/finance'
@@ -613,6 +633,8 @@ export interface FileRouteTypes {
     | '/dealer'
     | '/dealer-login'
     | '/decor'
+    | '/employee'
+    | '/employee-login'
     | '/exchange'
     | '/faq'
     | '/finance'
@@ -672,6 +694,8 @@ export interface FileRouteTypes {
     | '/dealer'
     | '/dealer-login'
     | '/decor'
+    | '/employee'
+    | '/employee-login'
     | '/exchange'
     | '/faq'
     | '/finance'
@@ -733,6 +757,8 @@ export interface RootRouteChildren {
   DealerRoute: typeof DealerRoute
   DealerLoginRoute: typeof DealerLoginRoute
   DecorRoute: typeof DecorRoute
+  EmployeeRoute: typeof EmployeeRoute
+  EmployeeLoginRoute: typeof EmployeeLoginRoute
   ExchangeRoute: typeof ExchangeRoute
   FaqRoute: typeof FaqRoute
   FinanceRoute: typeof FinanceRoute
@@ -851,6 +877,20 @@ declare module '@tanstack/react-router' {
       path: '/decor'
       fullPath: '/decor'
       preLoaderRoute: typeof DecorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/employee': {
+      id: '/employee'
+      path: '/employee'
+      fullPath: '/employee'
+      preLoaderRoute: typeof EmployeeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/employee-login': {
+      id: '/employee-login'
+      path: '/employee-login'
+      fullPath: '/employee-login'
+      preLoaderRoute: typeof EmployeeLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/exchange': {
@@ -1233,6 +1273,8 @@ const rootRouteChildren: RootRouteChildren = {
   DealerRoute: DealerRoute,
   DealerLoginRoute: DealerLoginRoute,
   DecorRoute: DecorRoute,
+  EmployeeRoute: EmployeeRoute,
+  EmployeeLoginRoute: EmployeeLoginRoute,
   ExchangeRoute: ExchangeRoute,
   FaqRoute: FaqRoute,
   FinanceRoute: FinanceRoute,

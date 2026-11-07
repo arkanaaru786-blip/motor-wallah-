@@ -19,6 +19,7 @@
 @import "./styles/chat-flow.css";
 @import "./styles/notify-flow.css";
 @import "./styles/admin-flow.css";
+@import "./styles/employee-flow.css";
 @import "./styles/dealer-flow.css";
 
 @custom-variant dark (&:is(.dark *));

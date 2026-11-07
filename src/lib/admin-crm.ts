@@ -120,6 +120,12 @@ export type AdminEmployee = {
   email: string;
   mobile: string;
   department: Department;
+  /**
+   * Sub-desk the admin assigned, e.g. "Car Sales" or "Parts & Decor". It picks
+   * which board the employee sees when a department runs more than one
+   * (Service covers both the workshop and parts/order fulfilment).
+   */
+  category: string | null;
   role: Role;
   status: EmployeeStatus;
   createdAt: string;
@@ -203,6 +209,7 @@ const LEGACY_EMPLOYEES_KEY = "mw_admin_employees_v1";
 const AUDIT_KEY = "mw_admin_audit_v1";
 const LEGACY_ACTIVITY_KEY = "mw_admin_activity_v1";
 const SEED_FLAG_KEY = "mw_admin_seeded_v1";
+const DESK_SEED_KEY = "mw_admin_desk_seeded_v1";
 const JOURNAL_KEY = "mw_admin_case_journal_v1";
 
 /** First-response SLA in hours, per business line. */
@@ -244,6 +251,7 @@ const DEMO_EMPLOYEES: AdminEmployee[] = [
     email: "ananya.rao@motorwallah.in",
     mobile: "9820011201",
     department: "Finance",
+    category: "Vehicle Loans",
     role: "manager",
     status: "Active",
     createdAt: "2025-11-02T09:00:00.000Z",
@@ -256,6 +264,7 @@ const DEMO_EMPLOYEES: AdminEmployee[] = [
     email: "vikram.shetty@motorwallah.in",
     mobile: "9820011202",
     department: "Insurance",
+    category: "Motor Insurance",
     role: "executive",
     status: "Active",
     createdAt: "2025-11-02T09:05:00.000Z",
@@ -268,6 +277,7 @@ const DEMO_EMPLOYEES: AdminEmployee[] = [
     email: "rahul.menon@motorwallah.in",
     mobile: "9820011203",
     department: "Service",
+    category: "Car Workshop",
     role: "manager",
     status: "Active",
     createdAt: "2025-11-02T09:10:00.000Z",
@@ -280,6 +290,7 @@ const DEMO_EMPLOYEES: AdminEmployee[] = [
     email: "priyanka.shah@motorwallah.in",
     mobile: "9820011204",
     department: "Sales",
+    category: "Car Sales",
     role: "executive",
     status: "Active",
     createdAt: "2025-11-02T09:15:00.000Z",
@@ -292,9 +303,23 @@ const DEMO_EMPLOYEES: AdminEmployee[] = [
     email: "aakash.verma@motorwallah.in",
     mobile: "9820011205",
     department: "Operations",
+    category: "Franchise",
     role: "manager",
     status: "Active",
     createdAt: "2025-11-02T09:20:00.000Z",
+    lastLoginAt: null,
+    credential: null,
+  },
+  {
+    id: "EMP-1006",
+    name: "Meera Iyer",
+    email: "meera.iyer@motorwallah.in",
+    mobile: "9820011206",
+    department: "Service",
+    category: "Parts & Decor",
+    role: "manager",
+    status: "Active",
+    createdAt: "2025-11-02T09:25:00.000Z",
     lastLoginAt: null,
     credential: null,
   },
@@ -856,6 +881,28 @@ type LegacyEmployee = {
 };
 
 /**
+ * The Employee Dashboard gave Service a second desk (parts & decor). Installs
+ * seeded before that only know the workshop manager, so add the missing demo
+ * employee exactly once — a later deletion by the admin is never undone.
+ */
+function topUpDeskEmployees(employees: AdminEmployee[]): AdminEmployee[] {
+  const already = readJson<string>(DESK_SEED_KEY, "");
+  if (!already) writeJson(DESK_SEED_KEY, "1");
+  if (already) return employees;
+
+  const ids = new Set(employees.map((item) => item.id));
+  const emails = new Set(employees.map((item) => item.email.toLowerCase()));
+  const missing = DEMO_EMPLOYEES.filter(
+    (item) => !ids.has(item.id) && !emails.has(item.email.toLowerCase()),
+  );
+  if (!missing.length) return employees;
+
+  const next = [...employees, ...missing];
+  writeJson(EMPLOYEES_KEY, next);
+  return next;
+}
+
+/**
  * Upgrades the Phase 1 team list (name / role text / desk) into the employee
  * directory. Ids are preserved so existing case assignments keep their owner.
  */
@@ -870,6 +917,7 @@ function migrateEmployees(): AdminEmployee[] {
     return current.map((item) => ({
       ...item,
       status: item.status ?? "Active",
+      category: item.category ?? null,
       credential: item.credential ?? null,
       lastLoginAt: item.lastLoginAt ?? null,
     }));
@@ -914,7 +962,7 @@ export function ensureAdminDatabase(): CrmSnapshot {
   if (typeof window === "undefined") return EMPTY;
 
   const existing = readSnapshot();
-  const employees = migrateEmployees();
+  const employees = topUpDeskEmployees(migrateEmployees());
   const knownEmployees = new Set(employees.map((item) => item.id));
 
   let cases = existing.cases.length
@@ -1396,6 +1444,7 @@ export type EmployeeInput = {
   email: string;
   mobile: string;
   department: Department;
+  category: string | null;
   role: Role;
   status: EmployeeStatus;
 };
@@ -1440,6 +1489,9 @@ function validateEmployee(
 
   if (!DEPARTMENTS.includes(input.department)) return "Choose a department.";
   if (!ROLES.includes(input.role)) return "Choose a role.";
+  if (input.category && input.category.trim().length > 40) {
+    return "Keep the category under 40 characters.";
+  }
   return null;
 }
 
@@ -1486,6 +1538,7 @@ export async function createEmployee(
     email: input.email.trim().toLowerCase(),
     mobile: normalizeMobile(input.mobile),
     department: input.department,
+    category: input.category ? input.category.trim() : null,
     role: input.role,
     status: input.status,
     createdAt: new Date().toISOString(),
@@ -1530,6 +1583,7 @@ export function updateEmployee(id: string, input: EmployeeInput, actor: Actor): 
     email: input.email.trim().toLowerCase(),
     mobile: normalizeMobile(input.mobile),
     department: input.department,
+    category: input.category ? input.category.trim() : null,
     role: input.role,
     status: input.status,
   };

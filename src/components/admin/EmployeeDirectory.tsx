@@ -42,6 +42,7 @@ import {
   type Role,
 } from "@/lib/admin-rbac";
 import type { AdminSession } from "@/lib/admin-auth";
+import { DEPARTMENT_CATEGORIES, deskForEmployee, DESK_LABEL } from "@/lib/employee-desk";
 
 type Mode = "create" | "edit" | "password";
 
@@ -50,6 +51,7 @@ const EMPTY_FORM = {
   email: "",
   mobile: "",
   department: "Finance" as Department,
+  category: "",
   role: "executive" as Role,
   status: "Active" as EmployeeStatus,
   password: "",
@@ -116,6 +118,7 @@ export function EmployeeDirectory({ session }: { session: AdminSession }) {
             email: employee.email,
             mobile: employee.mobile,
             department: employee.department,
+            category: employee.category ?? "",
             role: employee.role,
             status: employee.status,
             password: "",
@@ -135,6 +138,7 @@ export function EmployeeDirectory({ session }: { session: AdminSession }) {
     email: form.email,
     mobile: form.mobile,
     department: form.department,
+    category: form.category.trim() ? form.category.trim() : null,
     role: form.role,
     status: form.status,
   };
@@ -306,6 +310,9 @@ export function EmployeeDirectory({ session }: { session: AdminSession }) {
                   <td data-label="Mobile">{employee.mobile}</td>
                   <td data-label="Department">
                     <span className="mw-admin-dept">{employee.department}</span>
+                    {employee.category ? (
+                      <small className="mw-admin-vehicle">{employee.category}</small>
+                    ) : null}
                   </td>
                   <td data-label="Role">
                     <span className={`mw-admin-role is-${employee.role.replace(/_/g, "-")}`}>
@@ -516,7 +523,8 @@ function EmployeeDrawer({
                 />
               </label>
               <p className="mw-admin-hint">
-                Stored as a salted PBKDF2 hash. The employee signs in at /master-admin/login.
+                {" "}
+                Stored as a salted PBKDF2 hash. The employee signs in at /employee-login.
               </p>
             </section>
           ) : (
@@ -574,6 +582,21 @@ function EmployeeDrawer({
                     </select>
                   </label>
                   <label className="mw-admin-field">
+                    <span>Category / desk</span>
+                    <select
+                      value={form.category}
+                      onChange={(event) => set("category", event.target.value)}
+                      data-testid="employee-category"
+                    >
+                      <option value="">Not set</option>
+                      {DEPARTMENT_CATEGORIES[form.department].map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="mw-admin-field">
                     <span>Role</span>
                     <select
                       value={form.role}
@@ -599,6 +622,14 @@ function EmployeeDrawer({
                     </select>
                   </label>
                 </div>
+                <p className="mw-admin-hint" data-testid="employee-desk-board">
+                  {(() => {
+                    const desk = deskForEmployee(form.department, form.category);
+                    return desk
+                      ? `Employee Dashboard board: ${DESK_LABEL[desk]}. Employees only ever see this desk's data.`
+                      : "This department has no employee dashboard board yet.";
+                  })()}
+                </p>
                 <p className="mw-admin-hint" data-testid="employee-desk-hint">
                   Sees{" "}
                   {DEPARTMENT_CASE_TYPES[form.department].length
