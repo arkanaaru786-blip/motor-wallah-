@@ -180,7 +180,13 @@ async function call<T>(path: string, init?: RequestInit): Promise<ApiResult<T>> 
 export async function placeOrder(input: {
   itemType: "parts" | "decor";
   lines: OrderLine[];
-  delivery: { name?: string | undefined; mobile?: string | undefined; city?: string | undefined };
+  delivery: {
+    name?: string | undefined;
+    mobile?: string | undefined;
+    city?: string | undefined;
+    /** Optional receipt address — the order confirmation email is sent here. */
+    email?: string | undefined;
+  };
   notes?: string | undefined;
 }): Promise<PlacedOrder> {
   const result = await call<Order>("/api/orders", {
@@ -198,6 +204,7 @@ export async function placeOrder(input: {
         ...(input.delivery.name ? { name: input.delivery.name } : {}),
         ...(input.delivery.mobile ? { mobile: input.delivery.mobile } : {}),
         ...(input.delivery.city ? { city: input.delivery.city } : {}),
+        ...(input.delivery.email ? { email: input.delivery.email } : {}),
       },
       ...(input.notes ? { notes: input.notes } : {}),
     }),

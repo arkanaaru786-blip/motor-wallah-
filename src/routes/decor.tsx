@@ -354,10 +354,13 @@ function Page() {
     const name = value("name");
     const mobile = value("mobile");
     const city = value("city");
+    const email = value("email");
 
     if (!name || !city) return setError("Please fill in your name and delivery city.");
     if (!/^[0-9+ ]{10,15}$/.test(mobile))
       return setError("Please enter a valid 10-digit mobile number.");
+    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
+      return setError("That email address does not look right — fix it or leave it blank.");
     if (cart.length === 0) return setError("Your cart is empty.");
 
     const total = cartTotal(cart);
@@ -391,7 +394,7 @@ function Page() {
         quantity: line.qty,
         price: line.price,
       })),
-      delivery: { name, mobile, city },
+      delivery: { name, mobile, city, ...(email ? { email } : {}) },
       notes: `Prepaid · Razorpay ${payment.paymentId}`,
     });
 
@@ -406,6 +409,7 @@ function Page() {
         payment: "Prepaid only (UPI / Card / Net Banking)",
         vehicleCategory: vehicle?.label ?? "",
         city,
+        ...(email ? { email } : {}),
         total: String(total),
         items: cart.map((l) => `${l.name} x${l.qty} (${rupees(l.price)})`).join("; "),
         itemLines: String(cartCount(cart)),
@@ -930,6 +934,18 @@ function Page() {
                       required
                       maxLength={140}
                       placeholder="City or full delivery address"
+                    />
+                  </label>
+                  <label className="mw-sell-field mw-sell-field--full">
+                    <span className="mw-sell-field-label">
+                      Email for the order confirmation <small>optional</small>
+                    </span>
+                    <input
+                      className="mw-sell-input"
+                      type="email"
+                      name="email"
+                      maxLength={200}
+                      placeholder="you@example.com"
                     />
                   </label>
                 </div>

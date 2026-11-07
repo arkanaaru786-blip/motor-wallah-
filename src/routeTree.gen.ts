@@ -40,6 +40,7 @@ import { Route as TrackRouteImport } from './routes/track'
 import { Route as WarrantyRouteImport } from './routes/warranty'
 import { Route as WorkshopRouteImport } from './routes/workshop'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
+import { Route as ApiSendEmailRouteImport } from './routes/api/send-email'
 import { Route as BuyIndexRouteImport } from './routes/buy.index'
 import { Route as BuyBikesRouteImport } from './routes/buy.bikes'
 import { Route as BuyBusesRouteImport } from './routes/buy.buses'
@@ -222,6 +223,11 @@ const ApiSplatRoute = ApiSplatRouteImport.update({
   path: '/api/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSendEmailRoute = ApiSendEmailRouteImport.update({
+  id: '/api/send-email',
+  path: '/api/send-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BuyIndexRoute = BuyIndexRouteImport.update({
   id: '/buy/',
   path: '/buy/',
@@ -385,6 +391,7 @@ export interface FileRoutesByFullPath {
   '/warranty': typeof WarrantyRoute
   '/workshop': typeof WorkshopRoute
   '/api/$': typeof ApiSplatRoute
+  '/api/send-email': typeof ApiSendEmailRoute
   '/buy/bikes': typeof BuyBikesRoute
   '/buy/buses': typeof BuyBusesRoute
   '/buy/offers': typeof BuyOffersRoute
@@ -443,6 +450,7 @@ export interface FileRoutesByTo {
   '/warranty': typeof WarrantyRoute
   '/workshop': typeof WorkshopRoute
   '/api/$': typeof ApiSplatRoute
+  '/api/send-email': typeof ApiSendEmailRoute
   '/buy/bikes': typeof BuyBikesRoute
   '/buy/buses': typeof BuyBusesRoute
   '/buy/offers': typeof BuyOffersRoute
@@ -503,6 +511,7 @@ export interface FileRoutesById {
   '/warranty': typeof WarrantyRoute
   '/workshop': typeof WorkshopRoute
   '/api/$': typeof ApiSplatRoute
+  '/api/send-email': typeof ApiSendEmailRoute
   '/buy/bikes': typeof BuyBikesRoute
   '/buy/buses': typeof BuyBusesRoute
   '/buy/offers': typeof BuyOffersRoute
@@ -564,6 +573,7 @@ export interface FileRouteTypes {
     | '/warranty'
     | '/workshop'
     | '/api/$'
+    | '/api/send-email'
     | '/buy/bikes'
     | '/buy/buses'
     | '/buy/offers'
@@ -622,6 +632,7 @@ export interface FileRouteTypes {
     | '/warranty'
     | '/workshop'
     | '/api/$'
+    | '/api/send-email'
     | '/buy/bikes'
     | '/buy/buses'
     | '/buy/offers'
@@ -681,6 +692,7 @@ export interface FileRouteTypes {
     | '/warranty'
     | '/workshop'
     | '/api/$'
+    | '/api/send-email'
     | '/buy/bikes'
     | '/buy/buses'
     | '/buy/offers'
@@ -741,6 +753,7 @@ export interface RootRouteChildren {
   WarrantyRoute: typeof WarrantyRoute
   WorkshopRoute: typeof WorkshopRoute
   ApiSplatRoute: typeof ApiSplatRoute
+  ApiSendEmailRoute: typeof ApiSendEmailRoute
   BuyBikesRoute: typeof BuyBikesRoute
   BuyBusesRoute: typeof BuyBusesRoute
   BuyOffersRoute: typeof BuyOffersRoute
@@ -978,6 +991,13 @@ declare module '@tanstack/react-router' {
       path: '/api/$'
       fullPath: '/api/$'
       preLoaderRoute: typeof ApiSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/send-email': {
+      id: '/api/send-email'
+      path: '/api/send-email'
+      fullPath: '/api/send-email'
+      preLoaderRoute: typeof ApiSendEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/buy/': {
@@ -1233,6 +1253,7 @@ const rootRouteChildren: RootRouteChildren = {
   WarrantyRoute: WarrantyRoute,
   WorkshopRoute: WorkshopRoute,
   ApiSplatRoute: ApiSplatRoute,
+  ApiSendEmailRoute: ApiSendEmailRoute,
   BuyBikesRoute: BuyBikesRoute,
   BuyBusesRoute: BuyBusesRoute,
   BuyOffersRoute: BuyOffersRoute,

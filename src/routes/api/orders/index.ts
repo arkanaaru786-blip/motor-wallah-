@@ -20,6 +20,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { databaseError, resolveCaller, zodDetails } from "@/lib/api/auth";
 import { apiError, json, methodNotAllowed, preflight, readJson } from "@/lib/api/http";
 import { createOrderSchema, ORDER_SELECT, mapOrder } from "@/lib/api/orders";
+import { sendOrderEmails } from "@/lib/email";
 
 export const Route = createFileRoute("/api/orders/")({
   server: {
@@ -45,12 +46,17 @@ export const Route = createFileRoute("/api/orders/")({
 
         const input = parsed.data;
 
+        // The receipt address is carried by the request, not by the order: the
+        // email column does not exist in `orders`, and `place_order` only reads
+        // the delivery details it knows about.
+        const { email: receiptEmail, ...deliveryFields } = input.delivery ?? {};
+
         // The customer id always comes from the verified token, never the body.
         const { data, error } = await caller.db.rpc("place_order", {
           p_shop_id: input.shop_id,
           p_item_type: input.item_type,
           p_items: input.items,
-          p_delivery: input.delivery ?? {},
+          p_delivery: deliveryFields,
           p_notes: input.notes ?? null,
         });
 
@@ -73,7 +79,28 @@ export const Route = createFileRoute("/api/orders/")({
           return apiError("server_error", "The order was created but could not be read back.");
         }
 
-        return json({ data: mapOrder(row as unknown as Record<string, unknown>) }, 201);
+        const order = mapOrder(row as unknown as Record<string, unknown>);
+
+        // Confirmation mail is sent after the order exists and is not awaited:
+        // a Resend outage must never turn a paid order into an error response.
+        void sendOrderEmails({
+          orderRef: order.order_ref || order.id.slice(0, 8).toUpperCase(),
+          itemType: order.item_type,
+          total: order.total_amount,
+          currency: order.currency,
+          name: order.delivery.name ?? undefined,
+          mobile: order.delivery.mobile ?? undefined,
+          email: receiptEmail,
+          city: order.delivery.city ?? undefined,
+          items: order.items.map((item) => ({
+            name: item.name ?? "Item",
+            quantity: item.quantity,
+            price: item.price,
+          })),
+          notes: input.notes,
+        }).catch(() => undefined);
+
+        return json({ data: order }, 201);
       },
 
       GET: () => methodNotAllowed(["POST", "OPTIONS"]),

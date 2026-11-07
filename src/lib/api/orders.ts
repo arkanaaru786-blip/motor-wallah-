@@ -36,6 +36,12 @@ const delivery = z
       .regex(/^[0-9+ ]{10,15}$/, "Enter a 10-digit mobile number")
       .optional(),
     city: z.string().trim().max(80).optional(),
+    /**
+     * Where the confirmation email goes. Never stored or forwarded to the
+     * `place_order` function — the order row has no email column and the
+     * customer's inbox address is not order data.
+     */
+    email: z.string().trim().email("Enter a valid email address").max(200).optional(),
     address: z.string().trim().max(400).optional(),
     pincode: z
       .string()
