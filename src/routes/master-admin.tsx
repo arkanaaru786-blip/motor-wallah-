@@ -62,6 +62,11 @@ const HEADINGS: Record<string, { title: string; subtitle: string }> = {
     title: "Dealer Accounts",
     subtitle: "Every dealer and the single vehicle category their portal is bound to.",
   },
+  partners: {
+    title: "Partner Accounts",
+    subtitle:
+      "Dealers, workshops, auto parts shops and decor studios — one desk, four portal types.",
+  },
   audit: {
     title: "Audit Log",
     subtitle: "Every sensitive action, attributed to a person and a role.",
@@ -80,6 +85,7 @@ function headingFor(pathname: string) {
   if (pathname.startsWith("/master-admin/tracker")) return HEADINGS["tracker"]!;
   if (pathname.startsWith("/master-admin/employees")) return HEADINGS["employees"]!;
   if (pathname.startsWith("/master-admin/dealers")) return HEADINGS["dealers"]!;
+  if (pathname.startsWith("/master-admin/partners")) return HEADINGS["partners"]!;
   if (pathname.startsWith("/master-admin/audit")) return HEADINGS["audit"]!;
   if (pathname.startsWith("/master-admin/automation")) return HEADINGS["automation"]!;
   if (pathname.startsWith("/master-admin/settings")) return HEADINGS["settings"]!;

@@ -20,6 +20,8 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DealerRouteImport } from './routes/dealer'
 import { Route as DealerLoginRouteImport } from './routes/dealer-login'
 import { Route as DecorRouteImport } from './routes/decor'
+import { Route as DecorLoginRouteImport } from './routes/decor-login'
+import { Route as DecorPartnerRouteImport } from './routes/decor-partner'
 import { Route as ExchangeRouteImport } from './routes/exchange'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as FinanceRouteImport } from './routes/finance'
@@ -29,6 +31,8 @@ import { Route as InsuranceRouteImport } from './routes/insurance'
 import { Route as LocationsRouteImport } from './routes/locations'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MasterAdminRouteImport } from './routes/master-admin'
+import { Route as PartsRouteImport } from './routes/parts'
+import { Route as PartsLoginRouteImport } from './routes/parts-login'
 import { Route as RoadsideAssistanceRouteImport } from './routes/roadside-assistance'
 import { Route as RtoRouteImport } from './routes/rto'
 import { Route as ScrapRouteImport } from './routes/scrap'
@@ -39,6 +43,7 @@ import { Route as ServicesRouteImport } from './routes/services'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as WarrantyRouteImport } from './routes/warranty'
 import { Route as WorkshopRouteImport } from './routes/workshop'
+import { Route as WorkshopLoginRouteImport } from './routes/workshop-login'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as BuyIndexRouteImport } from './routes/buy.index'
 import { Route as BuyBikesRouteImport } from './routes/buy.bikes'
@@ -58,6 +63,7 @@ import { Route as MasterAdminAuditRouteImport } from './routes/master-admin.audi
 import { Route as MasterAdminAutomationRouteImport } from './routes/master-admin.automation'
 import { Route as MasterAdminDealersRouteImport } from './routes/master-admin.dealers'
 import { Route as MasterAdminEmployeesRouteImport } from './routes/master-admin.employees'
+import { Route as MasterAdminPartnersRouteImport } from './routes/master-admin.partners'
 import { Route as MasterAdminSettingsRouteImport } from './routes/master-admin.settings'
 import { Route as MasterAdminTrackerRouteImport } from './routes/master-admin.tracker'
 import { Route as MasterAdminLoginRouteImport } from './routes/master-admin_.login'
@@ -122,6 +128,16 @@ const DecorRoute = DecorRouteImport.update({
   path: '/decor',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DecorLoginRoute = DecorLoginRouteImport.update({
+  id: '/decor-login',
+  path: '/decor-login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DecorPartnerRoute = DecorPartnerRouteImport.update({
+  id: '/decor-partner',
+  path: '/decor-partner',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExchangeRoute = ExchangeRouteImport.update({
   id: '/exchange',
   path: '/exchange',
@@ -165,6 +181,16 @@ const LoginRoute = LoginRouteImport.update({
 const MasterAdminRoute = MasterAdminRouteImport.update({
   id: '/master-admin',
   path: '/master-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PartsRoute = PartsRouteImport.update({
+  id: '/parts',
+  path: '/parts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PartsLoginRoute = PartsLoginRouteImport.update({
+  id: '/parts-login',
+  path: '/parts-login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RoadsideAssistanceRoute = RoadsideAssistanceRouteImport.update({
@@ -215,6 +241,11 @@ const WarrantyRoute = WarrantyRouteImport.update({
 const WorkshopRoute = WorkshopRouteImport.update({
   id: '/workshop',
   path: '/workshop',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkshopLoginRoute = WorkshopLoginRouteImport.update({
+  id: '/workshop-login',
+  path: '/workshop-login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
@@ -312,6 +343,11 @@ const MasterAdminEmployeesRoute = MasterAdminEmployeesRouteImport.update({
   path: '/employees',
   getParentRoute: () => MasterAdminRoute,
 } as any)
+const MasterAdminPartnersRoute = MasterAdminPartnersRouteImport.update({
+  id: '/partners',
+  path: '/partners',
+  getParentRoute: () => MasterAdminRoute,
+} as any)
 const MasterAdminSettingsRoute = MasterAdminSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -365,6 +401,8 @@ export interface FileRoutesByFullPath {
   '/dealer': typeof DealerRoute
   '/dealer-login': typeof DealerLoginRoute
   '/decor': typeof DecorRoute
+  '/decor-login': typeof DecorLoginRoute
+  '/decor-partner': typeof DecorPartnerRoute
   '/exchange': typeof ExchangeRoute
   '/faq': typeof FaqRoute
   '/finance': typeof FinanceRoute
@@ -374,6 +412,8 @@ export interface FileRoutesByFullPath {
   '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
   '/master-admin': typeof MasterAdminRouteWithChildren
+  '/parts': typeof PartsRoute
+  '/parts-login': typeof PartsLoginRoute
   '/roadside-assistance': typeof RoadsideAssistanceRoute
   '/rto': typeof RtoRoute
   '/scrap': typeof ScrapRoute
@@ -384,6 +424,7 @@ export interface FileRoutesByFullPath {
   '/track': typeof TrackRoute
   '/warranty': typeof WarrantyRoute
   '/workshop': typeof WorkshopRoute
+  '/workshop-login': typeof WorkshopLoginRoute
   '/api/$': typeof ApiSplatRoute
   '/buy/bikes': typeof BuyBikesRoute
   '/buy/buses': typeof BuyBusesRoute
@@ -400,6 +441,7 @@ export interface FileRoutesByFullPath {
   '/master-admin/automation': typeof MasterAdminAutomationRoute
   '/master-admin/dealers': typeof MasterAdminDealersRoute
   '/master-admin/employees': typeof MasterAdminEmployeesRoute
+  '/master-admin/partners': typeof MasterAdminPartnersRoute
   '/master-admin/settings': typeof MasterAdminSettingsRoute
   '/master-admin/tracker': typeof MasterAdminTrackerRoute
   '/master-admin/login': typeof MasterAdminLoginRoute
@@ -424,6 +466,8 @@ export interface FileRoutesByTo {
   '/dealer': typeof DealerRoute
   '/dealer-login': typeof DealerLoginRoute
   '/decor': typeof DecorRoute
+  '/decor-login': typeof DecorLoginRoute
+  '/decor-partner': typeof DecorPartnerRoute
   '/exchange': typeof ExchangeRoute
   '/faq': typeof FaqRoute
   '/finance': typeof FinanceRoute
@@ -432,6 +476,8 @@ export interface FileRoutesByTo {
   '/insurance': typeof InsuranceRoute
   '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
+  '/parts': typeof PartsRoute
+  '/parts-login': typeof PartsLoginRoute
   '/roadside-assistance': typeof RoadsideAssistanceRoute
   '/rto': typeof RtoRoute
   '/scrap': typeof ScrapRoute
@@ -442,6 +488,7 @@ export interface FileRoutesByTo {
   '/track': typeof TrackRoute
   '/warranty': typeof WarrantyRoute
   '/workshop': typeof WorkshopRoute
+  '/workshop-login': typeof WorkshopLoginRoute
   '/api/$': typeof ApiSplatRoute
   '/buy/bikes': typeof BuyBikesRoute
   '/buy/buses': typeof BuyBusesRoute
@@ -458,6 +505,7 @@ export interface FileRoutesByTo {
   '/master-admin/automation': typeof MasterAdminAutomationRoute
   '/master-admin/dealers': typeof MasterAdminDealersRoute
   '/master-admin/employees': typeof MasterAdminEmployeesRoute
+  '/master-admin/partners': typeof MasterAdminPartnersRoute
   '/master-admin/settings': typeof MasterAdminSettingsRoute
   '/master-admin/tracker': typeof MasterAdminTrackerRoute
   '/master-admin/login': typeof MasterAdminLoginRoute
@@ -483,6 +531,8 @@ export interface FileRoutesById {
   '/dealer': typeof DealerRoute
   '/dealer-login': typeof DealerLoginRoute
   '/decor': typeof DecorRoute
+  '/decor-login': typeof DecorLoginRoute
+  '/decor-partner': typeof DecorPartnerRoute
   '/exchange': typeof ExchangeRoute
   '/faq': typeof FaqRoute
   '/finance': typeof FinanceRoute
@@ -492,6 +542,8 @@ export interface FileRoutesById {
   '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
   '/master-admin': typeof MasterAdminRouteWithChildren
+  '/parts': typeof PartsRoute
+  '/parts-login': typeof PartsLoginRoute
   '/roadside-assistance': typeof RoadsideAssistanceRoute
   '/rto': typeof RtoRoute
   '/scrap': typeof ScrapRoute
@@ -502,6 +554,7 @@ export interface FileRoutesById {
   '/track': typeof TrackRoute
   '/warranty': typeof WarrantyRoute
   '/workshop': typeof WorkshopRoute
+  '/workshop-login': typeof WorkshopLoginRoute
   '/api/$': typeof ApiSplatRoute
   '/buy/bikes': typeof BuyBikesRoute
   '/buy/buses': typeof BuyBusesRoute
@@ -518,6 +571,7 @@ export interface FileRoutesById {
   '/master-admin/automation': typeof MasterAdminAutomationRoute
   '/master-admin/dealers': typeof MasterAdminDealersRoute
   '/master-admin/employees': typeof MasterAdminEmployeesRoute
+  '/master-admin/partners': typeof MasterAdminPartnersRoute
   '/master-admin/settings': typeof MasterAdminSettingsRoute
   '/master-admin/tracker': typeof MasterAdminTrackerRoute
   '/master-admin_/login': typeof MasterAdminLoginRoute
@@ -544,6 +598,8 @@ export interface FileRouteTypes {
     | '/dealer'
     | '/dealer-login'
     | '/decor'
+    | '/decor-login'
+    | '/decor-partner'
     | '/exchange'
     | '/faq'
     | '/finance'
@@ -553,6 +609,8 @@ export interface FileRouteTypes {
     | '/locations'
     | '/login'
     | '/master-admin'
+    | '/parts'
+    | '/parts-login'
     | '/roadside-assistance'
     | '/rto'
     | '/scrap'
@@ -563,6 +621,7 @@ export interface FileRouteTypes {
     | '/track'
     | '/warranty'
     | '/workshop'
+    | '/workshop-login'
     | '/api/$'
     | '/buy/bikes'
     | '/buy/buses'
@@ -579,6 +638,7 @@ export interface FileRouteTypes {
     | '/master-admin/automation'
     | '/master-admin/dealers'
     | '/master-admin/employees'
+    | '/master-admin/partners'
     | '/master-admin/settings'
     | '/master-admin/tracker'
     | '/master-admin/login'
@@ -603,6 +663,8 @@ export interface FileRouteTypes {
     | '/dealer'
     | '/dealer-login'
     | '/decor'
+    | '/decor-login'
+    | '/decor-partner'
     | '/exchange'
     | '/faq'
     | '/finance'
@@ -611,6 +673,8 @@ export interface FileRouteTypes {
     | '/insurance'
     | '/locations'
     | '/login'
+    | '/parts'
+    | '/parts-login'
     | '/roadside-assistance'
     | '/rto'
     | '/scrap'
@@ -621,6 +685,7 @@ export interface FileRouteTypes {
     | '/track'
     | '/warranty'
     | '/workshop'
+    | '/workshop-login'
     | '/api/$'
     | '/buy/bikes'
     | '/buy/buses'
@@ -637,6 +702,7 @@ export interface FileRouteTypes {
     | '/master-admin/automation'
     | '/master-admin/dealers'
     | '/master-admin/employees'
+    | '/master-admin/partners'
     | '/master-admin/settings'
     | '/master-admin/tracker'
     | '/master-admin/login'
@@ -661,6 +727,8 @@ export interface FileRouteTypes {
     | '/dealer'
     | '/dealer-login'
     | '/decor'
+    | '/decor-login'
+    | '/decor-partner'
     | '/exchange'
     | '/faq'
     | '/finance'
@@ -670,6 +738,8 @@ export interface FileRouteTypes {
     | '/locations'
     | '/login'
     | '/master-admin'
+    | '/parts'
+    | '/parts-login'
     | '/roadside-assistance'
     | '/rto'
     | '/scrap'
@@ -680,6 +750,7 @@ export interface FileRouteTypes {
     | '/track'
     | '/warranty'
     | '/workshop'
+    | '/workshop-login'
     | '/api/$'
     | '/buy/bikes'
     | '/buy/buses'
@@ -696,6 +767,7 @@ export interface FileRouteTypes {
     | '/master-admin/automation'
     | '/master-admin/dealers'
     | '/master-admin/employees'
+    | '/master-admin/partners'
     | '/master-admin/settings'
     | '/master-admin/tracker'
     | '/master-admin_/login'
@@ -721,6 +793,8 @@ export interface RootRouteChildren {
   DealerRoute: typeof DealerRoute
   DealerLoginRoute: typeof DealerLoginRoute
   DecorRoute: typeof DecorRoute
+  DecorLoginRoute: typeof DecorLoginRoute
+  DecorPartnerRoute: typeof DecorPartnerRoute
   ExchangeRoute: typeof ExchangeRoute
   FaqRoute: typeof FaqRoute
   FinanceRoute: typeof FinanceRoute
@@ -730,6 +804,8 @@ export interface RootRouteChildren {
   LocationsRoute: typeof LocationsRoute
   LoginRoute: typeof LoginRoute
   MasterAdminRoute: typeof MasterAdminRouteWithChildren
+  PartsRoute: typeof PartsRoute
+  PartsLoginRoute: typeof PartsLoginRoute
   RoadsideAssistanceRoute: typeof RoadsideAssistanceRoute
   RtoRoute: typeof RtoRoute
   ScrapRoute: typeof ScrapRoute
@@ -740,6 +816,7 @@ export interface RootRouteChildren {
   TrackRoute: typeof TrackRoute
   WarrantyRoute: typeof WarrantyRoute
   WorkshopRoute: typeof WorkshopRoute
+  WorkshopLoginRoute: typeof WorkshopLoginRoute
   ApiSplatRoute: typeof ApiSplatRoute
   BuyBikesRoute: typeof BuyBikesRoute
   BuyBusesRoute: typeof BuyBusesRoute
@@ -840,6 +917,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DecorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/decor-login': {
+      id: '/decor-login'
+      path: '/decor-login'
+      fullPath: '/decor-login'
+      preLoaderRoute: typeof DecorLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/decor-partner': {
+      id: '/decor-partner'
+      path: '/decor-partner'
+      fullPath: '/decor-partner'
+      preLoaderRoute: typeof DecorPartnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/exchange': {
       id: '/exchange'
       path: '/exchange'
@@ -901,6 +992,20 @@ declare module '@tanstack/react-router' {
       path: '/master-admin'
       fullPath: '/master-admin'
       preLoaderRoute: typeof MasterAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/parts': {
+      id: '/parts'
+      path: '/parts'
+      fullPath: '/parts'
+      preLoaderRoute: typeof PartsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/parts-login': {
+      id: '/parts-login'
+      path: '/parts-login'
+      fullPath: '/parts-login'
+      preLoaderRoute: typeof PartsLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/roadside-assistance': {
@@ -971,6 +1076,13 @@ declare module '@tanstack/react-router' {
       path: '/workshop'
       fullPath: '/workshop'
       preLoaderRoute: typeof WorkshopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workshop-login': {
+      id: '/workshop-login'
+      path: '/workshop-login'
+      fullPath: '/workshop-login'
+      preLoaderRoute: typeof WorkshopLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/$': {
@@ -1106,6 +1218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MasterAdminEmployeesRouteImport
       parentRoute: typeof MasterAdminRoute
     }
+    '/master-admin/partners': {
+      id: '/master-admin/partners'
+      path: '/partners'
+      fullPath: '/master-admin/partners'
+      preLoaderRoute: typeof MasterAdminPartnersRouteImport
+      parentRoute: typeof MasterAdminRoute
+    }
     '/master-admin/settings': {
       id: '/master-admin/settings'
       path: '/settings'
@@ -1182,6 +1301,7 @@ interface MasterAdminRouteChildren {
   MasterAdminAutomationRoute: typeof MasterAdminAutomationRoute
   MasterAdminDealersRoute: typeof MasterAdminDealersRoute
   MasterAdminEmployeesRoute: typeof MasterAdminEmployeesRoute
+  MasterAdminPartnersRoute: typeof MasterAdminPartnersRoute
   MasterAdminSettingsRoute: typeof MasterAdminSettingsRoute
   MasterAdminTrackerRoute: typeof MasterAdminTrackerRoute
   MasterAdminIndexRoute: typeof MasterAdminIndexRoute
@@ -1192,6 +1312,7 @@ const MasterAdminRouteChildren: MasterAdminRouteChildren = {
   MasterAdminAutomationRoute: MasterAdminAutomationRoute,
   MasterAdminDealersRoute: MasterAdminDealersRoute,
   MasterAdminEmployeesRoute: MasterAdminEmployeesRoute,
+  MasterAdminPartnersRoute: MasterAdminPartnersRoute,
   MasterAdminSettingsRoute: MasterAdminSettingsRoute,
   MasterAdminTrackerRoute: MasterAdminTrackerRoute,
   MasterAdminIndexRoute: MasterAdminIndexRoute,
@@ -1213,6 +1334,8 @@ const rootRouteChildren: RootRouteChildren = {
   DealerRoute: DealerRoute,
   DealerLoginRoute: DealerLoginRoute,
   DecorRoute: DecorRoute,
+  DecorLoginRoute: DecorLoginRoute,
+  DecorPartnerRoute: DecorPartnerRoute,
   ExchangeRoute: ExchangeRoute,
   FaqRoute: FaqRoute,
   FinanceRoute: FinanceRoute,
@@ -1222,6 +1345,8 @@ const rootRouteChildren: RootRouteChildren = {
   LocationsRoute: LocationsRoute,
   LoginRoute: LoginRoute,
   MasterAdminRoute: MasterAdminRouteWithChildren,
+  PartsRoute: PartsRoute,
+  PartsLoginRoute: PartsLoginRoute,
   RoadsideAssistanceRoute: RoadsideAssistanceRoute,
   RtoRoute: RtoRoute,
   ScrapRoute: ScrapRoute,
@@ -1232,6 +1357,7 @@ const rootRouteChildren: RootRouteChildren = {
   TrackRoute: TrackRoute,
   WarrantyRoute: WarrantyRoute,
   WorkshopRoute: WorkshopRoute,
+  WorkshopLoginRoute: WorkshopLoginRoute,
   ApiSplatRoute: ApiSplatRoute,
   BuyBikesRoute: BuyBikesRoute,
   BuyBusesRoute: BuyBusesRoute,

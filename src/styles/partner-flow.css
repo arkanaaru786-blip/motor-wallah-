@@ -1,0 +1,772 @@
+/* ==========================================================================
+   PARTNER PORTALS (.mw-partner) — Workshop, Auto Parts, Decor.
+   Same light theme + glassmorphism as the dealer portal. The dealer surface
+   classes are reused; this file adds the partner-specific accent, job card,
+   inventory and printable invoice pieces. Every rule is scoped under
+   .mw-partner (print rules only under the invoice body class).
+   ========================================================================== */
+
+.mw-partner {
+  --partner-shadow: 0 18px 44px -28px rgba(15, 17, 24, 0.4);
+}
+
+.mw-partner[data-partner-type="workshop"] {
+  --dlr-red: oklch(0.55 0.16 245);
+  --dlr-red-soft: oklch(0.55 0.16 245 / 0.1);
+}
+
+.mw-partner[data-partner-type="parts"] {
+  --dlr-red: oklch(0.52 0.14 165);
+  --dlr-red-soft: oklch(0.52 0.14 165 / 0.1);
+}
+
+.mw-partner[data-partner-type="decor"] {
+  --dlr-red: oklch(0.55 0.18 305);
+  --dlr-red-soft: oklch(0.55 0.18 305 / 0.1);
+}
+
+.mw-partner .mw-dealer-kpi.is-hero {
+  border-color: color-mix(in oklab, var(--dlr-red) 28%, transparent);
+  background:
+    radial-gradient(
+      320px 150px at 92% -30%,
+      color-mix(in oklab, var(--dlr-red) 18%, transparent),
+      transparent 70%
+    ),
+    var(--dlr-surface-solid);
+}
+
+.mw-partner .mw-dealer-field input:focus,
+.mw-partner .mw-dealer-field select:focus,
+.mw-partner .mw-dealer-field textarea:focus {
+  border-color: var(--dlr-red);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--dlr-red) 14%, transparent);
+}
+
+.mw-partner .mw-dealer-chip.is-progress,
+.mw-partner .mw-dealer-chip.is-packed {
+  background: oklch(0.55 0.16 245 / 0.12);
+  border-color: oklch(0.55 0.16 245 / 0.28);
+  color: oklch(0.44 0.14 245);
+}
+
+.mw-partner .mw-dealer-chip.is-parts {
+  background: oklch(0.65 0.14 55 / 0.14);
+  border-color: oklch(0.65 0.14 55 / 0.32);
+  color: oklch(0.48 0.13 55);
+}
+
+.mw-partner .mw-dealer-chip.is-ready {
+  background: oklch(0.55 0.16 300 / 0.12);
+  border-color: oklch(0.55 0.16 300 / 0.28);
+  color: oklch(0.45 0.15 300);
+}
+
+.mw-partner .mw-dealer-chip.is-shipped {
+  background: oklch(0.52 0.17 275 / 0.12);
+  border-color: oklch(0.52 0.17 275 / 0.28);
+  color: oklch(0.44 0.16 275);
+}
+
+.mw-partner .mw-dealer-chip.is-delivered {
+  background: oklch(0.55 0.13 150 / 0.12);
+  border-color: oklch(0.55 0.13 150 / 0.28);
+  color: oklch(0.42 0.12 150);
+}
+
+.mw-partner .mw-dealer-chip.is-cancelled {
+  background: oklch(0.55 0.223 27.5 / 0.12);
+  border-color: oklch(0.55 0.223 27.5 / 0.28);
+  color: var(--dlr-red);
+}
+
+/* --------------------------------------------------------------- identities */
+
+.mw-partner-id,
+.mw-partner-id-input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.04em;
+}
+
+.mw-partner-id-input {
+  text-transform: uppercase;
+}
+
+.mw-partner .mw-dealer-brand-mark svg {
+  stroke-width: 2.1;
+}
+
+/* ------------------------------------------------------------------- login */
+
+.mw-partner-login .mw-dealer-login-aside {
+  background:
+    radial-gradient(
+      420px 200px at 90% -10%,
+      color-mix(in oklab, var(--dlr-red) 14%, transparent),
+      transparent 70%
+    ),
+    var(--dlr-surface-solid);
+}
+
+.mw-partner-switcher {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--dlr-line);
+  display: grid;
+  gap: 7px;
+}
+
+.mw-partner-switcher > span {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--dlr-muted);
+}
+
+.mw-partner-switcher > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mw-partner-switcher a {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--dlr-line);
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 0.72rem;
+  font-weight: 600;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.mw-partner-switcher a:hover {
+  border-color: var(--dlr-red);
+  color: var(--dlr-red);
+}
+
+/* --------------------------------------------------------------- toolbar */
+
+.mw-partner-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mw-partner-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid var(--dlr-line-strong);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--dlr-muted);
+}
+
+.mw-partner-search input {
+  border: 0;
+  background: transparent;
+  outline: none;
+  padding: 8px 0;
+  font-size: 0.79rem;
+  min-width: 200px;
+  color: var(--dlr-ink);
+}
+
+.mw-partner .mw-admin-select select {
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--dlr-line-strong);
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 0.79rem;
+}
+
+/* --------------------------------------------------------------- job list */
+
+.mw-partner-joblist {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mw-partner-joblist > li > button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 13px;
+  border-radius: 11px;
+  border: 1px solid var(--dlr-line);
+  background: rgba(255, 255, 255, 0.72);
+  text-align: left;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mw-partner-joblist > li > button:hover {
+  border-color: var(--dlr-red);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px -20px rgba(15, 17, 24, 0.55);
+}
+
+.mw-partner-joblist-lead {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mw-partner-joblist-lead strong {
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.mw-partner-joblist-lead span {
+  font-size: 0.72rem;
+  color: var(--dlr-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mw-partner-joblist-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  font-size: 0.72rem;
+  color: var(--dlr-muted);
+}
+
+/* ------------------------------------------------------------ job detail */
+
+.mw-partner-facts {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+  border-radius: 11px;
+  border: 1px solid var(--dlr-line);
+  background: rgba(255, 255, 255, 0.62);
+  margin-bottom: 14px;
+}
+
+.mw-partner-facts > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mw-partner-facts span {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--dlr-muted);
+}
+
+.mw-partner-facts strong {
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.mw-partner-tel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--dlr-red);
+}
+
+.mw-partner-plate {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid var(--dlr-line-strong);
+  background: #fff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.06em;
+  width: fit-content;
+}
+
+.mw-partner-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.mw-partner-block {
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+}
+
+.mw-partner-block h3 {
+  margin-top: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--dlr-muted);
+}
+
+.mw-partner-inline {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.mw-partner-inline select,
+.mw-partner-inline input {
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--dlr-line-strong);
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 0.8rem;
+  outline: none;
+}
+
+.mw-partner-inline input {
+  width: 130px;
+}
+
+.mw-partner-timeline {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mw-partner-timeline li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 9px;
+  border-radius: 9px;
+  border: 1px solid var(--dlr-line);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.mw-partner-timeline .is-meta {
+  font-size: 0.69rem;
+  color: var(--dlr-muted);
+  white-space: nowrap;
+}
+
+.mw-partner-mini-table {
+  min-width: 420px;
+}
+
+.mw-partner-part-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px 90px auto;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.mw-partner-part-form input {
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--dlr-line-strong);
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 0.76rem;
+  min-width: 0;
+  outline: none;
+}
+
+.mw-partner-note-form {
+  display: grid;
+  gap: 7px;
+}
+
+.mw-partner-note-form textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: 9px;
+  border: 1px solid var(--dlr-line-strong);
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 0.8rem;
+  resize: vertical;
+  outline: none;
+}
+
+.mw-partner-note-form button {
+  justify-self: start;
+}
+
+.mw-partner-notes {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mw-partner-notes li {
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid var(--dlr-line);
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.mw-partner-notes p {
+  margin-top: 4px;
+  font-size: 0.79rem;
+  line-height: 1.45;
+}
+
+.mw-partner-notes small {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.68rem;
+  color: var(--dlr-muted);
+}
+
+.mw-partner-note-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.72rem;
+}
+
+.mw-partner-note-head strong {
+  font-weight: 650;
+}
+
+.mw-partner-note-head span {
+  color: var(--dlr-muted);
+  white-space: nowrap;
+}
+
+.mw-partner-address {
+  margin-bottom: 14px;
+  font-size: 0.79rem;
+  line-height: 1.5;
+  color: var(--dlr-muted);
+}
+
+.mw-partner-address strong {
+  color: var(--dlr-ink);
+}
+
+.mw-partner-total {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 9px;
+  font-size: 0.78rem;
+  color: var(--dlr-muted);
+}
+
+.mw-partner-total strong {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--dlr-ink);
+}
+
+/* ------------------------------------------------------- issued credentials */
+
+.mw-partner-issued {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mw-partner-issued li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-radius: 11px;
+  border: 1px solid var(--dlr-line);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.mw-partner-issued > li > div:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 190px;
+}
+
+.mw-partner-issued > li > div:first-child span {
+  font-size: 0.71rem;
+  color: var(--dlr-muted);
+}
+
+.mw-partner-issued code {
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: rgba(15, 17, 24, 0.06);
+  border: 1px dashed var(--dlr-line-strong);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.mw-partner-issued .mw-dealer-actions {
+  margin-left: auto;
+}
+
+/* --------------------------------------------------------------- invoice */
+
+.mw-invoice-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 17, 24, 0.42);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.mw-invoice {
+  width: min(720px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: #fff;
+  box-shadow: 0 34px 80px -40px rgba(15, 17, 24, 0.55);
+  color: oklch(0.19 0.006 265);
+}
+
+.mw-invoice-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(18, 19, 26, 0.09);
+  background: rgba(243, 244, 247, 0.7);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.mw-invoice-print {
+  padding: 26px 28px 30px;
+  display: grid;
+  gap: 18px;
+  background: #fff;
+}
+
+.mw-invoice-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid oklch(0.19 0.006 265);
+}
+
+.mw-invoice-head > div {
+  display: grid;
+  gap: 3px;
+}
+
+.mw-invoice-head > div:first-child strong {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.mw-invoice-head span {
+  font-size: 0.74rem;
+  color: oklch(0.5 0.01 265);
+}
+
+.mw-invoice-meta {
+  text-align: right;
+}
+
+.mw-invoice-meta strong {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mw-invoice-billto {
+  display: grid;
+  gap: 2px;
+  font-size: 0.79rem;
+}
+
+.mw-invoice-billto > span {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: oklch(0.5 0.01 265);
+}
+
+.mw-invoice-billto p {
+  margin-top: 3px;
+  line-height: 1.5;
+  color: oklch(0.42 0.01 265);
+}
+
+.mw-invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.mw-invoice-table th {
+  text-align: left;
+  padding: 8px 9px;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(15, 17, 24, 0.045);
+  border-top: 1px solid rgba(18, 19, 26, 0.12);
+  border-bottom: 1px solid rgba(18, 19, 26, 0.12);
+}
+
+.mw-invoice-table td {
+  padding: 9px;
+  border-bottom: 1px solid rgba(18, 19, 26, 0.09);
+}
+
+.mw-invoice-table th:not(:first-child),
+.mw-invoice-table td:not(:first-child) {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.mw-invoice-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 13px;
+  border-radius: 9px;
+  background: rgba(15, 17, 24, 0.05);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.mw-invoice-total strong {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+}
+
+.mw-invoice-foot {
+  display: grid;
+  gap: 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(18, 19, 26, 0.09);
+  font-size: 0.74rem;
+  color: oklch(0.42 0.01 265);
+}
+
+.mw-invoice-foot small {
+  color: oklch(0.52 0.01 265);
+}
+
+/* ------------------------------------------------------------------ print */
+
+@media print {
+  body.mw-printing-invoice * {
+    visibility: hidden;
+  }
+
+  body.mw-printing-invoice .mw-invoice-overlay,
+  body.mw-printing-invoice .mw-invoice-overlay * {
+    visibility: visible;
+  }
+
+  body.mw-printing-invoice .mw-invoice-overlay {
+    position: absolute;
+    inset: 0;
+    display: block;
+    padding: 0;
+    background: #fff;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  body.mw-printing-invoice .mw-invoice {
+    width: 100%;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  body.mw-printing-invoice .mw-invoice-actions {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------- responsive */
+
+@media (max-width: 1180px) {
+  .mw-partner-facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 960px) {
+  .mw-partner-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .mw-partner-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mw-partner-toolbar {
+    width: 100%;
+  }
+  .mw-partner-search {
+    flex: 1 1 100%;
+  }
+  .mw-partner-search input {
+    width: 100%;
+    min-width: 0;
+  }
+  .mw-partner-part-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mw-partner-joblist > li > button {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .mw-partner-joblist-meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .mw-invoice-overlay {
+    padding: 10px;
+  }
+  .mw-invoice-print {
+    padding: 18px 16px 22px;
+  }
+  .mw-invoice-head {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .mw-invoice-meta {
+    text-align: left;
+  }
+}

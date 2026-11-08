@@ -293,6 +293,23 @@ export function setDealerCategory(id: string, category: DealerCategoryId): Deale
   return { ok: true, dealer: next };
 }
 
+/** Admin reset: replaces the password hash for an existing dealer login. */
+export async function setDealerPassword(id: string, password: string): Promise<DealerResult> {
+  if (!cryptoAvailable()) {
+    return { ok: false, error: "This browser cannot hash passwords." };
+  }
+  const weak = validatePasswordStrength(password);
+  if (weak) return { ok: false, error: weak };
+  const dealers = readAll();
+  const dealer = dealers.find((item) => item.id === id);
+  if (!dealer) return { ok: false, error: "That dealer no longer exists." };
+  const credential = await createPasswordCredential(password);
+  const next: Dealer = { ...dealer, credential };
+  writeAll(dealers.map((item) => (item.id === id ? next : item)));
+  notify();
+  return { ok: true, dealer: next };
+}
+
 export function dealerCategoriesInUse(dealers: Dealer[]): DealerCategoryId[] {
   return DEALER_CATEGORIES.map((category) => category.id).filter((id) =>
     dealers.some((dealer) => dealer.category === id),

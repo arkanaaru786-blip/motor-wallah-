@@ -38,7 +38,6 @@ const LOCKED: { label: string; icon: typeof LayoutDashboard; phase: string }[] =
   { label: "Inventory & Listings", icon: Boxes, phase: "Phase 4" },
   { label: "Finance Desk", icon: Wallet, phase: "Phase 4" },
   { label: "Reports & Analytics", icon: BarChart3, phase: "Phase 4" },
-  { label: "Partners & Studios", icon: Building2, phase: "Phase 4" },
 ];
 
 const initials = (name: string) =>
@@ -100,6 +99,9 @@ export function AdminShell({
   }
   if (can(actor, "employee.view")) {
     nav.push({ to: "/master-admin/dealers", label: "Dealers", icon: Store });
+  }
+  if (can(actor, "employee.view")) {
+    nav.push({ to: "/master-admin/partners", label: "Partners", icon: Building2 });
   }
   if (can(actor, "audit.view")) {
     nav.push({ to: "/master-admin/audit", label: "Audit Log", icon: ScrollText });

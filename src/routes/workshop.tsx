@@ -1,23 +1,44 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PagePlaceholder } from "@/components/site/PagePlaceholder";
+import { useEffect } from "react";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 
-const TITLE = "Complete Car Care Workshop | Motor Wallah";
-const DESCRIPTION = "Mechanical, electrical, denting, painting and detailing works under one roof.";
+import { WorkshopPortal } from "@/components/partner/WorkshopPortal";
+import { currentPartner, usePartnerSession } from "@/lib/partner-session";
 
 export const Route = createFileRoute("/workshop")({
+  beforeLoad: () => {
+    if (typeof window === "undefined") return;
+    if (!currentPartner("workshop")) throw redirect({ to: "/workshop-login" });
+  },
   head: () => ({
     meta: [
-      { title: TITLE },
-      { name: "description", content: DESCRIPTION },
-      { property: "og:title", content: TITLE },
-      { property: "og:description", content: DESCRIPTION },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { title: "Workshop Portal | Motor Wallah" },
+      {
+        name: "description",
+        content:
+          "Workshop partner desk: job cards, mechanic notes, parts used and delivery status.",
+      },
+      { name: "robots", content: "noindex, nofollow" },
     ],
   }),
-  component: Page,
+  component: WorkshopRoute,
 });
 
-function Page() {
-  return <PagePlaceholder title="Complete Car Care Workshop" description="Mechanical, electrical, denting, painting and detailing works under one roof." />;
+function WorkshopRoute() {
+  const { ready, session } = usePartnerSession("workshop");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (ready && !session) void navigate({ to: "/workshop-login", replace: true });
+  }, [ready, session, navigate]);
+
+  if (!ready || !session) {
+    return (
+      <div className="mw-dealer mw-dealer-loading mw-partner" aria-busy="true">
+        <span className="mw-dealer-loading-dot" />
+        Opening your workshop portal…
+      </div>
+    );
+  }
+
+  return <WorkshopPortal session={session} />;
 }

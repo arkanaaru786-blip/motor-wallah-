@@ -71,6 +71,11 @@ export const CLOUD_COLLECTIONS = [
   // Dealer portal
   "mw_dealers_v1",
   "mw_dealer_portal_v1",
+  // Partner portals (workshop / auto parts / decor)
+  "mw_partners_v1",
+  "mw_partner_jobs_v1",
+  "mw_partner_orders_v1",
+  "mw_partner_inventory_v1",
 ] as const;
 
 const CLOUD_KEYS = new Set<string>(CLOUD_COLLECTIONS);
