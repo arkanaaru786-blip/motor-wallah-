@@ -5,9 +5,9 @@
  * They stay `let` bindings so every existing import sees the updated value on
  * the next render without touching a single component.
  */
-export let PHONE_DISPLAY = "1800 123 4567";
-export let PHONE_HREF = "tel:18001234567";
-export let WHATSAPP_BASE = "https://wa.me/919999999999";
+export let PHONE_DISPLAY = "9691938533";
+export let PHONE_HREF = "tel:+919691938533";
+export let WHATSAPP_BASE = "https://wa.me/919691938533";
 
 /**
  * Support inbox. The footer shows this; leaving the field empty in Settings keeps

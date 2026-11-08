@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { BadgeCheck, IndianRupee, Tag, X } from "lucide-react";
 import { buyListingName, rupees, type BuyListing } from "@/lib/buy-catalog";
 import { saveOffer, type ListingOffer } from "@/lib/listing-offers";
+import { WHATSAPP_BASE } from "@/lib/site";
 
 /**
  * Section F — Make an Offer.
@@ -142,18 +143,19 @@ export function MakeOfferDialog({
             </p>
 
             <div className="buy-chat-notice">
-              <strong>No seller offer backend is connected yet.</strong>                <p>
-                  This offer is stored on this device (and in this project&apos;s local lead queue)
-                  against {vehicleName}. It has <em>not</em> been transmitted to a seller, no one has
-                  accepted or rejected it, and the asking price stays {askingLabel}. Accepted,
-                  Rejected and Counter statuses only appear once seller-side tooling exists. For a
-                  real response now, use Call or WhatsApp below.
-                </p>
+              <strong>No seller offer backend is connected yet.</strong>{" "}
+              <p>
+                This offer is stored on this device (and in this project&apos;s local lead queue)
+                against {vehicleName}. It has <em>not</em> been transmitted to a seller, no one has
+                accepted or rejected it, and the asking price stays {askingLabel}. Accepted,
+                Rejected and Counter statuses only appear once seller-side tooling exists. For a
+                real response now, use Call or WhatsApp below.
+              </p>
             </div>
 
             <div className="buy-chat-actions">
               <a
-                href={`https://wa.me/919999999999?text=${encodeURIComponent(
+                href={`${WHATSAPP_BASE}?text=${encodeURIComponent(
                   `Hello MOTOR WALLAH, I would like to offer ${rupees(saved.amount)} for the ${vehicleName} listed in ${listing.city}. Asking price: ${askingLabel}.`,
                 )}`}
                 target="_blank"

@@ -24,21 +24,28 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
       { label: "Insurance", to: "/insurance" },
       { label: "RTO", to: "/rto" },
       { label: "Workshop", to: "/workshop" },
-      { label: "Warranty", to: "/warranty" },
-      { label: "Roadside Assistance", to: "/roadside-assistance" },
+      { label: "Warranty & RSA", to: "/warranty-rsa" },
     ],
   },
   {
     title: "Support",
     links: [
-      { label: "Contact", to: "/contact" },
+      { label: "Contact Us", to: "/contact" },
       { label: "Book Service", to: "/services" },
-      { label: "FAQs", to: "/faq" },
+      { label: "FAQs", to: "/faqs" },
+      { label: "RTO Services", to: "/rto" },
+      { label: "Track a Request", to: "/track" },
     ],
   },
 ];
 
-const LEGAL = ["Privacy Policy", "Terms & Conditions", "Refund/Cancellation Policy", "Disclaimer"];
+/** Every legal link resolves to a published page, so the footer has no dead ends. */
+const LEGAL = [
+  { label: "Privacy Policy", to: "/privacy" },
+  { label: "Terms & Conditions", to: "/terms" },
+  { label: "Refund & Cancellation", to: "/refund" },
+  { label: "Disclaimer", to: "/disclaimer" },
+] as const;
 
 export function SiteFooter() {
   return (
@@ -153,15 +160,15 @@ export function SiteFooter() {
       <div className="border-t border-ink-foreground/10">
         <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-4 py-5 text-xs text-ink-foreground/60 lg:flex-row lg:items-center lg:px-8">
           <ul className="flex flex-wrap gap-x-5 gap-y-2">
-            {LEGAL.map((l) => (
-              <li key={l}>
-                <span className="cursor-default">{l}</span>
+            {LEGAL.map((link) => (
+              <li key={link.to}>
+                <Link to={link.to} className="transition-colors hover:text-primary">
+                  {link.label}
+                </Link>
               </li>
             ))}
           </ul>
-          <span className="lg:ml-auto">
-            © {new Date().getFullYear()} Motor Wallah. All rights reserved.
-          </span>
+          <span className="lg:ml-auto">© 2026 Motor Wallah. All rights reserved.</span>
         </div>
       </div>
     </footer>
