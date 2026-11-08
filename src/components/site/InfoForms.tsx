@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Send } from "lucide-react";
 import { submitLead } from "@/lib/leads";
+import { useCustomerSession } from "@/lib/account-store";
+import { requestCustomerLogin } from "@/lib/customer-gate";
 import { BRAND_NAMES, CURRENT_YEAR, modelsForBrand } from "@/lib/vehicle-catalog";
 import {
   CATEGORIES,
@@ -27,6 +29,7 @@ const CONTACT_TOPICS = [
 ] as const;
 
 export function ContactForm() {
+  const { customer } = useCustomerSession();
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
@@ -36,6 +39,38 @@ export function ContactForm() {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+
+  // Signing in fills the form in — the visitor should never retype what the
+  // account already knows.
+  useEffect(() => {
+    if (!customer) return;
+    setName((value) => value || customer.name);
+    setMobile((value) => value || customer.mobile);
+    setEmail((value) => value || customer.email);
+  }, [customer]);
+
+  const send = async () => {
+    setError(null);
+    setSending(true);
+    try {
+      await submitLead({
+        type: "general_enquiry",
+        source: "contact",
+        name: name.trim(),
+        mobile: mobile.trim(),
+        fields: {
+          topic,
+          message: message.trim(),
+          ...(email.trim() ? { email: email.trim() } : {}),
+        },
+      });
+      setSent(true);
+    } catch {
+      setError("We could not send that just now. Please call us or try again.");
+    } finally {
+      setSending(false);
+    }
+  };
 
   if (sent) {
     return (
@@ -68,7 +103,7 @@ export function ContactForm() {
     <form
       className="mw-info-form"
       noValidate
-      onSubmit={async (event) => {
+      onSubmit={(event) => {
         event.preventDefault();
         if (sending) return;
         if (name.trim().length < 2) return setError("Please enter your full name.");
@@ -80,25 +115,13 @@ export function ContactForm() {
           return setError("Please add a few words about what you need (at least 10 characters).");
         if (!consent) return setError("Please allow us to contact you about this enquiry.");
         setError(null);
-        setSending(true);
-        try {
-          await submitLead({
-            type: "general_enquiry",
-            source: "contact",
-            name: name.trim(),
-            mobile: mobile.trim(),
-            fields: {
-              topic,
-              message: message.trim(),
-              ...(email.trim() ? { email: email.trim() } : {}),
-            },
-          });
-          setSent(true);
-        } catch {
-          setError("We could not send that just now. Please call us or try again.");
-        } finally {
-          setSending(false);
+        // Smart login: the support form is gated, and verification continues the
+        // send automatically with the details already filled in.
+        if (!customer) {
+          requestCustomerLogin({ reason: "contact", onSuccess: () => void send() });
+          return;
         }
+        void send();
       }}
     >
       <label className="mw-info-field">
@@ -189,6 +212,12 @@ export function ContactForm() {
           <Send className="h-4 w-4" aria-hidden="true" />
           {sending ? "Sending…" : "Send message"}
         </button>
+        {!customer ? (
+          <p className="mw-info-hint" data-testid="contact-signin-hint">
+            You will verify your mobile number once before sending. Your name and number are filled
+            in from your account automatically.
+          </p>
+        ) : null}
       </div>
     </form>
   );

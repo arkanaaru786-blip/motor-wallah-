@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { BadgeCheck, IndianRupee, Tag, X } from "lucide-react";
 import { buyListingName, rupees, type BuyListing } from "@/lib/buy-catalog";
 import { saveOffer, type ListingOffer } from "@/lib/listing-offers";
+import { useCustomerSession } from "@/lib/account-store";
 import { WHATSAPP_BASE } from "@/lib/site";
 
 /**
@@ -30,6 +31,15 @@ export function MakeOfferDialog({
   const [error, setError] = useState("");
   const [saved, setSaved] = useState<ListingOffer | null>(null);
   const [busy, setBusy] = useState(false);
+  const { customer } = useCustomerSession();
+
+  // The offer is gated behind a verified customer, so fill in what the account
+  // already knows instead of asking for it twice.
+  useEffect(() => {
+    if (!open || !customer) return;
+    setName((value) => value || customer.name);
+    setMobile((value) => value || customer.mobile);
+  }, [open, customer]);
 
   if (!open) return null;
 

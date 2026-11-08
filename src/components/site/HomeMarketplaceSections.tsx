@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MakeOfferDialog } from "@/components/buy/MakeOfferDialog";
+import { gateCustomerAction } from "@/lib/customer-gate";
 import { useShortlist } from "@/lib/shortlist";
 import { BUY_CATEGORY_LIST, getBuyListing, lakhLabel, listingsInCategory } from "@/lib/buy-catalog";
 import franchiseShowroom from "@/assets/franchise-showroom.jpg";
@@ -323,7 +324,7 @@ export function PopularVehicles() {
                     <button
                       type="button"
                       className="home-listing-offer"
-                      onClick={() => setOfferId(listing.id)}
+                      onClick={() => gateCustomerAction("offer", () => setOfferId(listing.id))}
                     >
                       Make an Offer
                     </button>

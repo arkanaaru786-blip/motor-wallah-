@@ -85,21 +85,23 @@ function EmployeeLoginPage() {
           <div className="mw-admin-gate-cardhead">
             <div>
               <h2 id="employee-login-title">Employee sign in</h2>
-              <p>Use the work email or employee ID your administrator created for you.</p>
+              <p>Use the employee ID and password your administrator created for you.</p>
             </div>
             <span className="mw-admin-badge">Staff</span>
           </div>
 
           <form className="mw-admin-form" onSubmit={handleSubmit} noValidate>
             <label className="mw-admin-field">
-              <span>Work email or employee ID</span>
+              <span>Employee ID</span>
               <div className="mw-admin-input">
                 <UserRound size={16} />
                 <input
                   type="text"
-                  name="identity"
+                  name="username"
                   autoComplete="username"
-                  placeholder="priyanka.shah@motorwallah.in or EMP-1004"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  placeholder="EMP-1004"
                   value={identity}
                   onChange={(event) => setIdentity(event.target.value)}
                   data-testid="employee-identity"
@@ -130,6 +132,11 @@ function EmployeeLoginPage() {
                 {error}
               </p>
             ) : null}
+
+            <p className="mw-admin-hint" data-testid="employee-forgot-hint">
+              Forgot your password? An administrator resets it from Master Admin → Employees and
+              shares the new temporary password with you.
+            </p>
 
             <button
               type="submit"
@@ -181,6 +188,9 @@ function EmployeeLoginPage() {
               Administrators manage employees at{" "}
               <Link to="/master-admin/employees">Master Admin → Employees</Link>.
             </span>
+            <Link to="/login">
+              <UserRound size={13} /> Customer login
+            </Link>
             <Link to="/">
               <LogOut size={13} /> Back to Motor Wallah
             </Link>

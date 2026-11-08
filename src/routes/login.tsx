@@ -204,7 +204,7 @@ function LoginPage() {
                         data-testid="login-mobile"
                         className="mw-acct-input"
                         inputMode="numeric"
-                        autoComplete="tel-national"
+                        autoComplete="username"
                         maxLength={10}
                         placeholder="98765 43210"
                         value={mobileInput}
@@ -364,6 +364,10 @@ function LoginPage() {
                 <p className="mw-acct-legal">
                   By continuing you agree to Motor Wallah&apos;s terms and privacy policy. This demo
                   stores your profile on this device only.
+                </p>
+                <p className="mw-acct-authswitch" data-testid="other-logins">
+                  Partner or staff? <Link to="/dealer-login">Partner login</Link> ·{" "}
+                  <Link to="/employee-login">Employee login</Link>
                 </p>
               </>
             )}

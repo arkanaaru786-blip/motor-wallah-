@@ -22,6 +22,7 @@
 @import "./styles/employee-flow.css";
 @import "./styles/dealer-flow.css";
 @import "./styles/info-pages.css";
+@import "./styles/auth-flow.css";
 @import "./styles/site-chrome.css";
 
 @custom-variant dark (&:is(.dark *));

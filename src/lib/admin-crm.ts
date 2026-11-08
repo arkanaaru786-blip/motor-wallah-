@@ -37,6 +37,7 @@ import {
   validatePasswordStrength,
   verifyPasswordCredential,
 } from "./admin-crypto";
+import { generateTemporaryPassword } from "./partner-ids";
 
 /* ------------------------------------------------------------------ types */
 
@@ -1449,7 +1450,14 @@ export type EmployeeInput = {
   status: EmployeeStatus;
 };
 
-export type EmployeeResult = { ok: true; employee: AdminEmployee } | { ok: false; error: string };
+export type EmployeeResult =
+  | {
+      ok: true;
+      employee: AdminEmployee;
+      /** Set only when this call generated a temporary password to share. */
+      password?: string;
+    }
+  | { ok: false; error: string };
 
 export function nextEmployeeId(employees: AdminEmployee[]): string {
   const highest = employees.reduce((acc, item) => {
@@ -1515,7 +1523,7 @@ function recordEmployeeDenial(actor: Actor, summary: string, target = "—") {
 }
 
 export async function createEmployee(
-  input: EmployeeInput & { password: string },
+  input: EmployeeInput & { password?: string },
   actor: Actor,
 ): Promise<EmployeeResult> {
   const denial = employeeDenial(actor);
@@ -1528,10 +1536,14 @@ export async function createEmployee(
   const invalid = validateEmployee(input, snapshot.employees);
   if (invalid) return { ok: false, error: invalid };
 
-  const weak = validatePasswordStrength(input.password);
+  // Leave the field empty and the panel issues a temporary password, exactly
+  // like a partner account: the admin only has to share what was generated.
+  const issued = input.password?.trim() ? undefined : generateTemporaryPassword();
+  const password = input.password?.trim() ? input.password : issued!;
+  const weak = validatePasswordStrength(password);
   if (weak) return { ok: false, error: weak };
 
-  const credential = await createPasswordCredential(input.password);
+  const credential = await createPasswordCredential(password);
   const employee: AdminEmployee = {
     id: nextEmployeeId(snapshot.employees),
     name: input.name.trim().replace(/\s+/g, " "),
@@ -1556,7 +1568,7 @@ export async function createEmployee(
     outcome: "allowed",
   });
   notify();
-  return { ok: true, employee };
+  return issued ? { ok: true, employee, password: issued } : { ok: true, employee };
 }
 
 export function updateEmployee(id: string, input: EmployeeInput, actor: Actor): EmployeeResult {

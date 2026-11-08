@@ -156,6 +156,16 @@ export function profileFor(mobile: string): CustomerProfile | null {
   return readProfiles()[mobile] ?? null;
 }
 
+/**
+ * Synchronous signed-in profile read.
+ *
+ * Used by action gates ("sign in before you make an offer") and by forms that
+ * prefill the name and mobile of a signed-in customer.
+ */
+export function currentCustomer(): CustomerProfile | null {
+  return computeSnapshot().profile;
+}
+
 /** Mock OTP "send": validates the number and returns it normalised. */
 export function sendOtp(raw: string): { ok: true; mobile: string } | { ok: false; error: string } {
   return validateMobile(raw);

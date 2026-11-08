@@ -1,0 +1,589 @@
+/* ==========================================================================
+   Authentication surfaces.
+
+   Three scoped pieces:
+   .mw-authdlg  — the customer OTP login pop-up (light glass over a dim page)
+   .mw-authforgot — the "Forgot password?" panel on the partner login card
+   .mw-authcred — the credentials card the admin uses to share a new account
+
+   Light theme + glassmorphism, matching the information pages: translucent
+   white panels, hairline borders, black type, red accents.
+   ========================================================================== */
+
+/* --- Customer login pop-up ------------------------------------------------ */
+.mw-authdlg {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.mw-authdlg-backdrop {
+  position: fixed;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: oklch(0.16 0.02 265 / 0.58);
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
+  cursor: pointer;
+  animation: mw-authdlg-fade 180ms ease-out;
+}
+
+.mw-authdlg-panel {
+  position: relative;
+  width: min(440px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: 20px 20px 18px;
+  border-radius: 22px;
+  border: 1px solid oklch(1 0 0 / 0.75);
+  background:
+    radial-gradient(120% 90% at 100% 0%, oklch(0.55 0.223 27.5 / 0.05), transparent 58%),
+    color-mix(in oklab, var(--card) 97%, transparent);
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 0.05),
+    0 30px 70px -30px oklch(0 0 0 / 0.45);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  animation: mw-authdlg-pop 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (min-width: 640px) {
+  .mw-authdlg-panel {
+    padding: 26px 26px 22px;
+  }
+}
+
+.mw-authdlg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid color-mix(in oklab, var(--foreground) 9%, transparent);
+}
+
+.mw-authdlg-wordmark {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mw-authdlg-wordmark em {
+  font-style: normal;
+  color: var(--primary);
+}
+
+.mw-authdlg-close {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--foreground) 12%, transparent);
+  background: color-mix(in oklab, var(--card) 70%, transparent);
+  color: var(--foreground);
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.mw-authdlg-close:hover {
+  background: oklch(0.55 0.223 27.5 / 0.1);
+  border-color: oklch(0.55 0.223 27.5 / 0.3);
+}
+
+.mw-authdlg-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 14px 0 4px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--foreground) 45%, transparent);
+}
+
+.mw-authdlg-steps li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 12px;
+}
+
+.mw-authdlg-steps li span {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 0.6rem;
+  line-height: 1;
+}
+
+.mw-authdlg-steps li[data-state="active"] {
+  color: var(--primary);
+}
+
+.mw-authdlg-steps li[data-state="active"] span {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.mw-authdlg-steps li[data-state="done"] {
+  color: var(--foreground);
+}
+
+.mw-authdlg-steps li[data-state="done"] span {
+  background: color-mix(in oklab, var(--foreground) 10%, transparent);
+}
+
+.mw-authdlg-form {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+}
+
+.mw-authdlg-kicker {
+  margin: 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.mw-authdlg-title {
+  margin: 0 0 2px;
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 4.6vw, 1.5rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.mw-authdlg-text {
+  margin: 0 0 6px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: color-mix(in oklab, var(--foreground) 68%, transparent);
+}
+
+.mw-authdlg-label {
+  margin-top: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--foreground) 62%, transparent);
+}
+
+.mw-authdlg-input,
+.mw-authdlg-phone input {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--foreground) 14%, transparent);
+  background: color-mix(in oklab, var(--card) 82%, transparent);
+  font-size: 0.95rem;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.mw-authdlg-input:focus,
+.mw-authdlg-phone input:focus {
+  outline: none;
+  border-color: color-mix(in oklab, var(--primary) 55%, transparent);
+  box-shadow: 0 0 0 3px oklch(0.55 0.223 27.5 / 0.14);
+}
+
+.mw-authdlg-phone {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-left: 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--foreground) 14%, transparent);
+  background: color-mix(in oklab, var(--card) 82%, transparent);
+}
+
+.mw-authdlg-phone:focus-within {
+  border-color: color-mix(in oklab, var(--primary) 55%, transparent);
+  box-shadow: 0 0 0 3px oklch(0.55 0.223 27.5 / 0.14);
+}
+
+.mw-authdlg-phone span {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: color-mix(in oklab, var(--foreground) 60%, transparent);
+}
+
+.mw-authdlg-phone input {
+  border: 0;
+  background: transparent;
+  padding-left: 8px;
+}
+
+.mw-authdlg-phone input:focus {
+  box-shadow: none;
+}
+
+.mw-authdlg-otp {
+  letter-spacing: 0.6em;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.mw-authdlg-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+  height: 46px;
+  border-radius: 12px;
+  border: 1px solid oklch(0.55 0.223 27.5 / 0.9);
+  background: linear-gradient(180deg, oklch(0.58 0.223 27.5), oklch(0.53 0.223 27.5));
+  color: var(--primary-foreground);
+  font-family: var(--font-display);
+  font-size: 0.86rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 12px 26px -16px oklch(0.55 0.223 27.5 / 0.9);
+  transition:
+    transform 150ms ease,
+    filter 150ms ease;
+}
+
+.mw-authdlg-cta:hover {
+  filter: brightness(1.06);
+}
+
+.mw-authdlg-cta:active {
+  transform: translateY(1px);
+}
+
+.mw-authdlg-error {
+  margin: 2px 0 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid oklch(0.55 0.223 27.5 / 0.28);
+  background: oklch(0.55 0.223 27.5 / 0.08);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: oklch(0.45 0.2 27.5);
+}
+
+.mw-authdlg-note {
+  margin: 2px 0 0;
+  font-size: 0.73rem;
+  line-height: 1.45;
+  color: color-mix(in oklab, var(--foreground) 58%, transparent);
+}
+
+.mw-authdlg-note strong {
+  color: var(--foreground);
+}
+
+.mw-authdlg-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.mw-authdlg-linkbtn {
+  border: 0;
+  background: none;
+  padding: 2px 0;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.mw-authdlg-linkbtn:hover {
+  color: var(--primary);
+}
+
+.mw-authdlg-foot {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in oklab, var(--foreground) 9%, transparent);
+  font-size: 0.72rem;
+  color: color-mix(in oklab, var(--foreground) 55%, transparent);
+}
+
+.mw-authdlg-foot-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mw-authdlg-foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+.mw-authdlg-foot-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+.mw-authdlg-foot-links a:hover {
+  color: var(--primary);
+}
+
+@keyframes mw-authdlg-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes mw-authdlg-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mw-authdlg-backdrop,
+  .mw-authdlg-panel {
+    animation: none;
+  }
+}
+
+/* --- Supporting copy ------------------------------------------------------ */
+.mw-info-hint {
+  margin: 8px 0 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: color-mix(in oklab, var(--foreground) 58%, transparent);
+}
+
+.mw-acct-authswitch {
+  margin: 12px 0 0;
+  font-size: 0.78rem;
+  color: color-mix(in oklab, var(--foreground) 60%, transparent);
+}
+
+.mw-acct-authswitch a {
+  font-weight: 600;
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.mw-acct-authswitch a:hover {
+  color: var(--primary);
+}
+
+/* --- Forgot password (partner login) -------------------------------------- */
+.mw-authforgot {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--dlr-line, color-mix(in oklab, var(--foreground) 12%, transparent));
+  background: color-mix(in oklab, var(--card) 70%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.mw-authforgot-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mw-authforgot-head h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.mw-authforgot-head p {
+  margin: 2px 0 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: color-mix(in oklab, var(--foreground) 62%, transparent);
+}
+
+.mw-authforgot-steps {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--foreground) 42%, transparent);
+}
+
+.mw-authforgot-steps li[data-state="active"] {
+  color: var(--primary);
+}
+
+.mw-authforgot-steps li[data-state="done"] {
+  color: var(--foreground);
+}
+
+.mw-authforgot-form {
+  display: grid;
+  gap: 8px;
+}
+
+.mw-authforgot-note {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: color-mix(in oklab, var(--foreground) 58%, transparent);
+}
+
+.mw-authforgot-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mw-authforgot-ok {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid oklch(0.55 0.14 150 / 0.28);
+  background: oklch(0.55 0.14 150 / 0.08);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+/* --- Issued credentials (Master Admin) ------------------------------------ */
+.mw-authcred {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid oklch(0.55 0.14 150 / 0.3);
+  background:
+    radial-gradient(120% 120% at 100% 0%, oklch(0.55 0.14 150 / 0.1), transparent 62%),
+    color-mix(in oklab, var(--card) 92%, transparent);
+}
+
+.mw-authcred-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mw-authcred-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.mw-authcred-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 560px) {
+  .mw-authcred-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.mw-authcred-field {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in oklab, var(--foreground) 20%, transparent);
+  background: color-mix(in oklab, var(--card) 70%, transparent);
+}
+
+.mw-authcred-field span {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--foreground) 55%, transparent);
+}
+
+.mw-authcred-field strong {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.88rem;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+}
+
+.mw-authcred-note {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: color-mix(in oklab, var(--foreground) 60%, transparent);
+}
+
+.mw-authcred-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mw-authcred-actions a,
+.mw-authcred-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--foreground) 16%, transparent);
+  background: color-mix(in oklab, var(--card) 80%, transparent);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--foreground);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.mw-authcred-actions a:hover,
+.mw-authcred-actions button:hover {
+  border-color: color-mix(in oklab, var(--primary) 45%, transparent);
+  color: var(--primary);
+}

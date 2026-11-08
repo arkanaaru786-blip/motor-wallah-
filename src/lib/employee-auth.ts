@@ -190,14 +190,21 @@ export async function signInEmployee(
   email: string,
   password: string,
 ): Promise<EmployeeSignInResult> {
-  if (!email.trim()) return { ok: false, error: "Enter your work email or employee ID." };
+  if (!email.trim()) return { ok: false, error: "Enter your employee ID." };
   if (!password) return { ok: false, error: "Enter your password." };
 
   const directory = ensureAdminDatabase().employees;
   const byId = directory.find((item) => item.id.toLowerCase() === email.trim().toLowerCase());
   const target = byId?.email ?? email.trim();
   const result = await verifyEmployeeSignIn(target, password);
-  if (!result.ok) return { ok: false, error: result.error };
+  if (!result.ok) {
+    // The shared verifier also serves the admin email login, so translate its
+    // wording for a screen that only ever asks for an employee ID.
+    const message = /^email or password/i.test(result.error)
+      ? "Employee ID or password is incorrect."
+      : result.error;
+    return { ok: false, error: message };
+  }
   return { ok: true, session: startSession(result.employee, false) };
 }
 

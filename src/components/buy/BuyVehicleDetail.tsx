@@ -32,6 +32,7 @@ import { MakeOfferDialog } from "@/components/buy/MakeOfferDialog";
 import { ReportListingDialog } from "@/components/buy/ReportListingDialog";
 import { PHONE_HREF, whatsappLink } from "@/lib/site";
 import { submitLead } from "@/lib/leads";
+import { gateCustomerAction } from "@/lib/customer-gate";
 
 const NOT_SHARED = "Not shared by seller yet";
 
@@ -66,6 +67,10 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
   const [testDrive, setTestDrive] = useState(false);
   const [report, setReport] = useState(false);
   const [offer, setOffer] = useState(false);
+
+  // Smart login: browsing is free, these two actions need a verified mobile.
+  const openChat = () => gateCustomerAction("chat", () => setContact(true));
+  const openOffer = () => gateCustomerAction("offer", () => setOffer(true));
 
   const category = getBuyCategory(listing.categoryId);
   const name = [listing.brand, listing.model, listing.variant].filter(Boolean).join(" ");
@@ -144,7 +149,7 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
 
             {/* Mobile: keep the primary actions within reach, above the fold. */}
             <div className="buy-quick-actions">
-              <button type="button" onClick={() => setContact(true)} className="buy-primary-button">
+              <button type="button" onClick={openChat} className="buy-primary-button">
                 <MessageCircle size={16} /> Chat with Seller
               </button>
               <button
@@ -157,7 +162,7 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
               </button>
               <button
                 type="button"
-                onClick={() => setOffer(true)}
+                onClick={openOffer}
                 className="buy-secondary-button buy-secondary-button--offer"
               >
                 <IndianRupee size={15} /> Make an Offer
@@ -301,11 +306,7 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
               </section>
 
               <div className="buy-action-buttons">
-                <button
-                  type="button"
-                  onClick={() => setContact(true)}
-                  className="buy-primary-button"
-                >
+                <button type="button" onClick={openChat} className="buy-primary-button">
                   <MessageCircle size={16} /> Chat with Seller
                 </button>
                 <button
@@ -318,7 +319,7 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setOffer(true)}
+                  onClick={openOffer}
                   className="buy-secondary-button buy-secondary-button--offer"
                 >
                   <IndianRupee size={15} /> Make an Offer

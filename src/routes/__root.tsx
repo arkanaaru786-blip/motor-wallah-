@@ -15,6 +15,7 @@ import { useCloudSync } from "../lib/cloud-sync";
 import { siteSettingsRevision, subscribeSiteSettings } from "../lib/site";
 import { AlertWatcher } from "../components/notify/AlertWatcher";
 import { ToastHost } from "../components/notify/ToastHost";
+import { CustomerLoginGate } from "../components/auth/CustomerLoginGate";
 
 function NotFoundComponent() {
   return (
@@ -153,6 +154,8 @@ function RootComponent() {
       {/* New-message / order alerts, and the glass toast they appear in. */}
       <ToastHost />
       <AlertWatcher />
+      {/* Smart login: the pop-up only opens when a gated action asks for it. */}
+      <CustomerLoginGate />
     </QueryClientProvider>
   );
 }
