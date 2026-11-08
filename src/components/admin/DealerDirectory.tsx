@@ -3,6 +3,7 @@ import {
   BadgeCheck,
   Ban,
   CheckCircle2,
+  KeyRound,
   PlusCircle,
   ShieldCheck,
   Store,
@@ -21,13 +22,16 @@ import {
   createDealer,
   ensureDealers,
   listDealers,
+  rotateDealerPassword,
   setDealerCategory,
   setDealerStatus,
   subscribeToDealers,
   type Dealer,
   type DealerStatus,
 } from "@/lib/dealers";
+import { dealerLoginId } from "@/lib/partner-ids";
 import { shortDate } from "@/lib/dealer-format";
+import { IssuedCredentials } from "@/components/admin/IssuedCredentials";
 
 const CHIP: Record<DealerStatus, string> = {
   Active: "is-active",
@@ -61,6 +65,13 @@ export function DealerDirectory({ session }: { session: AdminSession }) {
   const [error, setError] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [filter, setFilter] = useState<DealerCategoryId | "all">("all");
+  // Plaintext credentials exist only here, once, so the admin can share them.
+  const [issued, setIssued] = useState<{
+    name: string;
+    id: string;
+    password: string;
+    mobile: string;
+  } | null>(null);
 
   useEffect(() => {
     void ensureDealers().then(() => setDealers(listDealers()));
@@ -126,6 +137,17 @@ export function DealerDirectory({ session }: { session: AdminSession }) {
         </p>
       ) : null}
 
+      {issued ? (
+        <IssuedCredentials
+          kind="dealer"
+          name={issued.name}
+          id={issued.id}
+          password={issued.password}
+          mobile={issued.mobile}
+          onDismiss={() => setIssued(null)}
+        />
+      ) : null}
+
       {mayManage ? (
         <section className="mw-admin-panel">
           <div className="mw-admin-panel-head">
@@ -153,9 +175,19 @@ export function DealerDirectory({ session }: { session: AdminSession }) {
                 return;
               }
               setFlash(
-                `${result.dealer.showroom} created as ${result.dealer.id} — ${dealerCategoryLabel(
-                  result.dealer.category,
-                )} only.`,
+                `${result.dealer.showroom} created as ${dealerLoginId(
+                  result.dealer,
+                )} — ${dealerCategoryLabel(result.dealer.category)} only.`,
+              );
+              setIssued(
+                result.password
+                  ? {
+                      name: result.dealer.name,
+                      id: dealerLoginId(result.dealer),
+                      password: result.password,
+                      mobile: result.dealer.mobile,
+                    }
+                  : null,
               );
               setForm(EMPTY_FORM);
               setDealers(listDealers());
@@ -228,16 +260,21 @@ export function DealerDirectory({ session }: { session: AdminSession }) {
               <span>Temporary password</span>
               <input
                 type="password"
+                name="new-password"
+                autoComplete="new-password"
                 value={form.password}
                 onChange={(event) => setForm({ ...form, password: event.target.value })}
-                placeholder="At least 10 characters"
-                required
+                placeholder="Leave blank to auto-generate"
               />
             </label>
             <div className="mw-dealer-form-actions">
               <button type="submit" className="mw-dealer-btn is-primary" disabled={busy}>
                 <PlusCircle size={15} /> {busy ? "Creating…" : "Create dealer"}
               </button>
+              <span className="mw-dealer-demo-note">
+                The partner ID (MW-DLR-…) is assigned automatically. Leave the password blank and
+                the panel issues a temporary one, then shows both to share.
+              </span>
             </div>
           </form>
         </section>
@@ -293,7 +330,7 @@ export function DealerDirectory({ session }: { session: AdminSession }) {
                     <td>
                       <strong>{dealer.showroom}</strong>
                       <div className="is-muted">
-                        {dealer.name} · {dealer.id} · {dealer.city}
+                        {dealer.name} · {dealerLoginId(dealer)} · {dealer.city}
                       </div>
                     </td>
                     <td>
@@ -366,6 +403,32 @@ export function DealerDirectory({ session }: { session: AdminSession }) {
                             <Ban size={13} /> Disable
                           </button>
                         )}
+                        <button
+                          type="button"
+                          className="mw-dealer-btn is-small"
+                          disabled={!mayManage}
+                          onClick={async () => {
+                            const result = await rotateDealerPassword(dealer.id);
+                            if (!result.ok) {
+                              setError(result.error);
+                              return;
+                            }
+                            setError(null);
+                            setFlash(
+                              `New temporary password issued for ${dealer.showroom}. Share it privately.`,
+                            );
+                            setIssued({
+                              name: dealer.name,
+                              id: dealerLoginId(dealer),
+                              password: result.password ?? "",
+                              mobile: dealer.mobile,
+                            });
+                          }}
+                          aria-label={`Issue a new temporary password for ${dealer.showroom}`}
+                          data-testid="dealer-reset-password"
+                        >
+                          <KeyRound size={13} /> Password
+                        </button>
                       </div>
                     </td>
                   </tr>

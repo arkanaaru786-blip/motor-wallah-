@@ -22,8 +22,12 @@ import { Route as DealerLoginRouteImport } from './routes/dealer-login'
 import { Route as DecorRouteImport } from './routes/decor'
 import { Route as DecorLoginRouteImport } from './routes/decor-login'
 import { Route as DecorPartnerRouteImport } from './routes/decor-partner'
+import { Route as DisclaimerRouteImport } from './routes/disclaimer'
+import { Route as EmployeeRouteImport } from './routes/employee'
+import { Route as EmployeeLoginRouteImport } from './routes/employee-login'
 import { Route as ExchangeRouteImport } from './routes/exchange'
 import { Route as FaqRouteImport } from './routes/faq'
+import { Route as FaqsRouteImport } from './routes/faqs'
 import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as FranchiseRouteImport } from './routes/franchise'
 import { Route as InspectionRouteImport } from './routes/inspection'
@@ -33,6 +37,8 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as MasterAdminRouteImport } from './routes/master-admin'
 import { Route as PartsRouteImport } from './routes/parts'
 import { Route as PartsLoginRouteImport } from './routes/parts-login'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RefundRouteImport } from './routes/refund'
 import { Route as RoadsideAssistanceRouteImport } from './routes/roadside-assistance'
 import { Route as RtoRouteImport } from './routes/rto'
 import { Route as ScrapRouteImport } from './routes/scrap'
@@ -40,11 +46,14 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as SellYourCarRouteImport } from './routes/sell-your-car'
 import { Route as SellerRouteImport } from './routes/seller'
 import { Route as ServicesRouteImport } from './routes/services'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as WarrantyRouteImport } from './routes/warranty'
+import { Route as WarrantyRsaRouteImport } from './routes/warranty-rsa'
 import { Route as WorkshopRouteImport } from './routes/workshop'
 import { Route as WorkshopLoginRouteImport } from './routes/workshop-login'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
+import { Route as ApiSendEmailRouteImport } from './routes/api/send-email'
 import { Route as BuyIndexRouteImport } from './routes/buy.index'
 import { Route as BuyBikesRouteImport } from './routes/buy.bikes'
 import { Route as BuyBusesRouteImport } from './routes/buy.buses'
@@ -138,6 +147,21 @@ const DecorPartnerRoute = DecorPartnerRouteImport.update({
   path: '/decor-partner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DisclaimerRoute = DisclaimerRouteImport.update({
+  id: '/disclaimer',
+  path: '/disclaimer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmployeeRoute = EmployeeRouteImport.update({
+  id: '/employee',
+  path: '/employee',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmployeeLoginRoute = EmployeeLoginRouteImport.update({
+  id: '/employee-login',
+  path: '/employee-login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExchangeRoute = ExchangeRouteImport.update({
   id: '/exchange',
   path: '/exchange',
@@ -146,6 +170,11 @@ const ExchangeRoute = ExchangeRouteImport.update({
 const FaqRoute = FaqRouteImport.update({
   id: '/faq',
   path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqsRoute = FaqsRouteImport.update({
+  id: '/faqs',
+  path: '/faqs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FinanceRoute = FinanceRouteImport.update({
@@ -193,6 +222,16 @@ const PartsLoginRoute = PartsLoginRouteImport.update({
   path: '/parts-login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundRoute = RefundRouteImport.update({
+  id: '/refund',
+  path: '/refund',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RoadsideAssistanceRoute = RoadsideAssistanceRouteImport.update({
   id: '/roadside-assistance',
   path: '/roadside-assistance',
@@ -228,6 +267,11 @@ const ServicesRoute = ServicesRouteImport.update({
   path: '/services',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TrackRoute = TrackRouteImport.update({
   id: '/track',
   path: '/track',
@@ -236,6 +280,11 @@ const TrackRoute = TrackRouteImport.update({
 const WarrantyRoute = WarrantyRouteImport.update({
   id: '/warranty',
   path: '/warranty',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WarrantyRsaRoute = WarrantyRsaRouteImport.update({
+  id: '/warranty-rsa',
+  path: '/warranty-rsa',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkshopRoute = WorkshopRouteImport.update({
@@ -251,6 +300,11 @@ const WorkshopLoginRoute = WorkshopLoginRouteImport.update({
 const ApiSplatRoute = ApiSplatRouteImport.update({
   id: '/api/$',
   path: '/api/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSendEmailRoute = ApiSendEmailRouteImport.update({
+  id: '/api/send-email',
+  path: '/api/send-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BuyIndexRoute = BuyIndexRouteImport.update({
@@ -403,8 +457,12 @@ export interface FileRoutesByFullPath {
   '/decor': typeof DecorRoute
   '/decor-login': typeof DecorLoginRoute
   '/decor-partner': typeof DecorPartnerRoute
+  '/disclaimer': typeof DisclaimerRoute
+  '/employee': typeof EmployeeRoute
+  '/employee-login': typeof EmployeeLoginRoute
   '/exchange': typeof ExchangeRoute
   '/faq': typeof FaqRoute
+  '/faqs': typeof FaqsRoute
   '/finance': typeof FinanceRoute
   '/franchise': typeof FranchiseRouteWithChildren
   '/inspection': typeof InspectionRoute
@@ -414,6 +472,8 @@ export interface FileRoutesByFullPath {
   '/master-admin': typeof MasterAdminRouteWithChildren
   '/parts': typeof PartsRoute
   '/parts-login': typeof PartsLoginRoute
+  '/privacy': typeof PrivacyRoute
+  '/refund': typeof RefundRoute
   '/roadside-assistance': typeof RoadsideAssistanceRoute
   '/rto': typeof RtoRoute
   '/scrap': typeof ScrapRoute
@@ -421,11 +481,14 @@ export interface FileRoutesByFullPath {
   '/sell-your-car': typeof SellYourCarRoute
   '/seller': typeof SellerRoute
   '/services': typeof ServicesRoute
+  '/terms': typeof TermsRoute
   '/track': typeof TrackRoute
   '/warranty': typeof WarrantyRoute
+  '/warranty-rsa': typeof WarrantyRsaRoute
   '/workshop': typeof WorkshopRoute
   '/workshop-login': typeof WorkshopLoginRoute
   '/api/$': typeof ApiSplatRoute
+  '/api/send-email': typeof ApiSendEmailRoute
   '/buy/bikes': typeof BuyBikesRoute
   '/buy/buses': typeof BuyBusesRoute
   '/buy/offers': typeof BuyOffersRoute
@@ -468,8 +531,12 @@ export interface FileRoutesByTo {
   '/decor': typeof DecorRoute
   '/decor-login': typeof DecorLoginRoute
   '/decor-partner': typeof DecorPartnerRoute
+  '/disclaimer': typeof DisclaimerRoute
+  '/employee': typeof EmployeeRoute
+  '/employee-login': typeof EmployeeLoginRoute
   '/exchange': typeof ExchangeRoute
   '/faq': typeof FaqRoute
+  '/faqs': typeof FaqsRoute
   '/finance': typeof FinanceRoute
   '/franchise': typeof FranchiseRouteWithChildren
   '/inspection': typeof InspectionRoute
@@ -478,6 +545,8 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/parts': typeof PartsRoute
   '/parts-login': typeof PartsLoginRoute
+  '/privacy': typeof PrivacyRoute
+  '/refund': typeof RefundRoute
   '/roadside-assistance': typeof RoadsideAssistanceRoute
   '/rto': typeof RtoRoute
   '/scrap': typeof ScrapRoute
@@ -485,11 +554,14 @@ export interface FileRoutesByTo {
   '/sell-your-car': typeof SellYourCarRoute
   '/seller': typeof SellerRoute
   '/services': typeof ServicesRoute
+  '/terms': typeof TermsRoute
   '/track': typeof TrackRoute
   '/warranty': typeof WarrantyRoute
+  '/warranty-rsa': typeof WarrantyRsaRoute
   '/workshop': typeof WorkshopRoute
   '/workshop-login': typeof WorkshopLoginRoute
   '/api/$': typeof ApiSplatRoute
+  '/api/send-email': typeof ApiSendEmailRoute
   '/buy/bikes': typeof BuyBikesRoute
   '/buy/buses': typeof BuyBusesRoute
   '/buy/offers': typeof BuyOffersRoute
@@ -533,8 +605,12 @@ export interface FileRoutesById {
   '/decor': typeof DecorRoute
   '/decor-login': typeof DecorLoginRoute
   '/decor-partner': typeof DecorPartnerRoute
+  '/disclaimer': typeof DisclaimerRoute
+  '/employee': typeof EmployeeRoute
+  '/employee-login': typeof EmployeeLoginRoute
   '/exchange': typeof ExchangeRoute
   '/faq': typeof FaqRoute
+  '/faqs': typeof FaqsRoute
   '/finance': typeof FinanceRoute
   '/franchise': typeof FranchiseRouteWithChildren
   '/inspection': typeof InspectionRoute
@@ -544,6 +620,8 @@ export interface FileRoutesById {
   '/master-admin': typeof MasterAdminRouteWithChildren
   '/parts': typeof PartsRoute
   '/parts-login': typeof PartsLoginRoute
+  '/privacy': typeof PrivacyRoute
+  '/refund': typeof RefundRoute
   '/roadside-assistance': typeof RoadsideAssistanceRoute
   '/rto': typeof RtoRoute
   '/scrap': typeof ScrapRoute
@@ -551,11 +629,14 @@ export interface FileRoutesById {
   '/sell-your-car': typeof SellYourCarRoute
   '/seller': typeof SellerRoute
   '/services': typeof ServicesRoute
+  '/terms': typeof TermsRoute
   '/track': typeof TrackRoute
   '/warranty': typeof WarrantyRoute
+  '/warranty-rsa': typeof WarrantyRsaRoute
   '/workshop': typeof WorkshopRoute
   '/workshop-login': typeof WorkshopLoginRoute
   '/api/$': typeof ApiSplatRoute
+  '/api/send-email': typeof ApiSendEmailRoute
   '/buy/bikes': typeof BuyBikesRoute
   '/buy/buses': typeof BuyBusesRoute
   '/buy/offers': typeof BuyOffersRoute
@@ -600,8 +681,12 @@ export interface FileRouteTypes {
     | '/decor'
     | '/decor-login'
     | '/decor-partner'
+    | '/disclaimer'
+    | '/employee'
+    | '/employee-login'
     | '/exchange'
     | '/faq'
+    | '/faqs'
     | '/finance'
     | '/franchise'
     | '/inspection'
@@ -611,6 +696,8 @@ export interface FileRouteTypes {
     | '/master-admin'
     | '/parts'
     | '/parts-login'
+    | '/privacy'
+    | '/refund'
     | '/roadside-assistance'
     | '/rto'
     | '/scrap'
@@ -618,11 +705,14 @@ export interface FileRouteTypes {
     | '/sell-your-car'
     | '/seller'
     | '/services'
+    | '/terms'
     | '/track'
     | '/warranty'
+    | '/warranty-rsa'
     | '/workshop'
     | '/workshop-login'
     | '/api/$'
+    | '/api/send-email'
     | '/buy/bikes'
     | '/buy/buses'
     | '/buy/offers'
@@ -665,8 +755,12 @@ export interface FileRouteTypes {
     | '/decor'
     | '/decor-login'
     | '/decor-partner'
+    | '/disclaimer'
+    | '/employee'
+    | '/employee-login'
     | '/exchange'
     | '/faq'
+    | '/faqs'
     | '/finance'
     | '/franchise'
     | '/inspection'
@@ -675,6 +769,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/parts'
     | '/parts-login'
+    | '/privacy'
+    | '/refund'
     | '/roadside-assistance'
     | '/rto'
     | '/scrap'
@@ -682,11 +778,14 @@ export interface FileRouteTypes {
     | '/sell-your-car'
     | '/seller'
     | '/services'
+    | '/terms'
     | '/track'
     | '/warranty'
+    | '/warranty-rsa'
     | '/workshop'
     | '/workshop-login'
     | '/api/$'
+    | '/api/send-email'
     | '/buy/bikes'
     | '/buy/buses'
     | '/buy/offers'
@@ -729,8 +828,12 @@ export interface FileRouteTypes {
     | '/decor'
     | '/decor-login'
     | '/decor-partner'
+    | '/disclaimer'
+    | '/employee'
+    | '/employee-login'
     | '/exchange'
     | '/faq'
+    | '/faqs'
     | '/finance'
     | '/franchise'
     | '/inspection'
@@ -740,6 +843,8 @@ export interface FileRouteTypes {
     | '/master-admin'
     | '/parts'
     | '/parts-login'
+    | '/privacy'
+    | '/refund'
     | '/roadside-assistance'
     | '/rto'
     | '/scrap'
@@ -747,11 +852,14 @@ export interface FileRouteTypes {
     | '/sell-your-car'
     | '/seller'
     | '/services'
+    | '/terms'
     | '/track'
     | '/warranty'
+    | '/warranty-rsa'
     | '/workshop'
     | '/workshop-login'
     | '/api/$'
+    | '/api/send-email'
     | '/buy/bikes'
     | '/buy/buses'
     | '/buy/offers'
@@ -795,8 +903,12 @@ export interface RootRouteChildren {
   DecorRoute: typeof DecorRoute
   DecorLoginRoute: typeof DecorLoginRoute
   DecorPartnerRoute: typeof DecorPartnerRoute
+  DisclaimerRoute: typeof DisclaimerRoute
+  EmployeeRoute: typeof EmployeeRoute
+  EmployeeLoginRoute: typeof EmployeeLoginRoute
   ExchangeRoute: typeof ExchangeRoute
   FaqRoute: typeof FaqRoute
+  FaqsRoute: typeof FaqsRoute
   FinanceRoute: typeof FinanceRoute
   FranchiseRoute: typeof FranchiseRouteWithChildren
   InspectionRoute: typeof InspectionRoute
@@ -806,6 +918,8 @@ export interface RootRouteChildren {
   MasterAdminRoute: typeof MasterAdminRouteWithChildren
   PartsRoute: typeof PartsRoute
   PartsLoginRoute: typeof PartsLoginRoute
+  PrivacyRoute: typeof PrivacyRoute
+  RefundRoute: typeof RefundRoute
   RoadsideAssistanceRoute: typeof RoadsideAssistanceRoute
   RtoRoute: typeof RtoRoute
   ScrapRoute: typeof ScrapRoute
@@ -813,11 +927,14 @@ export interface RootRouteChildren {
   SellYourCarRoute: typeof SellYourCarRoute
   SellerRoute: typeof SellerRoute
   ServicesRoute: typeof ServicesRoute
+  TermsRoute: typeof TermsRoute
   TrackRoute: typeof TrackRoute
   WarrantyRoute: typeof WarrantyRoute
+  WarrantyRsaRoute: typeof WarrantyRsaRoute
   WorkshopRoute: typeof WorkshopRoute
   WorkshopLoginRoute: typeof WorkshopLoginRoute
   ApiSplatRoute: typeof ApiSplatRoute
+  ApiSendEmailRoute: typeof ApiSendEmailRoute
   BuyBikesRoute: typeof BuyBikesRoute
   BuyBusesRoute: typeof BuyBusesRoute
   BuyOffersRoute: typeof BuyOffersRoute
@@ -931,6 +1048,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DecorPartnerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/disclaimer': {
+      id: '/disclaimer'
+      path: '/disclaimer'
+      fullPath: '/disclaimer'
+      preLoaderRoute: typeof DisclaimerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/employee': {
+      id: '/employee'
+      path: '/employee'
+      fullPath: '/employee'
+      preLoaderRoute: typeof EmployeeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/employee-login': {
+      id: '/employee-login'
+      path: '/employee-login'
+      fullPath: '/employee-login'
+      preLoaderRoute: typeof EmployeeLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/exchange': {
       id: '/exchange'
       path: '/exchange'
@@ -943,6 +1081,13 @@ declare module '@tanstack/react-router' {
       path: '/faq'
       fullPath: '/faq'
       preLoaderRoute: typeof FaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faqs': {
+      id: '/faqs'
+      path: '/faqs'
+      fullPath: '/faqs'
+      preLoaderRoute: typeof FaqsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/finance': {
@@ -1008,6 +1153,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PartsLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refund': {
+      id: '/refund'
+      path: '/refund'
+      fullPath: '/refund'
+      preLoaderRoute: typeof RefundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/roadside-assistance': {
       id: '/roadside-assistance'
       path: '/roadside-assistance'
@@ -1057,6 +1216,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServicesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/track': {
       id: '/track'
       path: '/track'
@@ -1069,6 +1235,13 @@ declare module '@tanstack/react-router' {
       path: '/warranty'
       fullPath: '/warranty'
       preLoaderRoute: typeof WarrantyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/warranty-rsa': {
+      id: '/warranty-rsa'
+      path: '/warranty-rsa'
+      fullPath: '/warranty-rsa'
+      preLoaderRoute: typeof WarrantyRsaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/workshop': {
@@ -1090,6 +1263,13 @@ declare module '@tanstack/react-router' {
       path: '/api/$'
       fullPath: '/api/$'
       preLoaderRoute: typeof ApiSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/send-email': {
+      id: '/api/send-email'
+      path: '/api/send-email'
+      fullPath: '/api/send-email'
+      preLoaderRoute: typeof ApiSendEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/buy/': {
@@ -1336,8 +1516,12 @@ const rootRouteChildren: RootRouteChildren = {
   DecorRoute: DecorRoute,
   DecorLoginRoute: DecorLoginRoute,
   DecorPartnerRoute: DecorPartnerRoute,
+  DisclaimerRoute: DisclaimerRoute,
+  EmployeeRoute: EmployeeRoute,
+  EmployeeLoginRoute: EmployeeLoginRoute,
   ExchangeRoute: ExchangeRoute,
   FaqRoute: FaqRoute,
+  FaqsRoute: FaqsRoute,
   FinanceRoute: FinanceRoute,
   FranchiseRoute: FranchiseRouteWithChildren,
   InspectionRoute: InspectionRoute,
@@ -1347,6 +1531,8 @@ const rootRouteChildren: RootRouteChildren = {
   MasterAdminRoute: MasterAdminRouteWithChildren,
   PartsRoute: PartsRoute,
   PartsLoginRoute: PartsLoginRoute,
+  PrivacyRoute: PrivacyRoute,
+  RefundRoute: RefundRoute,
   RoadsideAssistanceRoute: RoadsideAssistanceRoute,
   RtoRoute: RtoRoute,
   ScrapRoute: ScrapRoute,
@@ -1354,11 +1540,14 @@ const rootRouteChildren: RootRouteChildren = {
   SellYourCarRoute: SellYourCarRoute,
   SellerRoute: SellerRoute,
   ServicesRoute: ServicesRoute,
+  TermsRoute: TermsRoute,
   TrackRoute: TrackRoute,
   WarrantyRoute: WarrantyRoute,
+  WarrantyRsaRoute: WarrantyRsaRoute,
   WorkshopRoute: WorkshopRoute,
   WorkshopLoginRoute: WorkshopLoginRoute,
   ApiSplatRoute: ApiSplatRoute,
+  ApiSendEmailRoute: ApiSendEmailRoute,
   BuyBikesRoute: BuyBikesRoute,
   BuyBusesRoute: BuyBusesRoute,
   BuyOffersRoute: BuyOffersRoute,

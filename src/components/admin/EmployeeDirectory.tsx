@@ -42,6 +42,9 @@ import {
   type Role,
 } from "@/lib/admin-rbac";
 import type { AdminSession } from "@/lib/admin-auth";
+import { DEPARTMENT_CATEGORIES, deskForEmployee, DESK_LABEL } from "@/lib/employee-desk";
+import { generateTemporaryPassword } from "@/lib/partner-ids";
+import { IssuedCredentials } from "@/components/admin/IssuedCredentials";
 
 type Mode = "create" | "edit" | "password";
 
@@ -50,6 +53,7 @@ const EMPTY_FORM = {
   email: "",
   mobile: "",
   department: "Finance" as Department,
+  category: "",
   role: "executive" as Role,
   status: "Active" as EmployeeStatus,
   password: "",
@@ -68,6 +72,13 @@ export function EmployeeDirectory({ session }: { session: AdminSession }) {
   const [flash, setFlash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Plaintext credentials exist only here, once, so the admin can share them.
+  const [issued, setIssued] = useState<{
+    name: string;
+    id: string;
+    password: string;
+    mobile: string;
+  } | null>(null);
 
   useEffect(() => {
     const refresh = () => setVersion((value) => value + 1);
@@ -116,6 +127,7 @@ export function EmployeeDirectory({ session }: { session: AdminSession }) {
             email: employee.email,
             mobile: employee.mobile,
             department: employee.department,
+            category: employee.category ?? "",
             role: employee.role,
             status: employee.status,
             password: "",
@@ -135,6 +147,7 @@ export function EmployeeDirectory({ session }: { session: AdminSession }) {
     email: form.email,
     mobile: form.mobile,
     department: form.department,
+    category: form.category.trim() ? form.category.trim() : null,
     role: form.role,
     status: form.status,
   };
@@ -152,6 +165,16 @@ export function EmployeeDirectory({ session }: { session: AdminSession }) {
       closeDrawer();
       setFlash(
         `${result.employee.name} added as ${result.employee.id} (${result.employee.department} · ${ROLE_LABEL[result.employee.role]}).`,
+      );
+      setIssued(
+        result.password
+          ? {
+              name: result.employee.name,
+              id: result.employee.id,
+              password: result.password,
+              mobile: result.employee.mobile,
+            }
+          : null,
       );
     } else if (mode === "edit" && editing) {
       const result = updateEmployee(editing.id, input, actor);
@@ -171,6 +194,16 @@ export function EmployeeDirectory({ session }: { session: AdminSession }) {
       }
       closeDrawer();
       setFlash(`Password reset for ${result.employee.name}. Share it privately.`);
+      setIssued(
+        result.password
+          ? {
+              name: result.employee.name,
+              id: result.employee.id,
+              password: result.password,
+              mobile: result.employee.mobile,
+            }
+          : null,
+      );
     }
     setBusy(false);
   };
@@ -276,6 +309,17 @@ export function EmployeeDirectory({ session }: { session: AdminSession }) {
         </p>
       ) : null}
 
+      {issued ? (
+        <IssuedCredentials
+          kind="employee"
+          name={issued.name}
+          id={issued.id}
+          password={issued.password}
+          mobile={issued.mobile}
+          onDismiss={() => setIssued(null)}
+        />
+      ) : null}
+
       <section className="mw-admin-tablewrap" aria-label="Employee directory">
         <table className="mw-admin-table mw-admin-table--people" data-testid="employee-table">
           <thead>
@@ -306,6 +350,9 @@ export function EmployeeDirectory({ session }: { session: AdminSession }) {
                   <td data-label="Mobile">{employee.mobile}</td>
                   <td data-label="Department">
                     <span className="mw-admin-dept">{employee.department}</span>
+                    {employee.category ? (
+                      <small className="mw-admin-vehicle">{employee.category}</small>
+                    ) : null}
                   </td>
                   <td data-label="Role">
                     <span className={`mw-admin-role is-${employee.role.replace(/_/g, "-")}`}>
@@ -400,6 +447,7 @@ export function EmployeeDirectory({ session }: { session: AdminSession }) {
           busy={busy}
           nextId={nextEmployeeId(data.employees)}
           employeeLabel={employeeName(data.employees, editing?.id ?? null)}
+          onGeneratePassword={() => setForm({ ...form, password: generateTemporaryPassword() })}
           onSave={() => void save()}
           onClose={closeDrawer}
         />
@@ -421,6 +469,7 @@ function EmployeeDrawer({
   busy,
   nextId,
   employeeLabel,
+  onGeneratePassword,
   onSave,
   onClose,
 }: {
@@ -432,6 +481,8 @@ function EmployeeDrawer({
   busy: boolean;
   nextId: string;
   employeeLabel: string | null;
+  /** Fills the password field with a fresh temporary password. */
+  onGeneratePassword: () => void;
   onSave: () => void;
   onClose: () => void;
 }) {
@@ -508,15 +559,25 @@ function EmployeeDrawer({
                 <span>Password</span>
                 <input
                   type="password"
+                  name="new-password"
                   value={form.password}
                   onChange={(event) => set("password", event.target.value)}
-                  placeholder="At least 10 characters, letters and a number"
+                  placeholder="Leave blank to generate one"
                   autoComplete="new-password"
                   data-testid="employee-password"
                 />
               </label>
+              <button
+                type="button"
+                className="mw-admin-secondary"
+                onClick={onGeneratePassword}
+                data-testid="employee-generate-password"
+              >
+                <KeyRound size={14} /> Generate temporary password
+              </button>
               <p className="mw-admin-hint">
-                Stored as a salted PBKDF2 hash. The employee signs in at /master-admin/login.
+                Stored as a salted PBKDF2 hash. The employee signs in at /employee-login with their
+                employee ID — the panel shows the password once so you can share it.
               </p>
             </section>
           ) : (
@@ -574,6 +635,21 @@ function EmployeeDrawer({
                     </select>
                   </label>
                   <label className="mw-admin-field">
+                    <span>Category / desk</span>
+                    <select
+                      value={form.category}
+                      onChange={(event) => set("category", event.target.value)}
+                      data-testid="employee-category"
+                    >
+                      <option value="">Not set</option>
+                      {DEPARTMENT_CATEGORIES[form.department].map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="mw-admin-field">
                     <span>Role</span>
                     <select
                       value={form.role}
@@ -599,6 +675,14 @@ function EmployeeDrawer({
                     </select>
                   </label>
                 </div>
+                <p className="mw-admin-hint" data-testid="employee-desk-board">
+                  {(() => {
+                    const desk = deskForEmployee(form.department, form.category);
+                    return desk
+                      ? `Employee Dashboard board: ${DESK_LABEL[desk]}. Employees only ever see this desk's data.`
+                      : "This department has no employee dashboard board yet.";
+                  })()}
+                </p>
                 <p className="mw-admin-hint" data-testid="employee-desk-hint">
                   Sees{" "}
                   {DEPARTMENT_CASE_TYPES[form.department].length
@@ -616,18 +700,29 @@ function EmployeeDrawer({
                     <KeyRound size={15} /> Temporary password
                   </h3>
                   <label className="mw-admin-field">
-                    <span>Password</span>
+                    <span>Temporary password</span>
                     <input
                       type="password"
+                      name="new-password"
                       value={form.password}
                       onChange={(event) => set("password", event.target.value)}
-                      placeholder="At least 10 characters, letters and a number"
+                      placeholder="Leave blank to generate one"
                       autoComplete="new-password"
                       data-testid="employee-password"
                     />
                   </label>
+                  <button
+                    type="button"
+                    className="mw-admin-secondary"
+                    onClick={onGeneratePassword}
+                    data-testid="employee-generate-password"
+                  >
+                    <KeyRound size={14} /> Generate temporary password
+                  </button>
                   <p className="mw-admin-hint">
-                    The employee signs in with this email and password. You can reset it later.
+                    Leave this blank and the panel generates a readable temporary password, then
+                    shows it once with the employee ID so you can share both privately. The employee
+                    signs in with their ID, not an email.
                   </p>
                 </section>
               ) : null}

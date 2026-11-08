@@ -12,6 +12,7 @@ import { BuyBrandRail } from "@/components/buy/BuyBrandRail";
 import { BuyListingCard } from "@/components/buy/BuyListingCard";
 import { BuyServiceCard } from "@/components/buy/BuyServiceCard";
 import { MakeOfferDialog } from "@/components/buy/MakeOfferDialog";
+import { gateCustomerAction } from "@/lib/customer-gate";
 import {
   BUY_CATEGORY_LIST,
   BUY_YEAR_MAX,
@@ -538,7 +539,9 @@ function BuyPage() {
                           featured={index === 0 && results.length >= 3}
                           shortlisted={shortlist.ids.includes(listing.id)}
                           onToggleShortlist={shortlist.toggle}
-                          onMakeOffer={setOfferListing}
+                          onMakeOffer={(listing) =>
+                            gateCustomerAction("offer", () => setOfferListing(listing))
+                          }
                         />
                       ))}
                     </div>

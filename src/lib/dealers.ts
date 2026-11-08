@@ -28,6 +28,7 @@ import {
   isDealerCategory,
   type DealerCategoryId,
 } from "@/lib/dealer-categories";
+import { dealerLoginId, generateTemporaryPassword, normalizeLoginId } from "@/lib/partner-ids";
 
 export type DealerStatus = "Active" | "Pending" | "Disabled";
 
@@ -46,6 +47,8 @@ export type Dealer = {
   createdAt: string;
   lastLoginAt: string | null;
   credential: PasswordCredential | null;
+  /** True while the password is the one the admin issued and shared. */
+  temporaryPassword?: boolean;
 };
 
 const KEY = "mw_dealers_v1";
@@ -86,10 +89,14 @@ export const findDealer = (id: string): Dealer | null =>
 
 export function nextDealerId(dealers: Dealer[]): string {
   const highest = dealers.reduce((acc, dealer) => {
-    const numeric = Number(dealer.id.replace(/^DLR-/, ""));
+    const numeric = Number(
+      normalizeLoginId(dealer.id)
+        .replace(/^MW-/, "")
+        .replace(/^DLR-?/, ""),
+    );
     return Number.isFinite(numeric) ? Math.max(acc, numeric) : acc;
   }, 1000);
-  return `DLR-${highest + 1}`;
+  return dealerLoginId(String(highest + 1));
 }
 
 /* --------------------------------------------------------------- seeding */
@@ -178,7 +185,7 @@ export function ensureDealers(): Promise<void> {
       for (const seed of SEED_DEALERS) {
         const credential = await createPasswordCredential(DEMO_DEALER_PASSWORD);
         created.push({
-          id: `DLR-${1001 + created.length}`,
+          id: dealerLoginId(String(1001 + created.length)),
           name: seed.name,
           showroom: seed.showroom,
           email: `${seed.category}@dealer.motorwallah.in`,
@@ -213,7 +220,14 @@ export type DealerInput = {
   status: DealerStatus;
 };
 
-export type DealerResult = { ok: true; dealer: Dealer } | { ok: false; error: string };
+export type DealerResult =
+  | {
+      ok: true;
+      dealer: Dealer;
+      /** Set only when this call generated a temporary password to share. */
+      password?: string;
+    }
+  | { ok: false; error: string };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
 
@@ -239,7 +253,7 @@ function validate(input: DealerInput, dealers: Dealer[], editingId?: string): st
 }
 
 export async function createDealer(
-  input: DealerInput & { password: string },
+  input: DealerInput & { password?: string },
 ): Promise<DealerResult> {
   if (!cryptoAvailable()) {
     return { ok: false, error: "This browser cannot hash passwords, so the dealer was not saved." };
@@ -247,10 +261,15 @@ export async function createDealer(
   const dealers = readAll();
   const invalid = validate(input, dealers);
   if (invalid) return { ok: false, error: invalid };
-  const weak = validatePasswordStrength(input.password);
+
+  // An empty field means "issue a temporary password": the admin never has to
+  // invent one, and the generated value is returned once so it can be shared.
+  const issued = input.password?.trim() ? undefined : generateTemporaryPassword();
+  const password = input.password?.trim() ? input.password : issued!;
+  const weak = validatePasswordStrength(password);
   if (weak) return { ok: false, error: weak };
 
-  const credential = await createPasswordCredential(input.password);
+  const credential = await createPasswordCredential(password);
   const dealer: Dealer = {
     id: nextDealerId(dealers),
     name: input.name.trim().replace(/\s+/g, " "),
@@ -263,12 +282,13 @@ export async function createDealer(
     createdAt: new Date().toISOString(),
     lastLoginAt: null,
     credential,
+    temporaryPassword: Boolean(issued),
   };
   if (!writeAll([...dealers, dealer])) {
     return { ok: false, error: "Storage is full or blocked, so the dealer was not saved." };
   }
   notify();
-  return { ok: true, dealer };
+  return issued ? { ok: true, dealer, password: issued } : { ok: true, dealer };
 }
 
 export function setDealerStatus(id: string, status: DealerStatus): DealerResult {
@@ -293,23 +313,6 @@ export function setDealerCategory(id: string, category: DealerCategoryId): Deale
   return { ok: true, dealer: next };
 }
 
-/** Admin reset: replaces the password hash for an existing dealer login. */
-export async function setDealerPassword(id: string, password: string): Promise<DealerResult> {
-  if (!cryptoAvailable()) {
-    return { ok: false, error: "This browser cannot hash passwords." };
-  }
-  const weak = validatePasswordStrength(password);
-  if (weak) return { ok: false, error: weak };
-  const dealers = readAll();
-  const dealer = dealers.find((item) => item.id === id);
-  if (!dealer) return { ok: false, error: "That dealer no longer exists." };
-  const credential = await createPasswordCredential(password);
-  const next: Dealer = { ...dealer, credential };
-  writeAll(dealers.map((item) => (item.id === id ? next : item)));
-  notify();
-  return { ok: true, dealer: next };
-}
-
 export function dealerCategoriesInUse(dealers: Dealer[]): DealerCategoryId[] {
   return DEALER_CATEGORIES.map((category) => category.id).filter((id) =>
     dealers.some((dealer) => dealer.category === id),
@@ -320,15 +323,39 @@ export function dealerCategoriesInUse(dealers: Dealer[]): DealerCategoryId[] {
 
 export type DealerSignInResult = { ok: true; dealer: Dealer } | { ok: false; error: string };
 
+/**
+ * Resolve a typed partner ID (or, for older accounts, the registered email).
+ * Accepts `MW-DLR-1001`, `DLR-1001`, `mwdlr1001` and `cars@dealer.motorwallah.in`.
+ */
+export function findDealerByIdentity(identity: string): Dealer | null {
+  const value = identity.trim();
+  if (!value) return null;
+  const dealers = readAll();
+  const key = normalizeLoginId(value);
+  const byLoginId = dealers.find((dealer) => normalizeLoginId(dealerLoginId(dealer)) === key);
+  if (byLoginId) return byLoginId;
+  const byId = dealers.find((dealer) => normalizeLoginId(dealer.id) === key);
+  if (byId) return byId;
+  if (value.includes("@")) {
+    return dealers.find((dealer) => dealer.email.toLowerCase() === value.toLowerCase()) ?? null;
+  }
+  return null;
+}
+
+/** The partner account registered against a mobile number, for password resets. */
+export function findDealerByMobile(mobile: string): Dealer | null {
+  const digits = normalizeMobile(mobile);
+  if (!/^[6-9]\d{9}$/.test(digits)) return null;
+  return readAll().find((dealer) => dealer.mobile === digits) ?? null;
+}
+
 export async function verifyDealerSignIn(
-  emailInput: string,
+  identityInput: string,
   password: string,
 ): Promise<DealerSignInResult> {
   await ensureDealers();
-  const email = emailInput.trim().toLowerCase();
-  const dealers = readAll();
-  const dealer = dealers.find((item) => item.email.toLowerCase() === email);
-  const generic = "That email and password do not match a dealer account." as const;
+  const dealer = findDealerByIdentity(identityInput);
+  const generic = "That partner ID and password do not match a dealer account." as const;
   if (!dealer || !dealer.credential) return { ok: false, error: generic };
 
   const valid = await verifyPasswordCredential(password, dealer.credential);
@@ -354,8 +381,98 @@ export async function verifyDealerSignIn(
     };
   }
 
+  const dealers = readAll();
   const next: Dealer = { ...dealer, lastLoginAt: new Date().toISOString() };
   writeAll(dealers.map((item) => (item.id === dealer.id ? next : item)));
   notify();
   return { ok: true, dealer: next };
 }
+
+/* --------------------------------------------------------- password resets */
+
+/**
+ * Self-service reset used by "Forgot password?" on the partner login page.
+ * The caller verifies the mobile number with an OTP first; this only applies the
+ * new credential and clears the temporary-password flag.
+ */
+export async function resetDealerPasswordByMobile(
+  mobile: string,
+  password: string,
+): Promise<DealerResult> {
+  if (!cryptoAvailable()) {
+    return {
+      ok: false,
+      error: "This browser cannot hash passwords, so the password was not changed.",
+    };
+  }
+  const dealer = findDealerByMobile(mobile);
+  if (!dealer) {
+    return { ok: false, error: "No partner account is registered against that mobile number." };
+  }
+  if (dealer.status === "Disabled") {
+    return { ok: false, error: "This partner account is disabled. Ask Motor Wallah staff first." };
+  }
+  const weak = validatePasswordStrength(password);
+  if (weak) return { ok: false, error: weak };
+
+  const credential = await createPasswordCredential(password);
+  const next: Dealer = { ...dealer, credential, temporaryPassword: false };
+  if (!writeAll(readAll().map((item) => (item.id === dealer.id ? next : item)))) {
+    return { ok: false, error: "Storage is full or blocked, so the password was not changed." };
+  }
+  notify();
+  return { ok: true, dealer: next };
+}
+
+/**
+ * Admin-issued temporary password (new value every call). The plaintext is
+ * returned once so the admin can copy or share it; only the hash is stored.
+ */
+export async function rotateDealerPassword(id: string): Promise<DealerResult> {
+  if (!cryptoAvailable()) {
+    return { ok: false, error: "This browser cannot hash passwords, so nothing changed." };
+  }
+  const dealers = readAll();
+  const dealer = dealers.find((item) => item.id === id);
+  if (!dealer) return { ok: false, error: "That partner account no longer exists." };
+
+  const password = generateTemporaryPassword();
+  const credential = await createPasswordCredential(password);
+  const next: Dealer = { ...dealer, credential, temporaryPassword: true };
+  writeAll(dealers.map((item) => (item.id === id ? next : item)));
+  notify();
+  return { ok: true, dealer: next, password };
+}
+
+/** Change a partner password from the portal, after verifying the current one. */
+export async function changeDealerPassword(
+  id: string,
+  currentPassword: string,
+  password: string,
+): Promise<DealerResult> {
+  if (!cryptoAvailable()) {
+    return {
+      ok: false,
+      error: "This browser cannot hash passwords, so the password was not changed.",
+    };
+  }
+  const dealers = readAll();
+  const dealer = dealers.find((item) => item.id === id);
+  if (!dealer || !dealer.credential) {
+    return { ok: false, error: "That partner account no longer exists." };
+  }
+  const valid = await verifyPasswordCredential(currentPassword, dealer.credential);
+  if (!valid) return { ok: false, error: "Your current password is not correct." };
+
+  const weak = validatePasswordStrength(password);
+  if (weak) return { ok: false, error: weak };
+
+  const credential = await createPasswordCredential(password);
+  const next: Dealer = { ...dealer, credential, temporaryPassword: false };
+  writeAll(dealers.map((item) => (item.id === id ? next : item)));
+  notify();
+  return { ok: true, dealer: next };
+}
+
+/** Re-exported so the portal can render the login ID without an extra import. */
+export { dealerLoginId };

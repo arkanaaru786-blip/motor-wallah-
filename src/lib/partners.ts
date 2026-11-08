@@ -20,6 +20,12 @@ import {
   type PasswordCredential,
 } from "@/lib/admin-crypto";
 import { replicaRead, replicaWrite } from "@/lib/cloud-store";
+import {
+  generateTemporaryPassword,
+  normalizeLoginId,
+  partnerKindFromId,
+  partnerLoginId,
+} from "@/lib/partner-ids";
 
 export type PartnerType = "workshop" | "parts" | "decor";
 export type PartnerStatus = "Active" | "Pending" | "Disabled";
@@ -103,6 +109,8 @@ export type Partner = {
   createdAt: string;
   lastLoginAt: string | null;
   credential: PasswordCredential | null;
+  /** True while the password is the one the admin issued and shared. */
+  temporaryPassword?: boolean;
 };
 
 const KEY = "mw_partners_v1";
@@ -147,20 +155,24 @@ export const listPartnersOfType = (type: PartnerType): Partner[] =>
   listPartners().filter((partner) => partner.type === type);
 
 export const findPartner = (id: string): Partner | null =>
-  readAll().find((partner) => partner.id === normalizePartnerId(id)) ?? null;
+  readAll().find(
+    (partner) => normalizeLoginId(partner.id) === normalizeLoginId(normalizePartnerId(id)),
+  ) ?? null;
 
-export const normalizePartnerId = (value: string): string => value.trim().toUpperCase();
+export const normalizePartnerId = (value: string): string => normalizeLoginId(value);
 
 /** Next auto-generated id for a type: MW-WRK-2001, MW-WRK-2002, … */
 export function nextPartnerId(type: PartnerType, partners: Partner[]): string {
   const def = getPartnerType(type);
   const prefix = `${def.prefix}-`;
   const highest = partners.reduce((acc, partner) => {
-    if (partner.type !== type || !partner.id.startsWith(prefix)) return acc;
-    const numeric = Number(partner.id.slice(prefix.length));
+    if (partner.type !== type) return acc;
+    const normalized = partnerLoginId(type, partner);
+    if (!normalized.startsWith(prefix)) return acc;
+    const numeric = Number(normalized.slice(prefix.length));
     return Number.isFinite(numeric) ? Math.max(acc, numeric) : acc;
   }, def.startAt - 1);
-  return `${def.prefix}-${highest + 1}`;
+  return partnerLoginId(type, String(highest + 1));
 }
 
 /* --------------------------------------------------------------- seeding */
@@ -223,7 +235,7 @@ export function ensurePartners(): Promise<void> {
       const seed = SEED_PARTNERS[def.id];
       const credential = await createPasswordCredential(DEMO_PARTNER_PASSWORD);
       created.push({
-        id: `${def.prefix}-${def.startAt}`,
+        id: partnerLoginId(def.id, String(def.startAt)),
         type: def.id,
         name: seed.name,
         business: seed.business,
@@ -262,7 +274,14 @@ export type PartnerInput = {
   status: PartnerStatus;
 };
 
-export type PartnerResult = { ok: true; partner: Partner } | { ok: false; error: string };
+export type PartnerResult =
+  | {
+      ok: true;
+      partner: Partner;
+      /** Set only when this call generated a temporary password to share. */
+      password?: string;
+    }
+  | { ok: false; error: string };
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
 
@@ -291,7 +310,7 @@ function validate(input: PartnerInput, partners: Partner[], editingId?: string):
 }
 
 export async function createPartner(
-  input: PartnerInput & { password: string },
+  input: PartnerInput & { password?: string },
 ): Promise<PartnerResult> {
   if (!cryptoAvailable()) {
     return {
@@ -302,10 +321,15 @@ export async function createPartner(
   const partners = readAll();
   const invalid = validate(input, partners);
   if (invalid) return { ok: false, error: invalid };
-  const weak = validatePasswordStrength(input.password);
+
+  // An empty field means "issue a temporary password": the admin never has to
+  // invent one, and the generated value is returned once so it can be shared.
+  const issued = input.password?.trim() ? undefined : generateTemporaryPassword();
+  const password = input.password?.trim() ? input.password : issued!;
+  const weak = validatePasswordStrength(password);
   if (weak) return { ok: false, error: weak };
 
-  const credential = await createPasswordCredential(input.password);
+  const credential = await createPasswordCredential(password);
   const partner: Partner = {
     id: nextPartnerId(input.type, partners),
     type: input.type,
@@ -318,12 +342,13 @@ export async function createPartner(
     createdAt: new Date().toISOString(),
     lastLoginAt: null,
     credential,
+    temporaryPassword: Boolean(issued),
   };
   if (!writeAll([...partners, partner])) {
     return { ok: false, error: "Storage is full or blocked, so the partner was not saved." };
   }
   notify();
-  return { ok: true, partner };
+  return issued ? { ok: true, partner, password: issued } : { ok: true, partner };
 }
 
 export function setPartnerStatus(id: string, status: PartnerStatus): PartnerResult {
@@ -336,21 +361,23 @@ export function setPartnerStatus(id: string, status: PartnerStatus): PartnerResu
   return { ok: true, partner: next };
 }
 
-/** Admin reset: replaces the hash; the plaintext is only returned to the caller. */
-export async function setPartnerPassword(id: string, password: string): Promise<PartnerResult> {
+/**
+ * Admin-issued temporary password (new value every call). The plaintext is
+ * returned once so the admin can share it; only the hash is stored.
+ */
+export async function rotatePartnerPassword(id: string): Promise<PartnerResult> {
   if (!cryptoAvailable()) {
-    return { ok: false, error: "This browser cannot hash passwords." };
+    return { ok: false, error: "This browser cannot hash passwords, so nothing changed." };
   }
-  const weak = validatePasswordStrength(password);
-  if (weak) return { ok: false, error: weak };
   const partners = readAll();
-  const partner = partners.find((item) => item.id === id);
-  if (!partner) return { ok: false, error: "That partner no longer exists." };
+  const partner = partners.find((item) => normalizeLoginId(item.id) === normalizeLoginId(id));
+  if (!partner) return { ok: false, error: "That partner account no longer exists." };
+  const password = generateTemporaryPassword();
   const credential = await createPasswordCredential(password);
-  const next: Partner = { ...partner, credential };
-  writeAll(partners.map((item) => (item.id === id ? next : item)));
+  const next: Partner = { ...partner, credential, temporaryPassword: true };
+  writeAll(partners.map((item) => (item.id === partner.id ? next : item)));
   notify();
-  return { ok: true, partner: next };
+  return { ok: true, partner: next, password };
 }
 
 /* --------------------------------------------------------------- sign in */
@@ -364,10 +391,16 @@ export async function verifyPartnerSignIn(
 ): Promise<PartnerSignInResult> {
   await ensurePartners();
   const def = getPartnerType(type);
-  const id = normalizePartnerId(idInput);
-  const partners = readAll();
-  const partner = partners.find((item) => item.id === id && item.type === type);
+  const typedKind = partnerKindFromId(idInput);
   const generic = `That ID and password do not match a ${def.label.toLowerCase()} partner account.`;
+  // Reject an ID from a different portal outright, even if the numeric tail
+  // happens to exist in this one.
+  if (typedKind && typedKind !== type) return { ok: false, error: generic };
+  const id = partnerLoginId(type, idInput);
+  const partners = readAll();
+  const partner = partners.find(
+    (item) => item.type === type && normalizeLoginId(item.id) === normalizeLoginId(id),
+  );
   if (!partner || !partner.credential) return { ok: false, error: generic };
 
   const valid = await verifyPasswordCredential(password, partner.credential);
@@ -390,31 +423,4 @@ export async function verifyPartnerSignIn(
   writeAll(partners.map((item) => (item.id === partner.id ? next : item)));
   notify();
   return { ok: true, partner: next };
-}
-
-/* ----------------------------------------------------------- credentials */
-
-export function partnerWhatsAppLink(mobile: string, message: string): string {
-  const digits = mobile.replace(/\D+/g, "");
-  const withCountry = digits.length === 10 ? `91${digits}` : digits;
-  return `https://wa.me/${withCountry}?text=${encodeURIComponent(message)}`;
-}
-
-/** Credential message an admin can send to a partner on WhatsApp. */
-export function partnerCredentialMessage(
-  partner: { id: string; type: PartnerType; business: string },
-  password: string,
-): string {
-  const def = getPartnerType(partner.type);
-  const origin = typeof window === "undefined" ? "" : window.location.origin;
-  return [
-    `Hi ${partner.business},`,
-    "",
-    `Your Motor Wallah ${def.label} Portal login is ready.`,
-    `Portal ID: ${partner.id}`,
-    `Password: ${password}`,
-    `Sign in: ${origin}${def.loginPath}`,
-    "",
-    "Keep this password private. Ask Motor Wallah staff if you need it reset.",
-  ].join("\n");
 }

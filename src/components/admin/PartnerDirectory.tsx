@@ -4,10 +4,8 @@ import {
   Ban,
   Building2,
   CheckCircle2,
-  Copy,
-  MessageCircle,
+  KeyRound,
   PlusCircle,
-  RefreshCw,
   ShieldCheck,
   Store,
 } from "lucide-react";
@@ -24,7 +22,7 @@ import {
   ensureDealers,
   listDealers,
   nextDealerId,
-  setDealerPassword,
+  rotateDealerPassword,
   setDealerStatus,
   subscribeToDealers,
   type Dealer,
@@ -37,15 +35,15 @@ import {
   getPartnerType,
   listPartners,
   nextPartnerId,
-  partnerCredentialMessage,
-  partnerWhatsAppLink,
-  setPartnerPassword,
+  rotatePartnerPassword,
   setPartnerStatus,
   subscribeToPartners,
   PARTNER_TYPES,
   type Partner,
   type PartnerType,
 } from "@/lib/partners";
+import { dealerLoginId } from "@/lib/partner-ids";
+import { IssuedCredentials } from "@/components/admin/IssuedCredentials";
 
 type AccountType = "dealer" | PartnerType;
 
@@ -64,18 +62,16 @@ type AccountRow = {
   status: DealerStatus;
   lastLoginAt: string | null;
   loginPath: string;
+  /** What the partner types at sign-in, e.g. MW-DLR-1001 or MW-WRK-2001. */
+  loginId: string;
 };
 
 type IssuedCredential = {
-  key: string;
-  kind: "dealer" | "partner";
-  type: AccountType;
+  kind: AccountType;
+  name: string;
   id: string;
-  business: string;
-  mobile: string;
-  email: string;
   password: string;
-  loginPath: string;
+  mobile: string;
 };
 
 const TYPE_LABEL: Record<AccountType, string> = {
@@ -107,15 +103,13 @@ const EMPTY_FORM = {
   password: "",
 };
 
-const origin = () => (typeof window === "undefined" ? "" : window.location.origin);
-
 /**
  * Admin control over every partner account — dealers plus the workshop, auto
  * parts and decor portals.
  *
  * The type dropdown is the only place the account type is chosen, and it
  * decides which registry receives the account and which ID prefix the system
- * generates: DLR- for a dealer, MW-WRK-, MW-PRT- and MW-DCR- for the rest.
+ * generates: MW-DLR- for a dealer, MW-WRK-, MW-PRT- and MW-DCR- for the rest.
  * Plaintext passwords are never stored, so the WhatsApp share is offered for
  * the password just created or reset in this session, not for old accounts.
  */
@@ -130,9 +124,7 @@ export function PartnerDirectory({ session }: { session: AdminSession }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
-  const [issued, setIssued] = useState<IssuedCredential[]>([]);
-  const [resetFor, setResetFor] = useState<AccountRow | null>(null);
-  const [resetPassword, setResetPassword] = useState("");
+  const [issued, setIssued] = useState<IssuedCredential | null>(null);
 
   useEffect(() => {
     void ensureDealers().then(() => setDealers(listDealers()));
@@ -161,6 +153,7 @@ export function PartnerDirectory({ session }: { session: AdminSession }) {
       status: dealer.status,
       lastLoginAt: dealer.lastLoginAt,
       loginPath: "/dealer-login",
+      loginId: dealerLoginId(dealer),
     }));
 
     const partnerRows: AccountRow[] = partners.map((partner) => ({
@@ -178,6 +171,7 @@ export function PartnerDirectory({ session }: { session: AdminSession }) {
       status: partner.status,
       lastLoginAt: partner.lastLoginAt,
       loginPath: getPartnerType(partner.type).loginPath,
+      loginId: partner.id,
     }));
 
     return [...dealerRows, ...partnerRows].sort(
@@ -202,41 +196,6 @@ export function PartnerDirectory({ session }: { session: AdminSession }) {
     if (type === "dealer") return nextDealerId(dealers);
     return nextPartnerId(type, partners);
   }, [form.type, dealers, partners]);
-
-  const credentialFor = (row: AccountRow) => issued.find((item) => item.key === row.key) ?? null;
-
-  const messageFor = (credential: IssuedCredential): string => {
-    if (credential.kind === "dealer") {
-      return [
-        `Hi ${credential.business},`,
-        "",
-        "Your Motor Wallah Dealer Portal login is ready.",
-        `Dealer ID: ${credential.id}`,
-        `Login email: ${credential.email}`,
-        `Password: ${credential.password}`,
-        `Sign in: ${origin()}${credential.loginPath}`,
-        "",
-        "Keep this password private; ask Motor Wallah staff if you need it changed.",
-      ].join("\n");
-    }
-    return partnerCredentialMessage(
-      { id: credential.id, type: credential.type as PartnerType, business: credential.business },
-      credential.password,
-    );
-  };
-
-  const shareLink = (credential: IssuedCredential) =>
-    partnerWhatsAppLink(credential.mobile, messageFor(credential));
-
-  const copyCredential = async (credential: IssuedCredential) => {
-    try {
-      await navigator.clipboard.writeText(messageFor(credential));
-      setFlash(`Credentials for ${credential.id} copied.`);
-      setError(null);
-    } catch {
-      setError("This browser blocked the clipboard. Use the WhatsApp share instead.");
-    }
-  };
 
   return (
     <div className="mw-admin-dash">
@@ -291,127 +250,16 @@ export function PartnerDirectory({ session }: { session: AdminSession }) {
         </p>
       ) : null}
 
-      {issued.length > 0 ? (
-        <section className="mw-admin-panel">
-          <div className="mw-admin-panel-head">
-            <div>
-              <h2>
-                <MessageCircle size={15} /> Credentials ready to share
-              </h2>
-              <p>
-                Passwords are never stored in plaintext, so this is the only moment they can be
-                shared. Send them on WhatsApp now, or reset the password later.
-              </p>
-            </div>
-          </div>
-          <ul className="mw-partner-issued">
-            {issued.map((credential) => (
-              <li key={credential.key} data-testid={`partner-issued-${credential.id}`}>
-                <div>
-                  <strong className="mw-partner-id">{credential.id}</strong>
-                  <span>
-                    {TYPE_LABEL[credential.type]} · {credential.business}
-                  </span>
-                </div>
-                <code>{credential.password}</code>
-                <div className="mw-dealer-actions">
-                  <button
-                    type="button"
-                    className="mw-dealer-btn is-small"
-                    onClick={() => void copyCredential(credential)}
-                  >
-                    <Copy size={12} /> Copy
-                  </button>
-                  <a
-                    className="mw-dealer-btn is-small is-primary"
-                    href={shareLink(credential)}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <MessageCircle size={12} /> WhatsApp
-                  </a>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {resetFor ? (
-        <section className="mw-admin-panel">
-          <div className="mw-admin-panel-head">
-            <div>
-              <h2>
-                <RefreshCw size={15} /> Set a new password for {resetFor.business}
-              </h2>
-              <p>
-                {resetFor.id} · the new password replaces the old one immediately. Share it on
-                WhatsApp after saving.
-              </p>
-            </div>
-          </div>
-          <form
-            className="mw-dealer-form"
-            onSubmit={async (event) => {
-              event.preventDefault();
-              setError(null);
-              setBusy(true);
-              const result =
-                resetFor.kind === "dealer"
-                  ? await setDealerPassword(resetFor.id, resetPassword)
-                  : await setPartnerPassword(resetFor.id, resetPassword);
-              setBusy(false);
-              if (!result.ok) {
-                setError(result.error);
-                return;
-              }
-              setIssued((items) => [
-                {
-                  key: resetFor.key,
-                  kind: resetFor.kind,
-                  type: resetFor.type,
-                  id: resetFor.id,
-                  business: resetFor.business,
-                  mobile: resetFor.mobile,
-                  email: resetFor.email,
-                  password: resetPassword,
-                  loginPath: resetFor.loginPath,
-                },
-                ...items.filter((item) => item.key !== resetFor.key),
-              ]);
-              setFlash(`New password set for ${resetFor.id}. Share it with the partner now.`);
-              setResetFor(null);
-              setResetPassword("");
-            }}
-          >
-            <label className="mw-dealer-field is-span-3">
-              <span>New temporary password</span>
-              <input
-                type="password"
-                value={resetPassword}
-                onChange={(event) => setResetPassword(event.target.value)}
-                placeholder="At least 10 characters, letters and numbers"
-                required
-                autoFocus
-              />
-            </label>
-            <div className="mw-dealer-form-actions">
-              <button type="submit" className="mw-dealer-btn is-primary" disabled={busy}>
-                <RefreshCw size={14} /> {busy ? "Saving…" : "Save new password"}
-              </button>
-              <button
-                type="button"
-                className="mw-dealer-btn is-quiet"
-                onClick={() => {
-                  setResetFor(null);
-                  setResetPassword("");
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </section>
+      {issued ? (
+        <IssuedCredentials
+          key={`${issued.kind}:${issued.id}:${issued.password}`}
+          kind={issued.kind}
+          name={issued.name}
+          id={issued.id}
+          password={issued.password}
+          mobile={issued.mobile}
+          onDismiss={() => setIssued(null)}
+        />
       ) : null}
 
       {mayManage ? (
@@ -422,8 +270,9 @@ export function PartnerDirectory({ session }: { session: AdminSession }) {
                 <PlusCircle size={15} /> Create a partner
               </h2>
               <p>
-                Choose the type first. Dealers keep their email login; workshop, parts and decor
-                partners sign in with the auto-generated ID shown below.
+                Choose the type first. Dealers sign in with their MW-DLR ID or email; workshop,
+                parts and decor partners use the auto-generated ID shown below. Leave the password
+                blank to issue a temporary one.
               </p>
             </div>
           </div>
@@ -453,22 +302,19 @@ export function PartnerDirectory({ session }: { session: AdminSession }) {
                   return;
                 }
                 const dealer = result.dealer;
-                setIssued((items) => [
-                  {
-                    key: `dealer:${dealer.id}`,
+                const loginId = dealerLoginId(dealer);
+                const password = result.password ?? form.password.trim();
+                if (password) {
+                  setIssued({
                     kind: "dealer",
-                    type: "dealer",
-                    id: dealer.id,
-                    business: dealer.showroom,
+                    name: dealer.name,
+                    id: loginId,
+                    password,
                     mobile: dealer.mobile,
-                    email: dealer.email,
-                    password: form.password,
-                    loginPath: "/dealer-login",
-                  },
-                  ...items.filter((item) => item.key !== `dealer:${dealer.id}`),
-                ]);
+                  });
+                }
                 setFlash(
-                  `${dealer.showroom} created as ${dealer.id} — ${dealerCategoryLabel(dealer.category)} only. Share the credentials on WhatsApp.`,
+                  `${dealer.showroom} created as ${loginId} — ${dealerCategoryLabel(dealer.category)} only. Share the credentials on WhatsApp.`,
                 );
               } else {
                 const partnerType = form.type;
@@ -488,20 +334,16 @@ export function PartnerDirectory({ session }: { session: AdminSession }) {
                   return;
                 }
                 const partner = result.partner;
-                setIssued((items) => [
-                  {
-                    key: `partner:${partner.id}`,
-                    kind: "partner",
-                    type: partner.type,
+                const password = result.password ?? form.password.trim();
+                if (password) {
+                  setIssued({
+                    kind: partner.type,
+                    name: partner.name,
                     id: partner.id,
-                    business: partner.business,
+                    password,
                     mobile: partner.mobile,
-                    email: partner.email,
-                    password: form.password,
-                    loginPath: getPartnerType(partner.type).loginPath,
-                  },
-                  ...items.filter((item) => item.key !== `partner:${partner.id}`),
-                ]);
+                  });
+                }
                 setFlash(
                   `${partner.business} created as ${partner.id} — ${getPartnerType(partner.type).label} portal. Share the credentials on WhatsApp.`,
                 );
@@ -622,8 +464,10 @@ export function PartnerDirectory({ session }: { session: AdminSession }) {
                 type="password"
                 value={form.password}
                 onChange={(event) => setForm({ ...form, password: event.target.value })}
-                placeholder="At least 10 characters"
-                required
+                placeholder={
+                  form.type === "dealer" ? "At least 10 characters" : "Leave blank to generate"
+                }
+                required={form.type === "dealer"}
               />
             </label>
             <div className="mw-dealer-form-actions">
@@ -685,7 +529,6 @@ export function PartnerDirectory({ session }: { session: AdminSession }) {
               </thead>
               <tbody>
                 {visible.map((row) => {
-                  const credential = credentialFor(row);
                   return (
                     <tr key={row.key} data-testid={`partner-admin-row-${row.id}`}>
                       <td>
@@ -699,7 +542,7 @@ export function PartnerDirectory({ session }: { session: AdminSession }) {
                         <div className="is-muted">{row.detail}</div>
                       </td>
                       <td>
-                        <strong className="mw-partner-id">{row.id}</strong>
+                        <strong className="mw-partner-id">{row.loginId}</strong>
                         <div className="is-muted">{row.loginPath}</div>
                       </td>
                       <td>
@@ -714,31 +557,44 @@ export function PartnerDirectory({ session }: { session: AdminSession }) {
                       </td>
                       <td>
                         <div className="mw-dealer-actions">
-                          {credential ? (
-                            <a
-                              className="mw-dealer-btn is-small"
-                              href={shareLink(credential)}
-                              target="_blank"
-                              rel="noreferrer"
-                              data-testid={`partner-share-${row.id}`}
-                            >
-                              <MessageCircle size={12} /> Share
-                            </a>
-                          ) : (
-                            <button
-                              type="button"
-                              className="mw-dealer-btn is-small"
-                              disabled={!mayManage}
-                              title="Set a new password to share fresh credentials"
-                              onClick={() => {
-                                setResetFor(row);
-                                setResetPassword("");
+                          <button
+                            type="button"
+                            className="mw-dealer-btn is-small"
+                            disabled={!mayManage || busy}
+                            title="Issue a new temporary password and share it on WhatsApp"
+                            data-testid={`partner-share-${row.id}`}
+                            onClick={() => {
+                              void (async () => {
+                                setBusy(true);
                                 setError(null);
-                              }}
-                            >
-                              <MessageCircle size={12} /> Reset &amp; share
-                            </button>
-                          )}
+                                const result =
+                                  row.kind === "dealer"
+                                    ? await rotateDealerPassword(row.id)
+                                    : await rotatePartnerPassword(row.id);
+                                setBusy(false);
+                                if (!result.ok) {
+                                  setError(result.error);
+                                  return;
+                                }
+                                if (!result.password) {
+                                  setError("No password was generated. Please try again.");
+                                  return;
+                                }
+                                setIssued({
+                                  kind: row.type,
+                                  name: row.name,
+                                  id: row.loginId,
+                                  password: result.password,
+                                  mobile: row.mobile,
+                                });
+                                setFlash(
+                                  `New password issued for ${row.loginId}. Share it with the partner now.`,
+                                );
+                              })();
+                            }}
+                          >
+                            <KeyRound size={12} /> Reset &amp; share
+                          </button>
 
                           {row.status !== "Active" ? (
                             <button

@@ -13,6 +13,7 @@ import {
 
 import { dealerCategoryLabel } from "@/lib/dealer-categories";
 import { signOutDealer, type DealerSession } from "@/lib/dealer-session";
+import { dealerLoginId } from "@/lib/partner-ids";
 
 export type DealerTab = "overview" | "inventory" | "add" | "leads" | "chats" | "offers";
 
@@ -62,7 +63,7 @@ export function DealerShell({
           <div className="mw-dealer-identity">
             <strong>{session.name}</strong>
             <span>
-              {session.dealerId} · {session.email}
+              {dealerLoginId({ id: session.dealerId })} · {session.email}
             </span>
           </div>
           <button

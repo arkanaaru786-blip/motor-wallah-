@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { BadgeCheck, IndianRupee, Tag, X } from "lucide-react";
 import { buyListingName, rupees, type BuyListing } from "@/lib/buy-catalog";
 import { saveOffer, type ListingOffer } from "@/lib/listing-offers";
+import { useCustomerSession } from "@/lib/account-store";
+import { WHATSAPP_BASE } from "@/lib/site";
 
 /**
  * Section F — Make an Offer.
@@ -29,6 +31,15 @@ export function MakeOfferDialog({
   const [error, setError] = useState("");
   const [saved, setSaved] = useState<ListingOffer | null>(null);
   const [busy, setBusy] = useState(false);
+  const { customer } = useCustomerSession();
+
+  // The offer is gated behind a verified customer, so fill in what the account
+  // already knows instead of asking for it twice.
+  useEffect(() => {
+    if (!open || !customer) return;
+    setName((value) => value || customer.name);
+    setMobile((value) => value || customer.mobile);
+  }, [open, customer]);
 
   if (!open) return null;
 
@@ -142,18 +153,19 @@ export function MakeOfferDialog({
             </p>
 
             <div className="buy-chat-notice">
-              <strong>No seller offer backend is connected yet.</strong>                <p>
-                  This offer is stored on this device (and in this project&apos;s local lead queue)
-                  against {vehicleName}. It has <em>not</em> been transmitted to a seller, no one has
-                  accepted or rejected it, and the asking price stays {askingLabel}. Accepted,
-                  Rejected and Counter statuses only appear once seller-side tooling exists. For a
-                  real response now, use Call or WhatsApp below.
-                </p>
+              <strong>No seller offer backend is connected yet.</strong>{" "}
+              <p>
+                This offer is stored on this device (and in this project&apos;s local lead queue)
+                against {vehicleName}. It has <em>not</em> been transmitted to a seller, no one has
+                accepted or rejected it, and the asking price stays {askingLabel}. Accepted,
+                Rejected and Counter statuses only appear once seller-side tooling exists. For a
+                real response now, use Call or WhatsApp below.
+              </p>
             </div>
 
             <div className="buy-chat-actions">
               <a
-                href={`https://wa.me/919999999999?text=${encodeURIComponent(
+                href={`${WHATSAPP_BASE}?text=${encodeURIComponent(
                   `Hello MOTOR WALLAH, I would like to offer ${rupees(saved.amount)} for the ${vehicleName} listed in ${listing.city}. Asking price: ${askingLabel}.`,
                 )}`}
                 target="_blank"

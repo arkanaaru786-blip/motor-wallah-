@@ -25,8 +25,8 @@ const SERVICES = [
   { icon: PaintBucket, label: "Denting &\nPainting", to: "/services" },
   { icon: Sparkles, label: "Detailing", to: "/services" },
   { icon: Sofa, label: "Car\nAccessories", to: "/accessories" },
-  { icon: BadgeCheck, label: "Extended\nWarranty", to: "/warranty" },
-  { icon: Truck, label: "Roadside\nAssistance", to: "/roadside-assistance" },
+  { icon: BadgeCheck, label: "Extended\nWarranty", to: "/warranty-rsa" },
+  { icon: Truck, label: "Roadside\nAssistance", to: "/warranty-rsa" },
 ] as const;
 
 export function Services() {
@@ -44,8 +44,13 @@ export function Services() {
               to={to}
               className="group flex flex-col items-center justify-start gap-3 border border-border bg-card px-3 py-5 text-center transition-all hover:-translate-y-1 hover:border-primary hover:shadow-panel"
             >
-              <Icon className="h-7 w-7 text-foreground transition-colors group-hover:text-primary" strokeWidth={1.5} />
-              <span className="whitespace-pre-line text-[0.68rem] font-semibold leading-tight">{label}</span>
+              <Icon
+                className="h-7 w-7 text-foreground transition-colors group-hover:text-primary"
+                strokeWidth={1.5}
+              />
+              <span className="whitespace-pre-line text-[0.68rem] font-semibold leading-tight">
+                {label}
+              </span>
             </Link>
           ))}
         </div>

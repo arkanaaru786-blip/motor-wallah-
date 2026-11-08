@@ -6,6 +6,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { SmartSearch } from "@/components/site/SmartSearch";
 import { BuyListingCard } from "@/components/buy/BuyListingCard";
 import { MakeOfferDialog } from "@/components/buy/MakeOfferDialog";
+import { gateCustomerAction } from "@/lib/customer-gate";
 import { useShortlist } from "@/lib/shortlist";
 import { rupees, type BuyListing } from "@/lib/buy-catalog";
 import { searchDecor, searchParts, searchVehicles } from "@/lib/smart-search";
@@ -327,7 +328,9 @@ function SearchPage() {
                         featured={index === 0 && filteredVehicles.length >= 3}
                         shortlisted={shortlist.ids.includes(listing.id)}
                         onToggleShortlist={shortlist.toggle}
-                        onMakeOffer={setOfferListing}
+                        onMakeOffer={(listing) =>
+                          gateCustomerAction("offer", () => setOfferListing(listing))
+                        }
                       />
                     ))}
                   </div>

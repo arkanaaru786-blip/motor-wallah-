@@ -1,23 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PagePlaceholder } from "@/components/site/PagePlaceholder";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-const TITLE = "Frequently Asked Questions | Motor Wallah";
-const DESCRIPTION = "Answers about buying, selling, inspection, finance and service at Motor Wallah.";
-
+/**
+ * The FAQ page lives at /faqs. This route keeps the older /faq link working for
+ * anyone who bookmarked it, without maintaining two copies of the content.
+ */
 export const Route = createFileRoute("/faq")({
-  head: () => ({
-    meta: [
-      { title: TITLE },
-      { name: "description", content: DESCRIPTION },
-      { property: "og:title", content: TITLE },
-      { property: "og:description", content: DESCRIPTION },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  component: Page,
+  beforeLoad: () => {
+    throw redirect({ to: "/faqs" });
+  },
 });
-
-function Page() {
-  return <PagePlaceholder title="Frequently Asked Questions" description="Answers about buying, selling, inspection, finance and service at Motor Wallah." />;
-}

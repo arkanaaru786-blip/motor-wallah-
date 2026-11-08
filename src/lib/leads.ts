@@ -105,6 +105,87 @@ async function insertLeadRecord(record: Lead): Promise<void> {
   }
 }
 
+/**
+ * The form types that also send email: a thank-you to the customer when they
+ * left an email, and an internal alert to the admin inbox. Click tracking
+ * (WhatsApp/call buttons, listing reports) is deliberately quiet — one email
+ * per tap would bury the leads that need a callback.
+ */
+const EMAILED_LEADS = new Set<LeadType>([
+  "finance_enquiry",
+  "insurance_enquiry",
+  "service_booking",
+  "sell_vehicle",
+  "sell_car",
+  "franchise_enquiry",
+]);
+
+/** Personal numbers and identity documents never travel by email. */
+const PRIVATE_FIELD = /pan|aadhaar|aadhar|ifsc|account|upi|cvv|card/i;
+
+const trimmed = (value: string | undefined): string => (value ?? "").trim();
+
+/** The customer's email, if the form asked for one (only Franchise does today). */
+function emailOf(record: Lead): string | undefined {
+  const fromFields = Object.entries(record.fields ?? {}).find(
+    ([key, value]) => /email/i.test(key) && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmed(value)),
+  );
+  const candidate = trimmed(fromFields?.[1]);
+  return candidate === "" ? undefined : candidate;
+}
+
+/** The reference the customer was shown, so the email can quote it back. */
+function referenceOf(record: Lead): string | undefined {
+  const fields = record.fields ?? {};
+  const value =
+    fields["referenceId"] ?? fields["trackingId"] ?? fields["orderId"] ?? fields["bookingId"] ?? "";
+  return trimmed(value) === "" ? undefined : trimmed(value);
+}
+
+/** Up to a dozen labelled details for the internal alert only. */
+function detailsOf(record: Lead): Record<string, string> {
+  const details: Record<string, string> = {};
+  for (const [key, value] of Object.entries(record.fields ?? {})) {
+    if (Object.keys(details).length >= 12) break;
+    if (PRIVATE_FIELD.test(key)) continue;
+    if (["name", "mobile", "email"].includes(key)) continue;
+    const text = trimmed(value);
+    if (text === "") continue;
+    details[key] = text.slice(0, 300);
+  }
+  return details;
+}
+
+/**
+ * Ask the server to send this lead's emails. Fire-and-forget: the lead is
+ * already stored, so a network failure or a missing Resend key is logged and
+ * forgotten rather than surfaced to the customer.
+ */
+async function sendFormAlertEmail(record: Lead): Promise<void> {
+  if (!EMAILED_LEADS.has(record.type)) return;
+  try {
+    const response = await fetch("/api/send-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: record.type,
+        source: record.source,
+        ...(trimmed(record.name) ? { name: trimmed(record.name) } : {}),
+        ...(trimmed(record.mobile) ? { mobile: trimmed(record.mobile) } : {}),
+        ...(emailOf(record) ? { email: emailOf(record) } : {}),
+        ...(trimmed(record.vehicleName) ? { vehicleName: trimmed(record.vehicleName) } : {}),
+        ...(referenceOf(record) ? { reference: referenceOf(record) } : {}),
+        details: detailsOf(record),
+      }),
+    });
+    if (!response.ok) {
+      console.warn(`[lead-email] alert not sent (HTTP ${response.status})`);
+    }
+  } catch {
+    /* offline or server restarting — the lead itself is already saved */
+  }
+}
+
 export async function submitLead(lead: Omit<Lead, "createdAt">): Promise<{ ok: true }> {
   const record: Lead = { ...lead, createdAt: new Date().toISOString() };
   try {
@@ -116,6 +197,7 @@ export async function submitLead(lead: Omit<Lead, "createdAt">): Promise<{ ok: t
     /* storage unavailable — lead capture must never break the UI */
   }
   void insertLeadRecord(record);
+  if (typeof window !== "undefined") void sendFormAlertEmail(record);
   if (LEAD_ENDPOINT) {
     try {
       await fetch(LEAD_ENDPOINT, {
