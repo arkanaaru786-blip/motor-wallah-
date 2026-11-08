@@ -106,7 +106,6 @@ export const SERVICE_LINKS = [
   { label: "Insurance", to: "/insurance" },
   { label: "RTO", to: "/rto" },
   { label: "Workshop", to: "/workshop" },
-  { label: "Warranty", to: "/warranty" },
-  { label: "Roadside Assistance", to: "/roadside-assistance" },
+  { label: "Warranty & RSA", to: "/warranty-rsa" },
   { label: "Accessories", to: "/accessories" },
 ] as const;

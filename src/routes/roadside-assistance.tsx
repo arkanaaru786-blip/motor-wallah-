@@ -1,23 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PagePlaceholder } from "@/components/site/PagePlaceholder";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-const TITLE = "Roadside Assistance | Motor Wallah";
-const DESCRIPTION = "Roadside assistance available through service partners.";
-
+/**
+ * Warranty and roadside assistance now share one page with its own lead form.
+ * The older single-service URLs redirect there so every existing link lands on
+ * real content instead of a "coming soon" placeholder.
+ */
 export const Route = createFileRoute("/roadside-assistance")({
-  head: () => ({
-    meta: [
-      { title: TITLE },
-      { name: "description", content: DESCRIPTION },
-      { property: "og:title", content: TITLE },
-      { property: "og:description", content: DESCRIPTION },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  component: Page,
+  beforeLoad: () => {
+    throw redirect({ to: "/warranty-rsa" });
+  },
 });
-
-function Page() {
-  return <PagePlaceholder title="Roadside Assistance" description="Roadside assistance available through service partners." />;
-}
