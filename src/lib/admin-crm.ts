@@ -745,6 +745,7 @@ const LEAD_TYPE_MAP: Record<LeadType, CaseType> = {
   insurance_enquiry: "Insurance",
   warranty_enquiry: "Insurance",
   service_booking: "Service",
+  workshop_enquiry: "Service",
   franchise_enquiry: "Franchise",
   sell_car: "Sell",
   sell_vehicle: "Sell",

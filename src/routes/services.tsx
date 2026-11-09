@@ -4,10 +4,17 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
+  ClipboardCheck,
+  Droplets,
+  Hammer,
   ImagePlus,
   MessageCircle,
+  Paintbrush,
   Phone,
+  Sparkles,
   Trash2,
+  Wrench,
+  Zap,
 } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -23,7 +30,13 @@ import {
   type BuyCategoryId,
 } from "@/lib/buy-catalog";
 import { submitLead } from "@/lib/leads";
-import { newTrackingId } from "@/lib/service-tracking";
+import {
+  createWorkshopEnquiry,
+  getWorkshopDepartment,
+  isWorkshopDepartment,
+  WORKSHOP_DEPARTMENTS,
+  type WorkshopDepartmentId,
+} from "@/lib/workshop-enquiries";
 import { toUploadedFile, type UploadedFile } from "@/lib/uploads";
 import { PHONE_DISPLAY, PHONE_HREF, whatsappLink } from "@/lib/site";
 
@@ -35,9 +48,11 @@ export const Route = createFileRoute("/services")({
   validateSearch: (search: Record<string, unknown>): ServiceSearch => {
     const view = search["view"];
     const cat = search["cat"];
+    const dept = search["dept"];
     return {
-      view: view === "form" || view === "done" ? view : undefined,
+      view: view === "departments" || view === "form" || view === "done" ? view : undefined,
       cat: isCategoryId(cat) ? cat : undefined,
+      dept: isWorkshopDepartment(dept) ? dept : undefined,
     };
   },
   head: () => ({
@@ -54,10 +69,20 @@ export const Route = createFileRoute("/services")({
 });
 
 type ServiceSearch = {
-  /** URL-driven steps: /services = category grid, ?view=form = form, ?view=done = success. */
-  view?: "form" | "done" | undefined;
+  /** /services = category grid → department grid → form → success. */
+  view?: "departments" | "form" | "done" | undefined;
   cat?: BuyCategoryId | undefined;
+  dept?: WorkshopDepartmentId | undefined;
 };
+
+const DEPARTMENT_ICON = {
+  denting: Hammer,
+  painting: Paintbrush,
+  mechanical: Wrench,
+  electrical: Zap,
+  detailing: Sparkles,
+  "car-wash": Droplets,
+} as const;
 
 const isCategoryId = (value: unknown): value is BuyCategoryId =>
   typeof value === "string" && BUY_CATEGORY_LIST.some((c) => c.id === value);
@@ -143,17 +168,20 @@ const YEARS = Array.from({ length: BUY_YEAR_MAX - BUY_YEAR_MIN + 1 }, (_, i) =>
 
 type Submission = {
   categoryLabel: string;
+  departmentLabel: string;
   serviceType: string;
   vehicle: string;
+  vehicleNumber: string;
   slot: string;
   name: string;
   mobile: string;
   trackingId: string;
+  enquiryId: string;
 };
 
 function Page() {
   const navigate = useNavigate();
-  const { view, cat } = Route.useSearch();
+  const { view, cat, dept } = Route.useSearch();
 
   const [brand, setBrand] = useState("");
   const [photos, setPhotos] = useState<UploadedFile[]>([]);
@@ -163,9 +191,16 @@ function Page() {
   const pendingScroll = useRef<string | null>(null);
 
   const category = getBuyCategory(cat) ?? null;
-  const step: "category" | "form" | "done" =
-    view === "form" && category ? "form" : view === "done" && category ? "done" : "category";
-  const stepIndex = step === "category" ? 0 : step === "form" ? 1 : 2;
+  const department = getWorkshopDepartment(dept);
+  const step: "category" | "departments" | "form" | "done" =
+    view === "departments" && category
+      ? "departments"
+      : view === "form" && category && department
+        ? "form"
+        : view === "done" && category && submission
+          ? "done"
+          : "category";
+  const stepIndex = step === "category" ? 0 : step === "departments" ? 1 : step === "form" ? 2 : 3;
 
   // Deferred scroll: runs only after the step change has actually rendered.
   useEffect(() => {
@@ -175,22 +210,23 @@ function Page() {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [step]);
 
-  // Defensive fallback for stale form/done URLs — returns to the category grid.
+  // Defensive fallback for stale step URLs — returns to the category grid.
   useEffect(() => {
-    const invalid = (view === "form" && !category) || (view === "done" && !submission);
+    const invalid =
+      (view === "departments" && !category) ||
+      (view === "form" && (!category || !department)) ||
+      (view === "done" && !submission);
     if (!invalid) return;
     const timer = window.setTimeout(() => {
       navigate({ to: "/services", search: {}, replace: true });
     }, 400);
     return () => window.clearTimeout(timer);
-  }, [view, category, submission, navigate]);
+  }, [view, category, department, submission, navigate]);
 
   const brands = category ? brandTilesFor(category.id) : [];
   const safeBrand = brands.some((b) => b.brand === brand) ? brand : "";
   const modelSuggestions = safeBrand && category ? catalogModelsFor(category.id, safeBrand) : [];
-  const fuels = category
-    ? fuelOptionsFor(category.id, safeBrand || undefined, undefined)
-    : [];
+  const fuels = category ? fuelOptionsFor(category.id, safeBrand || undefined, undefined) : [];
   const serviceTypes = category ? SERVICE_TYPES[category.id] : [];
 
   const resetFlowState = () => {
@@ -201,14 +237,27 @@ function Page() {
 
   const pickCategory = (id: BuyCategoryId) => {
     resetFlowState();
+    pendingScroll.current = "service-departments";
+    navigate({ to: "/services", search: { view: "departments", cat: id } });
+  };
+
+  const pickDepartment = (id: WorkshopDepartmentId) => {
+    if (!category) return;
     pendingScroll.current = "service-form";
-    navigate({ to: "/services", search: { view: "form", cat: id } });
+    navigate({ to: "/services", search: { view: "form", cat: category.id, dept: id } });
   };
 
   const backToCategories = () => {
     resetFlowState();
     pendingScroll.current = "service-categories";
     navigate({ to: "/services", search: {} });
+  };
+
+  const backToDepartments = () => {
+    setError(null);
+    if (!category) return;
+    pendingScroll.current = "service-departments";
+    navigate({ to: "/services", search: { view: "departments", cat: category.id } });
   };
 
   const addPhotos = async (files: FileList | null) => {
@@ -235,8 +284,16 @@ function Page() {
     if (!activeCategory) return;
 
     const data = new FormData(event.currentTarget);
-    const value = (key: string) => String(data.get(key) ?? "").trim().slice(0, 500);
+    const value = (key: string) =>
+      String(data.get(key) ?? "")
+        .trim()
+        .slice(0, 500);
+    if (!department) {
+      setError("Choose a workshop department before submitting.");
+      return;
+    }
     const serviceType = value("serviceType");
+    const vehicleNumber = value("vehicleNumber").toUpperCase();
     const model = value("model");
     const year = value("year");
     const fuel = value("fuel");
@@ -247,8 +304,23 @@ function Page() {
     const mobile = value("mobile");
     const description = value("description");
 
-    if (!serviceType || !safeBrand || !model || !year || !fuel || !location || !date || !time || !name) {
+    if (
+      !serviceType ||
+      !vehicleNumber ||
+      !safeBrand ||
+      !model ||
+      !year ||
+      !fuel ||
+      !location ||
+      !date ||
+      !time ||
+      !name
+    ) {
       setError("Please fill in every required field before submitting.");
+      return;
+    }
+    if (!/^[A-Z0-9 -]{6,15}$/.test(vehicleNumber)) {
+      setError("Enter a valid vehicle number, for example MH12AB4521.");
       return;
     }
     if (!/^[0-9+ ]{10,15}$/.test(mobile)) {
@@ -257,21 +329,46 @@ function Page() {
     }
     setError(null);
 
-    // Unique Tracking ID (MW-SRV-12345) — generated once per booking, saved
-    // with the lead and shown on the success screen for live status tracking.
-    const trackingId = newTrackingId();
+    const vehicle = `${year} ${safeBrand} ${model}`.trim();
+    // The workshop enquiry is the durable record the partner portal works on.
+    // It starts unclaimed so the first workshop that accepts it owns it.
+    const created = createWorkshopEnquiry({
+      customerName: name,
+      mobile,
+      category: activeCategory.label,
+      department: department.id,
+      serviceType,
+      vehicleNumber,
+      vehicle,
+      brand: safeBrand,
+      model,
+      year,
+      fuel,
+      issue: description,
+      location,
+      preferredDate: date,
+      preferredTime: time,
+      photoCount: photos.length,
+    });
+    if (!created.ok) {
+      setError(created.error);
+      return;
+    }
 
-    // Persist through the project's lead capture — local lead queue first,
-    // CRM endpoint (VITE_LEAD_ENDPOINT) second — so the team receives it.
+    // The same intent is written to the structured Supabase lead log so the
+    // CRM, email alert and dashboard keep one shared reference.
     await submitLead({
-      type: "service_booking",
+      type: "workshop_enquiry",
       source: "services",
       name,
       mobile,
       location,
       fields: {
         category: activeCategory.label,
+        department: department.label,
+        departmentId: department.id,
         serviceType,
+        vehicleNumber,
         brand: safeBrand,
         model,
         year,
@@ -280,7 +377,8 @@ function Page() {
         date,
         time,
         description,
-        trackingId,
+        trackingId: created.enquiry.trackingId,
+        enquiryId: created.enquiry.id,
         name,
         mobile,
       },
@@ -289,15 +387,21 @@ function Page() {
 
     setSubmission({
       categoryLabel: activeCategory.label,
+      departmentLabel: department.label,
       serviceType,
-      vehicle: `${year} ${safeBrand} ${model}`.trim(),
+      vehicle,
+      vehicleNumber,
       slot: `${date} · ${time}`,
       name,
       mobile,
-      trackingId,
+      trackingId: created.enquiry.trackingId,
+      enquiryId: created.enquiry.id,
     });
     pendingScroll.current = "service-done";
-    navigate({ to: "/services", search: { view: "done", cat: activeCategory.id } });
+    navigate({
+      to: "/services",
+      search: { view: "done", cat: activeCategory.id, dept: department.id },
+    });
   };
 
   const restart = () => {
@@ -324,11 +428,16 @@ function Page() {
               Book Your Vehicle <em>Service</em>
             </h1>
             <p className="mw-sell-hero-text">
-              Pick your vehicle category, choose exactly the service it needs, share the details
-              and a preferred slot — our team contacts you shortly to confirm the booking.
+              Pick your vehicle category, choose exactly the service it needs, share the details and
+              a preferred slot — our team contacts you shortly to confirm the booking.
             </p>
             <div className="mw-sell-hero-actions">
-              <a className="mw-sell-ghost-btn" href={whatsapp} target="_blank" rel="noopener noreferrer">
+              <a
+                className="mw-sell-ghost-btn"
+                href={whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <MessageCircle size={14} /> WhatsApp Us
               </a>
               <a className="mw-sell-ghost-btn" href={PHONE_HREF}>
@@ -339,21 +448,27 @@ function Page() {
               </Link>
             </div>
             <div className="mw-sell-steps" aria-label="Service flow steps">
-              {["Choose Category", "Service Details", "Submitted"].map((label, i) => (
-                <span
-                  key={label}
-                  className={`mw-sell-step${i === stepIndex ? " mw-sell-step--active" : ""}`}
-                >
-                  {i + 1}. {label}
-                </span>
-              ))}
+              {["Choose Category", "Workshop Department", "Service Details", "Submitted"].map(
+                (label, i) => (
+                  <span
+                    key={label}
+                    className={`mw-sell-step${i === stepIndex ? " mw-sell-step--active" : ""}`}
+                  >
+                    {i + 1}. {label}
+                  </span>
+                ),
+              )}
             </div>
           </div>
         </section>
 
         {/* ---------------- Step 1: category grid ---------------- */}
         {step === "category" && (
-          <section id="service-categories" className="mw-sell-section" aria-labelledby="service-cats-title">
+          <section
+            id="service-categories"
+            className="mw-sell-section"
+            aria-labelledby="service-cats-title"
+          >
             <div className="home-container">
               <p className="mw-sell-kicker">
                 <span aria-hidden="true" /> Choose vehicle category
@@ -399,9 +514,13 @@ function Page() {
           </section>
         )}
 
-        {/* ---------------- Step 2: dynamic glass booking form ---------------- */}
-        {step === "form" && category && (
-          <section id="service-form" className="mw-sell-form-section" aria-labelledby="service-form-title">
+        {/* ---------------- Step 2: workshop department grid ---------------- */}
+        {step === "departments" && category && (
+          <section
+            id="service-departments"
+            className="mw-sell-section mw-srv-depts"
+            aria-labelledby="service-depts-title"
+          >
             <div className="home-container">
               <div className="mw-sell-form-head">
                 <button type="button" className="mw-sell-back" onClick={backToCategories}>
@@ -415,20 +534,102 @@ function Page() {
                 </span>
               </div>
 
+              <p className="mw-sell-kicker">
+                <span aria-hidden="true" /> Choose workshop department
+              </p>
+              <h2 id="service-depts-title" className="mw-sell-title">
+                What kind of <span>work?</span>
+              </h2>
+              <p className="mw-sell-text">
+                Pick the department closest to the job. Your enquiry goes to the workshop desk with
+                this choice, so the right team can accept it and plan the visit.
+              </p>
+
+              <div className="mw-srv-dept-grid">
+                {WORKSHOP_DEPARTMENTS.map((item) => {
+                  const Icon = DEPARTMENT_ICON[item.id];
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="mw-srv-dept"
+                      data-department={item.id}
+                      onClick={() => pickDepartment(item.id)}
+                      aria-label={`${item.label} workshop department`}
+                    >
+                      <span className="mw-srv-dept-icon" aria-hidden="true">
+                        <Icon size={20} />
+                      </span>
+                      <span className="mw-srv-dept-body">
+                        <strong>{item.label}</strong>
+                        <span>{item.blurb}</span>
+                        <small>{item.examples}</small>
+                      </span>
+                      <span className="mw-srv-dept-foot">
+                        From ₹{item.from.toLocaleString("en-IN")}
+                        <ArrowRight size={15} aria-hidden="true" />
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ---------------- Step 3: dynamic glass booking form ---------------- */}
+        {step === "form" && category && department && (
+          <section
+            id="service-form"
+            className="mw-sell-form-section"
+            aria-labelledby="service-form-title"
+          >
+            <div className="home-container">
+              <div className="mw-sell-form-head">
+                <button type="button" className="mw-sell-back" onClick={backToDepartments}>
+                  <ArrowLeft size={14} /> Change department
+                </button>
+                <span className="mw-sell-chip">
+                  <img src={category.image} alt="" aria-hidden="true" width={34} height={24} />
+                  <span>
+                    {department.label} <small>{category.label}</small>
+                  </span>
+                </span>
+              </div>
+
               <form className="mw-sell-form" onSubmit={onSubmit}>
                 <h2 id="service-form-title" className="mw-sell-form-title">
-                  Book <span>{category.singular}</span> Service
+                  Book <span>{department.label}</span> Service
                 </h2>
                 <p className="mw-sell-form-sub">
-                  Service options below are scoped to {category.label}. Fields marked * are
-                  required.
+                  {department.blurb} — options below are scoped to {category.label}. Fields marked *
+                  are required.
                 </p>
 
                 <div className="mw-sell-fields">
+                  <label className="mw-sell-field mw-sell-field--full">
+                    <span className="mw-sell-field-label">Vehicle Number *</span>
+                    <input
+                      className="mw-sell-input mw-srv-plate-input"
+                      type="text"
+                      name="vehicleNumber"
+                      required
+                      maxLength={15}
+                      placeholder="MH12AB4521"
+                      data-testid="service-vehicle-number"
+                    />
+                  </label>
+
                   {/* CRITICAL — service type changes with the picked category */}
                   <label className="mw-sell-field mw-sell-field--full">
                     <span className="mw-sell-field-label">Service Type *</span>
-                    <select name="serviceType" required defaultValue="" className="mw-sell-input" data-testid="service-type">
+                    <select
+                      name="serviceType"
+                      required
+                      defaultValue=""
+                      className="mw-sell-input"
+                      data-testid="service-type"
+                    >
                       <option value="">Select service type</option>
                       {serviceTypes.map((s) => (
                         <option key={s} value={s}>
@@ -465,7 +666,11 @@ function Page() {
                       required
                       maxLength={60}
                       list="service-models"
-                      placeholder={safeBrand ? `e.g. ${modelSuggestions[0] ?? "Model"}` : "Select a brand first"}
+                      placeholder={
+                        safeBrand
+                          ? `e.g. ${modelSuggestions[0] ?? "Model"}`
+                          : "Select a brand first"
+                      }
                       disabled={!safeBrand}
                     />
                     <datalist id="service-models">
@@ -477,7 +682,12 @@ function Page() {
 
                   <label className="mw-sell-field">
                     <span className="mw-sell-field-label">
-                      Year <small>({BUY_YEAR_MIN}–{BUY_YEAR_MAX})</small> *</span>
+                      Year{" "}
+                      <small>
+                        ({BUY_YEAR_MIN}–{BUY_YEAR_MAX})
+                      </small>{" "}
+                      *
+                    </span>
                     <select name="year" required defaultValue="" className="mw-sell-input">
                       <option value="">Select year</option>
                       {YEARS.map((y) => (
@@ -502,7 +712,8 @@ function Page() {
 
                   <label className="mw-sell-field mw-sell-field--full">
                     <span className="mw-sell-field-label">
-                      Location <small>— pickup address or city</small> *</span>
+                      Location <small>— pickup address or city</small> *
+                    </span>
                     <input
                       className="mw-sell-input"
                       type="text"
@@ -515,13 +726,7 @@ function Page() {
 
                   <label className="mw-sell-field">
                     <span className="mw-sell-field-label">Preferred Date *</span>
-                    <input
-                      className="mw-sell-input"
-                      type="date"
-                      name="date"
-                      required
-                      min={today}
-                    />
+                    <input className="mw-sell-input" type="date" name="date" required min={today} />
                   </label>
 
                   <label className="mw-sell-field">
@@ -615,7 +820,9 @@ function Page() {
                               type="button"
                               className="mw-sell-photo-remove"
                               aria-label={`Remove photo ${photo.name}`}
-                              onClick={() => setPhotos((prev) => prev.filter((x) => x.id !== photo.id))}
+                              onClick={() =>
+                                setPhotos((prev) => prev.filter((x) => x.id !== photo.id))
+                              }
                             >
                               <Trash2 size={13} />
                             </button>
@@ -634,13 +841,12 @@ function Page() {
 
                 <div className="mw-sell-form-foot">
                   <button type="submit" className="mw-sell-submit">
-                    Book Service
+                    Send Workshop Enquiry
                   </button>
                   <p className="mw-sell-form-note">
-                    Your booking — service type, vehicle details, pickup location, preferred slot
-                    and contact — is saved to Motor Wallah's lead queue so the team can confirm
-                    it. Connect your CRM endpoint (VITE_LEAD_ENDPOINT) and it is also delivered
-                    there automatically.
+                    Your enquiry — {department.label}, vehicle, issue, pickup location and preferred
+                    slot — is sent to the workshop desk. You can follow acceptance, pickup and the
+                    final estimate from Track Service with your Tracking ID.
                   </p>
                 </div>
               </form>
@@ -648,7 +854,7 @@ function Page() {
           </section>
         )}
 
-        {/* ---------------- Step 3: success ---------------- */}
+        {/* ---------------- Step 4: success ---------------- */}
         {step === "done" && category && submission && (
           <section id="service-done" className="home-container">
             <div className="mw-sell-done">
@@ -659,19 +865,25 @@ function Page() {
                 aria-hidden="true"
               />
               <h2 className="mw-sell-done-title">
-                Service Request Received! Our team will contact you shortly to confirm the booking.
+                Workshop Enquiry Received — a partner will accept it shortly.
               </h2>
               <p className="mw-sell-done-text">
-                Thanks {submission.name} — your {submission.serviceType} request for{" "}
-                {submission.vehicle} is saved with the Motor Wallah team. We will contact you on{" "}
-                {submission.mobile} to confirm the {submission.slot} slot.
+                Thanks {submission.name} — your {submission.departmentLabel} enquiry for{" "}
+                {submission.vehicle} ({submission.vehicleNumber}) is now in the workshop portal. The
+                workshop will accept it and either arrange a pickup or ask you to visit. Track this
+                page for the final estimate.
               </p>
               <div className="mw-sell-done-summary">
                 <span>{submission.categoryLabel}</span>
+                <span>{submission.departmentLabel}</span>
                 <span>{submission.serviceType}</span>
                 <span>{submission.vehicle}</span>
+                <span>{submission.vehicleNumber}</span>
                 <span>{submission.slot}</span>
               </div>
+              <p className="mw-srv-enquiry-ref" data-testid="enquiry-reference">
+                Workshop enquiry <strong>{submission.enquiryId}</strong>
+              </p>
 
               {/* Live tracking — unique ID for this booking. */}
               <div className="mw-srv-trackid" data-testid="tracking-id">
@@ -681,22 +893,23 @@ function Page() {
               </div>
 
               <p className="mw-sell-done-note">
-                Saved to this project's lead queue — when your CRM endpoint
-                (VITE_LEAD_ENDPOINT) is connected, every submission is delivered to your team
-                automatically. Want a faster reply now? Use WhatsApp or call us directly.
+                Your enquiry is stored in the Supabase-backed workshop record and shared with the
+                workshop desk. The checklist and final estimate appear here on Track Service once
+                the vehicle is received.
               </p>
               <div className="mw-sell-done-actions">
-                <Link
-                  className="mw-sell-submit"
-                  to="/track"
-                  search={{ id: submission.trackingId }}
-                >
+                <Link className="mw-sell-submit" to="/track" search={{ id: submission.trackingId }}>
                   Track My Service
                 </Link>
                 <button type="button" className="mw-sell-submit" onClick={restart}>
                   Book Another Service
                 </button>
-                <a className="mw-sell-ghost-btn" href={whatsapp} target="_blank" rel="noopener noreferrer">
+                <a
+                  className="mw-sell-ghost-btn"
+                  href={whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <MessageCircle size={14} /> WhatsApp
                 </a>
                 <a className="mw-sell-ghost-btn" href={PHONE_HREF}>

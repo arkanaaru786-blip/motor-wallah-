@@ -266,3 +266,418 @@
     flex: 1;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Advanced workshop flow — department grid, vehicle plate, customer estimate.
+   -------------------------------------------------------------------------- */
+
+.mw-srv-dept-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.mw-srv-dept {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  text-align: left;
+  border-radius: 16px;
+  border: 1px solid rgb(255 255 255 / 0.9);
+  background:
+    radial-gradient(180px 110px at 100% 0%, oklch(0.55 0.16 245 / 0.09), transparent 70%),
+    rgb(255 255 255 / 0.76);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 2px 4px oklch(0 0 0 / 0.04),
+    0 18px 38px -28px oklch(0 0 0 / 0.42);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.mw-srv-dept:hover,
+.mw-srv-dept:focus-visible {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--primary) 35%, #fff);
+  box-shadow:
+    0 4px 8px oklch(0 0 0 / 0.05),
+    0 24px 46px -28px oklch(0 0 0 / 0.46);
+  outline: none;
+}
+
+.mw-srv-dept-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 10%, #fff);
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, #fff);
+}
+
+.mw-srv-dept-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mw-srv-dept-body strong {
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+  letter-spacing: 0.01em;
+  color: var(--foreground);
+}
+
+.mw-srv-dept-body > span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--muted-foreground);
+}
+
+.mw-srv-dept-body small {
+  font-size: 0.7rem;
+  line-height: 1.45;
+  color: var(--muted-foreground);
+}
+
+.mw-srv-dept-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--home-line, oklch(0.9 0.01 250));
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--primary);
+}
+
+.mw-srv-plate-input {
+  text-transform: uppercase;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.06em;
+}
+
+.mw-srv-enquiry-ref {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--muted-foreground);
+}
+
+.mw-srv-enquiry-ref strong {
+  color: var(--foreground);
+  letter-spacing: 0.05em;
+}
+
+/* Customer's workshop update inside Track Service. */
+.mw-trk-workshop {
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--primary) 16%, #fff);
+  background:
+    radial-gradient(260px 120px at 100% 0%, oklch(0.55 0.16 245 / 0.08), transparent 70%),
+    rgb(255 255 255 / 0.72);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.mw-trk-workshop-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mw-trk-workshop-head h3 {
+  margin-top: 3px;
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+  color: var(--foreground);
+}
+
+.mw-trk-workshop-status {
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, #fff);
+  background: color-mix(in srgb, var(--primary) 8%, #fff);
+  color: var(--primary);
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.mw-trk-workshop-status[data-enquiry-status="Estimate Sent"] {
+  background: oklch(0.55 0.16 300 / 0.1);
+  border-color: oklch(0.55 0.16 300 / 0.24);
+  color: oklch(0.45 0.15 300);
+}
+
+.mw-trk-workshop-status[data-enquiry-status="Completed"] {
+  background: oklch(0.55 0.13 150 / 0.12);
+  border-color: oklch(0.55 0.13 150 / 0.26);
+  color: oklch(0.42 0.12 150);
+}
+
+.mw-trk-workshop-copy {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--muted-foreground);
+}
+
+.mw-trk-workshop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.mw-trk-workshop-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--home-line, oklch(0.9 0.01 250));
+  background: rgb(255 255 255 / 0.62);
+}
+
+.mw-trk-workshop-grid span {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.mw-trk-workshop-grid strong {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--foreground);
+}
+
+.mw-trk-assignment {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--primary) 16%, #fff);
+  background: color-mix(in srgb, var(--primary) 5%, rgb(255 255 255 / 0.72));
+  color: var(--primary);
+}
+
+.mw-trk-assignment > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mw-trk-assignment strong {
+  font-size: 0.82rem;
+  color: var(--foreground);
+}
+
+.mw-trk-assignment span,
+.mw-trk-assignment small {
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+}
+
+.mw-trk-call {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 7px 11px;
+  border-radius: 9px;
+  background: var(--primary);
+  color: oklch(1 0 0);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.mw-trk-estimate {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--home-line, oklch(0.9 0.01 250));
+  background: rgb(255 255 255 / 0.7);
+}
+
+.mw-trk-estimate-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--home-line, oklch(0.9 0.01 250));
+}
+
+.mw-trk-estimate-head span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.mw-trk-estimate-head strong {
+  font-family: var(--font-display);
+  font-size: 1.32rem;
+  color: var(--primary);
+}
+
+.mw-trk-estimate-label {
+  margin-top: 10px;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.mw-trk-estimate ul {
+  margin-top: 4px;
+  display: grid;
+  gap: 4px;
+}
+
+.mw-trk-estimate li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.78rem;
+  color: var(--foreground);
+}
+
+.mw-trk-estimate li small {
+  color: var(--muted-foreground);
+}
+
+.mw-trk-estimate-total {
+  display: grid;
+  gap: 5px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--home-line, oklch(0.9 0.01 250));
+}
+
+.mw-trk-estimate-total > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.76rem;
+}
+
+.mw-trk-estimate-total dt {
+  color: var(--muted-foreground);
+}
+
+.mw-trk-estimate-total dd {
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.mw-trk-estimate-total .is-discount dd {
+  color: oklch(0.5 0.14 150);
+}
+
+.mw-trk-estimate-total .is-total {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--home-line, oklch(0.9 0.01 250));
+}
+
+.mw-trk-estimate-total .is-total dt {
+  font-weight: 800;
+  color: var(--foreground);
+}
+
+.mw-trk-estimate-total .is-total dd {
+  font-family: var(--font-display);
+  font-size: 1.18rem;
+  color: var(--primary);
+}
+
+.mw-trk-estimate-note {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--primary) 5%, #fff);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+.mw-trk-workshop-wait {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primary) 5%, #fff);
+  font-size: 0.73rem;
+  color: var(--muted-foreground);
+}
+
+.mw-trk-workshop-call {
+  margin-top: 12px;
+  font-size: 0.74rem;
+  color: var(--muted-foreground);
+}
+
+.mw-trk-workshop-call a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--primary);
+  font-weight: 800;
+}
+
+@media (max-width: 960px) {
+  .mw-srv-dept-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .mw-srv-dept-grid {
+    grid-template-columns: 1fr;
+  }
+  .mw-trk-workshop-grid {
+    grid-template-columns: 1fr;
+  }
+  .mw-trk-assignment {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .mw-trk-assignment > div {
+    flex-basis: calc(100% - 34px);
+  }
+}

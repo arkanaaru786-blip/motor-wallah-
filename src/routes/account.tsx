@@ -1191,7 +1191,7 @@ function RequestsTab() {
                     <span className="mw-acct-row-title">
                       {lead.label}
                       <span
-                        className={`mw-acct-status mw-acct-status--${lead.status === "Approved" ? "done" : "pending"}`}
+                        className={`mw-acct-status mw-acct-status--${lead.tone}`}
                         data-testid="lead-status"
                         data-status={lead.status}
                       >
@@ -1209,7 +1209,14 @@ function RequestsTab() {
                       ) : (
                         "Reference ID shared by our team"
                       )}{" "}
-                      · {formatWhen(lead.createdAt)}
+                      {lead.estimateTotal !== null ? (
+                        <>
+                          · Final estimate{" "}
+                          <strong className="mw-acct-ref">{rupees(lead.estimateTotal)}</strong>
+                        </>
+                      ) : null}
+                      {lead.workshopName ? <> · {lead.workshopName}</> : null} ·{" "}
+                      {formatWhen(lead.createdAt)}
                     </span>
                   </span>
                   <span className="mw-acct-row-actions">
@@ -1263,8 +1270,9 @@ function RequestsTab() {
       )}
 
       <p className="mw-acct-hint">
-        Statuses come from the records stored on this device. Service bookings move to Approved once
-        the mock timeline completes; our team confirms the rest when they contact you.
+        Workshop enquiries and estimates come from the records stored on this device. Service
+        bookings without a workshop checklist keep the mock timeline; our team confirms the rest
+        when they contact you.
       </p>
     </>
   );

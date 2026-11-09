@@ -4,6 +4,7 @@ import {
   ClipboardList,
   Clock,
   Gauge,
+  Inbox,
   Package,
   Phone,
   Plus,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { PartnerShell, type PartnerTab } from "@/components/partner/PartnerShell";
+import { WorkshopEnquiries } from "@/components/partner/WorkshopEnquiries";
 import { relativeTime, rupees, shortDate } from "@/lib/dealer-format";
 import {
   addJobNote,
@@ -28,6 +30,7 @@ import {
   type JobStatus,
 } from "@/lib/partner-data";
 import type { PartnerSession } from "@/lib/partner-session";
+import { workshopEnquiries } from "@/lib/workshop-enquiries";
 
 const JOB_CHIP: Record<JobStatus, string> = {
   Pending: "is-pending",
@@ -39,6 +42,7 @@ const JOB_CHIP: Record<JobStatus, string> = {
 
 const TABS: PartnerTab[] = [
   { id: "overview", label: "Overview", icon: Gauge },
+  { id: "enquiries", label: "Service Enquiries", icon: Inbox },
   { id: "jobs", label: "Job Cards", icon: ClipboardList },
   { id: "notes", label: "Workshop Notes", icon: Wrench },
 ];
@@ -50,6 +54,7 @@ const TABS: PartnerTab[] = [
 export function WorkshopPortal({ session }: { session: PartnerSession }) {
   const [tab, setTab] = useState("overview");
   const [version, setVersion] = useState(0);
+  const [enquiryVersion, setEnquiryVersion] = useState(0);
   const [seeded, setSeeded] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<JobStatus | "all">("all");
@@ -70,6 +75,16 @@ export function WorkshopPortal({ session }: { session: PartnerSession }) {
     return partnerJobs(session.partnerId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.partnerId, version, seeded]);
+
+  const enquiries = useMemo(
+    () => workshopEnquiries(session.partnerId),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [session.partnerId, enquiryVersion],
+  );
+  const newEnquiries = enquiries.filter((enquiry) => enquiry.status === "New").length;
+  const tabs = TABS.map((item) =>
+    item.id === "enquiries" ? { ...item, count: newEnquiries } : item,
+  );
 
   const selected = jobs.find((job) => job.id === selectedId) ?? null;
   const open = jobs.filter((job) => job.status !== "Delivered");
@@ -100,7 +115,7 @@ export function WorkshopPortal({ session }: { session: PartnerSession }) {
   };
 
   return (
-    <PartnerShell session={session} tabs={TABS} active={tab} onTab={setTab}>
+    <PartnerShell session={session} tabs={tabs} active={tab} onTab={setTab}>
       {flash ? (
         <p className="mw-dealer-flash" role="status" data-testid="workshop-flash">
           <CheckCircle2 size={15} /> {flash}
@@ -281,6 +296,13 @@ export function WorkshopPortal({ session }: { session: PartnerSession }) {
             </article>
           </section>
         </>
+      ) : null}
+
+      {tab === "enquiries" ? (
+        <WorkshopEnquiries
+          session={session}
+          onChanged={() => setEnquiryVersion((value) => value + 1)}
+        />
       ) : null}
 
       {tab === "jobs" ? (

@@ -82,6 +82,8 @@ export const CLOUD_COLLECTIONS = [
   "mw_partner_jobs_v1",
   "mw_partner_orders_v1",
   "mw_partner_inventory_v1",
+  // Advanced workshop flow (customer enquiry → checklist → estimate)
+  "mw_workshop_enquiries_v1",
 ] as const;
 
 const CLOUD_KEYS = new Set<string>(CLOUD_COLLECTIONS);

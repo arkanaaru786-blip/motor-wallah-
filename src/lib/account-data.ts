@@ -2,6 +2,12 @@ import { replicaRead, replicaWrite } from "@/lib/cloud-store";
 import { LEAD_QUEUE_KEY, readLeadQueue, type Lead } from "@/lib/leads";
 import { listOffers, type ListingOffer, type OfferStatus } from "@/lib/listing-offers";
 import { SERVICE_STATUSES, liveStageIndex } from "@/lib/service-tracking";
+import {
+  CUSTOMER_STATUS_LABEL,
+  estimateTotals,
+  findEnquiryByTracking,
+  type EnquiryStatus,
+} from "@/lib/workshop-enquiries";
 
 /**
  * Read-only view of everything the dashboard shows, assembled from the stores
@@ -161,13 +167,26 @@ export type TrackedLead = {
   tone: LeadTone;
   createdAt: string;
   href: string;
+  /** Set once the workshop sends a final estimate. */
+  estimateTotal: number | null;
+  workshopName: string | null;
 };
 
 const TRACKED_TYPES: Record<string, TrackedLead["kind"]> = {
   finance_enquiry: "finance",
   insurance_enquiry: "insurance",
   service_booking: "service",
+  workshop_enquiry: "service",
   franchise_enquiry: "franchise",
+};
+
+const ENQUIRY_TONE: Record<EnquiryStatus, LeadTone> = {
+  New: "pending",
+  Accepted: "progress",
+  "Vehicle Received": "progress",
+  "Estimate Sent": "progress",
+  Completed: "done",
+  Cancelled: "pending",
 };
 
 const KIND_LABEL: Record<TrackedLead["kind"], string> = {
@@ -214,10 +233,21 @@ export function trackedLeads(): TrackedLead[] {
       // Simple two-state status the dashboard shows: Pending until the record
       // itself says it was approved (or the service timeline completes).
       const approved =
-        lead.type === "service_booking"
+        lead.type === "service_booking" || lead.type === "workshop_enquiry"
           ? serviceProgress(lead).tone === "done"
           : /approv|sanction|confirm/i.test(recordedStatus ?? "");
-      const status = approved ? "Approved" : "Pending";
+      const workshopEnquiry =
+        lead.type === "workshop_enquiry" && reference ? findEnquiryByTracking(reference) : null;
+      const status = workshopEnquiry
+        ? CUSTOMER_STATUS_LABEL[workshopEnquiry.status]
+        : approved
+          ? "Approved"
+          : "Pending";
+      const tone: LeadTone = workshopEnquiry
+        ? ENQUIRY_TONE[workshopEnquiry.status]
+        : approved
+          ? "done"
+          : "pending";
 
       const title =
         lead.vehicleName ||
@@ -226,8 +256,10 @@ export function trackedLeads(): TrackedLead[] {
         KIND_LABEL[kind];
       const detailBits = [
         fields["category"],
+        fields["department"],
         fields["policyType"],
         fields["serviceType"],
+        fields["vehicleNumber"],
         fields["franchiseType"],
       ]
         .concat([fields["investmentCapacity"], lead.location])
@@ -239,7 +271,9 @@ export function trackedLeads(): TrackedLead[] {
           : kind === "franchise" && reference
             ? `/franchise?ref=${encodeURIComponent(reference)}`
             : kind === "service"
-              ? "/track"
+              ? reference
+                ? `/track?id=${encodeURIComponent(reference)}`
+                : "/track"
               : "/finance";
 
       return {
@@ -250,9 +284,14 @@ export function trackedLeads(): TrackedLead[] {
         detail: detailBits.slice(0, 2).join(" · "),
         reference,
         status,
-        tone: (approved ? "done" : "pending") as LeadTone,
+        tone,
         createdAt: lead.createdAt,
         href,
+        estimateTotal:
+          workshopEnquiry && workshopEnquiry.checklist.sentAt
+            ? estimateTotals(workshopEnquiry).total
+            : null,
+        workshopName: workshopEnquiry?.workshopName ?? null,
       };
     })
     .reverse();

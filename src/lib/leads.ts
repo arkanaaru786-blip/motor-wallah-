@@ -20,6 +20,7 @@ export type LeadType =
   | "exchange_vehicle"
   | "scrap_vehicle"
   | "service_booking"
+  | "workshop_enquiry"
   | "parts_enquiry"
   | "decor_fitter"
   | "decor_partner"
@@ -115,6 +116,7 @@ const EMAILED_LEADS = new Set<LeadType>([
   "finance_enquiry",
   "insurance_enquiry",
   "service_booking",
+  "workshop_enquiry",
   "sell_vehicle",
   "sell_car",
   "franchise_enquiry",
