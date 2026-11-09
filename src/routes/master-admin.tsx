@@ -18,6 +18,7 @@ import {
 } from "@/lib/admin-crm";
 import { actorFromSession } from "@/lib/admin-rbac";
 import { ensureAutopilot, listRules, visibleRules } from "@/lib/admin-automation";
+import { DISPUTE_EVENT, openDisputeCount } from "@/lib/workshop-disputes";
 
 /**
  * Master control room layout.
@@ -67,6 +68,10 @@ const HEADINGS: Record<string, { title: string; subtitle: string }> = {
     subtitle:
       "Dealers, workshops, auto parts shops and decor studios — one desk, four portal types.",
   },
+  disputes: {
+    title: "Workshop Disputes",
+    subtitle: "Cash and offline payment reports, with the prepaid-only rule enforced.",
+  },
   audit: {
     title: "Audit Log",
     subtitle: "Every sensitive action, attributed to a person and a role.",
@@ -86,6 +91,7 @@ function headingFor(pathname: string) {
   if (pathname.startsWith("/master-admin/employees")) return HEADINGS["employees"]!;
   if (pathname.startsWith("/master-admin/dealers")) return HEADINGS["dealers"]!;
   if (pathname.startsWith("/master-admin/partners")) return HEADINGS["partners"]!;
+  if (pathname.startsWith("/master-admin/disputes")) return HEADINGS["disputes"]!;
   if (pathname.startsWith("/master-admin/audit")) return HEADINGS["audit"]!;
   if (pathname.startsWith("/master-admin/automation")) return HEADINGS["automation"]!;
   if (pathname.startsWith("/master-admin/settings")) return HEADINGS["settings"]!;
@@ -105,10 +111,15 @@ function MasterAdminLayout() {
   }, [ready, session, navigate]);
 
   useEffect(() => subscribeToAdminData(() => setVersion((value) => value + 1)), []);
+  useEffect(() => {
+    const refresh = () => setVersion((value) => value + 1);
+    window.addEventListener(DISPUTE_EVENT, refresh);
+    return () => window.removeEventListener(DISPUTE_EVENT, refresh);
+  }, []);
 
   const counts = useMemo(() => {
     void version;
-    if (!session) return { open: 0, mine: 0, employees: 0, rules: 0 };
+    if (!session) return { open: 0, mine: 0, employees: 0, rules: 0, disputes: 0 };
     const data = ensureAdminDatabase();
     ensureAutopilot();
     const actor = actorFromSession(session);
@@ -118,6 +129,7 @@ function MasterAdminLayout() {
       mine: openCasesFor(cases, actor.id).length,
       employees: visibleEmployees(actor, data.employees).length,
       rules: visibleRules(actor, listRules()).filter((rule) => rule.enabled).length,
+      disputes: openDisputeCount(),
     };
   }, [session, version]);
 
@@ -141,6 +153,7 @@ function MasterAdminLayout() {
       myCount={counts.mine}
       employeeCount={counts.employees}
       ruleCount={counts.rules}
+      disputeCount={counts.disputes}
     >
       <Outlet />
     </AdminShell>

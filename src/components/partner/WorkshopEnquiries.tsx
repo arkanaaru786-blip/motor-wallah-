@@ -1,19 +1,25 @@
 import { useMemo, useState } from "react";
 import {
+  BadgeCheck,
   CheckCircle2,
   ChevronRight,
   ClipboardCheck,
+  CreditCard,
   Inbox,
+  KeyRound,
+  LockKeyhole,
   MapPin,
   Package,
   Phone,
   Plus,
   Search,
   Send,
+  ShieldCheck,
   Trash2,
   Truck,
   UserRound,
   Wrench,
+  XCircle,
 } from "lucide-react";
 
 import { relativeTime, rupees } from "@/lib/dealer-format";
@@ -28,9 +34,12 @@ import {
   MW_AUTO_PARTS,
   removeEnquiryLine,
   sendEstimate,
+  PREPAID_ONLY_NOTICE,
   setEnquiryDiscount,
   setEnquiryNotes,
+  verifyEnquiryOtp,
   WORKSHOP_DEPARTMENTS,
+  WORKSHOP_STATUS_LABEL,
   WORKSHOP_TEAM,
   workshopEnquiries,
   type EnquiryResult,
@@ -77,7 +86,10 @@ export function WorkshopEnquiries({
   );
 
   const visible = rows.filter((row) => {
-    if (filter === "open" && (row.status === "Completed" || row.status === "Cancelled")) {
+    if (
+      filter === "open" &&
+      (row.status === "Completed" || row.status === "Cancelled" || row.status === "Rejected")
+    ) {
       return false;
     }
     const term = query.trim().toLowerCase();
@@ -99,8 +111,9 @@ export function WorkshopEnquiries({
   const selected = rows.find((row) => row.id === selectedId) ?? null;
   const fresh = rows.filter((row) => row.status === "New").length;
   const open = rows.filter(
-    (row) => row.status !== "Completed" && row.status !== "Cancelled",
+    (row) => row.status !== "Completed" && row.status !== "Cancelled" && row.status !== "Rejected",
   ).length;
+  const paid = rows.filter((row) => row.payment.status === "Paid").length;
 
   const changed = (message: string) => {
     setVersion((value) => value + 1);
@@ -195,6 +208,16 @@ export function WorkshopEnquiries({
           </strong>
           <footer>Visible on the customer&apos;s Track Service dashboard.</footer>
         </article>
+        <article className="mw-dealer-kpi">
+          <header>
+            <span className="mw-dealer-kpi-icon">
+              <ShieldCheck size={16} />
+            </span>
+            <span className="mw-dealer-kpi-label">Prepaid &amp; received</span>
+          </header>
+          <strong className="mw-dealer-kpi-value">{paid}</strong>
+          <footer>Online payment verified — vehicle received for service.</footer>
+        </article>
       </section>
 
       {visible.length === 0 ? (
@@ -219,7 +242,7 @@ export function WorkshopEnquiries({
             >
               <div className="mw-enq-card-head">
                 <span className={`mw-dealer-chip ${ENQUIRY_CHIP[enquiry.status]}`}>
-                  {enquiry.status}
+                  {WORKSHOP_STATUS_LABEL[enquiry.status]}
                 </span>
                 <span className="mw-enq-id">{enquiry.id}</span>
                 <span className="mw-enq-when">{relativeTime(enquiry.createdAt)}</span>
@@ -312,7 +335,9 @@ function EnquiryDetail({
             {departmentLabel(enquiry)}
           </p>
         </div>
-        <span className={`mw-dealer-chip ${ENQUIRY_CHIP[enquiry.status]}`}>{enquiry.status}</span>
+        <span className={`mw-dealer-chip ${ENQUIRY_CHIP[enquiry.status]}`}>
+          {WORKSHOP_STATUS_LABEL[enquiry.status]}
+        </span>
       </div>
 
       <div className="mw-partner-facts">
@@ -430,16 +455,29 @@ function EnquiryDetail({
         </div>
       ) : null}
 
-      {enquiry.status === "Vehicle Received" || enquiry.status === "Estimate Sent" ? (
+      {enquiry.status === "Vehicle Received" ||
+      (enquiry.status === "Estimate Sent" && !enquiry.approval.approvedAt) ? (
         <ChecklistBuilder enquiry={enquiry} session={session} run={run} onDone={onDone} />
       ) : null}
+
+      {enquiry.checklist.sentAt &&
+      !(
+        enquiry.status === "Vehicle Received" ||
+        (enquiry.status === "Estimate Sent" && !enquiry.approval.approvedAt)
+      ) ? (
+        <LockedEstimateSummary enquiry={enquiry} />
+      ) : null}
+
+      <ApprovalPanel enquiry={enquiry} session={session} run={run} onDone={onDone} />
 
       <div className="mw-enq-timeline">
         <h3>Enquiry timeline</h3>
         <ol className="mw-partner-timeline">
           {enquiry.timeline.map((entry, index) => (
             <li key={`${entry.status}-${index}`}>
-              <span className={`mw-dealer-chip ${ENQUIRY_CHIP[entry.status]}`}>{entry.status}</span>
+              <span className={`mw-dealer-chip ${ENQUIRY_CHIP[entry.status]}`}>
+                {WORKSHOP_STATUS_LABEL[entry.status]}
+              </span>
               <span className="is-meta">
                 {new Date(entry.at).toLocaleString("en-IN", {
                   day: "2-digit",
@@ -908,4 +946,245 @@ function ChecklistBuilder({
       </div>
     </div>
   );
+}
+
+/* --------------------------------------------------- locked estimate view */
+
+function LockedEstimateSummary({ enquiry }: { enquiry: WorkshopEnquiry }) {
+  const totals = estimateTotals(enquiry);
+  const rejected = enquiry.status === "Rejected";
+
+  return (
+    <div className="mw-enq-locked" data-testid="enquiry-locked-estimate">
+      <div className="mw-enq-section-head">
+        <div>
+          <span className="mw-enq-section-kicker">
+            {rejected ? "Rejected estimate" : "Customer-approved estimate"}
+          </span>
+          <h3>{rejected ? "Quoted checklist & price" : "Locked checklist & final price"}</h3>
+        </div>
+        <span className={`mw-dealer-chip ${rejected ? "is-cancelled" : "is-ready"}`}>
+          {rejected ? <XCircle size={12} /> : <LockKeyhole size={12} />}
+          {rejected ? "Rejected" : "Locked"}
+        </span>
+      </div>
+
+      <div className="mw-enq-locked-grid">
+        <div className="mw-partner-block">
+          <h3>Repair / labour</h3>
+          {enquiry.checklist.repairItems.length === 0 ? (
+            <p className="mw-dealer-empty">No labour line items.</p>
+          ) : (
+            <ul className="mw-enq-locked-list">
+              {enquiry.checklist.repairItems.map((item) => (
+                <li key={item.id}>
+                  <span>
+                    {item.name} <small>×{item.qty}</small>
+                  </span>
+                  <strong>{rupees(item.qty * item.cost)}</strong>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="mw-partner-block">
+          <h3>MW Auto Parts replacements</h3>
+          {enquiry.checklist.replaceItems.length === 0 ? (
+            <p className="mw-dealer-empty">No replacement parts.</p>
+          ) : (
+            <ul className="mw-enq-locked-list">
+              {enquiry.checklist.replaceItems.map((item) => (
+                <li key={item.id}>
+                  <span>
+                    {item.name} <small>×{item.qty}</small>
+                  </span>
+                  <strong>{rupees(item.qty * item.cost)}</strong>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      <div className="mw-enq-locked-total">
+        <div>
+          <span>Labour {rupees(totals.labour)}</span>
+          <span>Parts {rupees(totals.parts)}</span>
+          <span>Discount − {rupees(totals.discount)}</span>
+        </div>
+        <div>
+          <span>Total payable</span>
+          <strong>{rupees(totals.total)}</strong>
+        </div>
+      </div>
+      {enquiry.checklist.notes ? (
+        <p className="mw-dealer-field-hint">{enquiry.checklist.notes}</p>
+      ) : null}
+    </div>
+  );
+}
+
+/* -------------------------------------------------- approval + payment */
+
+function ApprovalPanel({
+  enquiry,
+  session,
+  run,
+  onDone,
+}: {
+  enquiry: WorkshopEnquiry;
+  session: PartnerSession;
+  run: (result: EnquiryResult, message: string) => void;
+  onDone: (message: string) => void;
+}) {
+  const [otp, setOtp] = useState("");
+  const lockedAmount = enquiry.approval.lockedTotal ?? estimateTotals(enquiry).total;
+
+  if (enquiry.payment.status === "Paid") {
+    return (
+      <div className="mw-enq-paid" data-testid="enquiry-paid">
+        <BadgeCheck size={24} />
+        <div>
+          <span className="mw-enq-section-kicker">Online payment verified</span>
+          <h3>Vehicle Received for Service</h3>
+          <p>
+            {rupees(enquiry.payment.amount ?? lockedAmount)}{" "}
+            {enquiry.payment.provider === "Preview"
+              ? "was completed in the preview checkout (no real money charged)."
+              : "was paid online through Razorpay."}{" "}
+            The customer has been notified that the vehicle is received for service.
+          </p>
+          <dl className="mw-enq-payment-meta">
+            <div>
+              <dt>Payment ID</dt>
+              <dd>{enquiry.payment.paymentId ?? "—"}</dd>
+            </div>
+            <div>
+              <dt>Razorpay order</dt>
+              <dd>{enquiry.payment.orderId ?? "—"}</dd>
+            </div>
+            <div>
+              <dt>Paid</dt>
+              <dd>
+                {enquiry.payment.paidAt
+                  ? new Date(enquiry.payment.paidAt).toLocaleString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "—"}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    );
+  }
+
+  if (enquiry.status === "Rejected") {
+    return (
+      <div className="mw-enq-approval is-rejected" data-testid="enquiry-rejected">
+        <XCircle size={20} />
+        <div>
+          <h3>Customer rejected the estimate</h3>
+          <p>
+            {enquiry.approval.rejectionReason || "No payment was taken for this booking."}
+            {enquiry.approval.rejectedAt ? ` · ${relativeTime(enquiry.approval.rejectedAt)}` : ""}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (enquiry.status === "Estimate Sent") {
+    return (
+      <div className="mw-enq-approval is-waiting" data-testid="enquiry-approval-waiting">
+        <Send size={18} />
+        <div>
+          <h3>Waiting for customer approval</h3>
+          <p>
+            The estimate for {rupees(lockedAmount || estimateTotals(enquiry).total)} is on the
+            customer&apos;s Track Service page. Once they approve, an OTP is sent to their mobile.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (enquiry.status === "Approved") {
+    return (
+      <div className="mw-enq-approval" data-testid="enquiry-approval">
+        <div className="mw-enq-section-head">
+          <div>
+            <span className="mw-enq-section-kicker">Customer approved</span>
+            <h3>Verify the OTP to lock the estimate</h3>
+          </div>
+          <span className="mw-dealer-chip is-progress">
+            <KeyRound size={12} /> OTP sent
+          </span>
+        </div>
+        <p className="mw-dealer-field-hint">
+          Ask {enquiry.customerName} for the 4-digit OTP shown on their Track Service page. The
+          amount stays locked after verification.
+        </p>
+        <div className="mw-enq-otp-row">
+          <label className="mw-dealer-field">
+            <span>Customer OTP</span>
+            <input
+              value={otp}
+              onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 4))}
+              inputMode="numeric"
+              maxLength={4}
+              placeholder="4-digit OTP"
+              autoComplete="one-time-code"
+              data-testid="enquiry-otp-input"
+            />
+          </label>
+          <button
+            type="button"
+            className="mw-dealer-btn is-primary"
+            disabled={otp.length !== 4}
+            onClick={() =>
+              run(
+                verifyEnquiryOtp(session.partnerId, enquiry.id, otp),
+                "OTP verified. The estimate is locked and the customer can pay online.",
+              )
+            }
+            data-testid="enquiry-verify-otp"
+          >
+            <LockKeyhole size={15} /> Verify OTP &amp; lock
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (enquiry.status === "Estimate Locked") {
+    return (
+      <div className="mw-enq-approval is-locked" data-testid="enquiry-awaiting-payment">
+        <LockKeyhole size={20} />
+        <div>
+          <h3>Estimate locked — awaiting prepaid payment</h3>
+          <p>
+            The customer must pay {rupees(lockedAmount)} online through Razorpay. Do not collect
+            cash or accept any offline payment.
+          </p>
+          <p className="mw-enq-prepaid-notice">
+            <ShieldCheck size={14} /> {PREPAID_ONLY_NOTICE}
+          </p>
+          <button
+            type="button"
+            className="mw-dealer-btn is-small"
+            onClick={() => onDone("Payment status refreshed.")}
+            data-testid="enquiry-refresh-payment"
+          >
+            <CreditCard size={13} /> Refresh prepaid status
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }

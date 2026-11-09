@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   ListChecks,
   LogOut,
+  ShieldAlert,
   ShieldCheck,
   ScrollText,
   Settings,
@@ -60,6 +61,7 @@ export function AdminShell({
   myCount,
   employeeCount,
   ruleCount,
+  disputeCount,
 }: {
   session: AdminSession;
   title: string;
@@ -70,6 +72,7 @@ export function AdminShell({
   myCount?: number;
   employeeCount?: number;
   ruleCount?: number;
+  disputeCount?: number;
 }) {
   const actor = actorFromSession(session);
   const nav: NavItem[] = [
@@ -104,6 +107,12 @@ export function AdminShell({
     nav.push({ to: "/master-admin/partners", label: "Partners", icon: Building2 });
   }
   if (can(actor, "audit.view")) {
+    nav.push({
+      to: "/master-admin/disputes",
+      label: "Disputes",
+      icon: ShieldAlert,
+      ...(typeof disputeCount === "number" ? { count: disputeCount } : {}),
+    });
     nav.push({ to: "/master-admin/audit", label: "Audit Log", icon: ScrollText });
   }
   if (canViewAutomation(actor)) {

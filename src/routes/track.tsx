@@ -1,14 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
+  AlertTriangle,
   ArrowLeft,
+  BadgeCheck,
   CheckCircle2,
   ClipboardCheck,
+  CreditCard,
+  Loader2,
   MapPin,
   MessageCircle,
   Phone,
   Radio,
+  ShieldCheck,
   Truck,
+  XCircle,
 } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
@@ -21,15 +27,26 @@ import {
   mockStageIndex,
   SERVICE_STATUSES,
 } from "@/lib/service-tracking";
+import { payPrepaid } from "@/lib/razorpay-checkout";
 import { PHONE_DISPLAY, PHONE_HREF, whatsappLink } from "@/lib/site";
 import {
+  approveEnquiryEstimate,
   CUSTOMER_STATUS_LABEL,
+  confirmEnquiryPayment,
   enquiryStageIndex,
   estimateTotals,
   findEnquiryByTracking,
+  MOCK_ENQUIRY_OTP,
+  PREPAID_ONLY_NOTICE,
+  rejectEnquiryEstimate,
   WORKSHOP_DEPARTMENTS,
   type WorkshopEnquiry,
 } from "@/lib/workshop-enquiries";
+import {
+  findDisputeForEnquiry,
+  reportWorkshop,
+  type WorkshopDispute,
+} from "@/lib/workshop-disputes";
 
 const TITLE = "Track Your Service — Live Status | Motor Wallah";
 const DESCRIPTION =
@@ -369,7 +386,14 @@ function Page() {
                   </div>
                 )}
 
-                {enquiry ? <CustomerEnquiryCard enquiry={enquiry} /> : null}
+                {enquiry ? (
+                  <CustomerEnquiryCard
+                    enquiry={enquiry}
+                    onChanged={() =>
+                      setEnquiry(result ? findEnquiryByTracking(result.trackingId) : null)
+                    }
+                  />
+                ) : null}
 
                 <div className="mw-trk-actions">
                   <Link className="mw-sell-ghost-btn" to="/services">
@@ -398,17 +422,143 @@ function Page() {
   );
 }
 
-function CustomerEnquiryCard({ enquiry }: { enquiry: WorkshopEnquiry }) {
+function CustomerEnquiryCard({
+  enquiry,
+  onChanged,
+}: {
+  enquiry: WorkshopEnquiry;
+  onChanged: () => void;
+}) {
+  const [flash, setFlash] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [paying, setPaying] = useState(false);
+  const [previewCheckout, setPreviewCheckout] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [dispute, setDispute] = useState<WorkshopDispute | null>(() =>
+    findDisputeForEnquiry(enquiry.id),
+  );
   const department =
     WORKSHOP_DEPARTMENTS.find((item) => item.id === enquiry.department)?.label ?? "Workshop";
   const totals = estimateTotals(enquiry);
   const sent = Boolean(enquiry.checklist.sentAt);
+  const lockedAmount = enquiry.approval.lockedTotal ?? totals.total;
   const assignedPhone =
     enquiry.assignment?.mode === "pickup" ? enquiry.assignment.employeeMobile : null;
   const workshopPhone = enquiry.workshopMobile ?? enquiry.assignment?.employeeMobile ?? null;
 
+  const applyResult = (result: { ok: true } | { ok: false; error: string }, message: string) => {
+    if (!result.ok) {
+      setError(result.error);
+      setFlash(null);
+      return;
+    }
+    onChanged();
+    setError(null);
+    setFlash(message);
+  };
+
+  const approve = () =>
+    applyResult(
+      approveEnquiryEstimate(enquiry.id, enquiry.mobile),
+      "Approved. Your OTP is ready to share with the workshop.",
+    );
+
+  const reject = () =>
+    applyResult(
+      rejectEnquiryEstimate(enquiry.id, enquiry.mobile),
+      "Estimate rejected. The workshop has been informed.",
+    );
+
+  const pay = async () => {
+    setError(null);
+    setFlash(null);
+    setPaying(true);
+    const payment = await payPrepaid({
+      amount: lockedAmount,
+      receipt: enquiry.trackingId,
+      description: `Workshop estimate · ${enquiry.vehicleNumber}`,
+      customer: {
+        name: enquiry.customerName,
+        mobile: enquiry.mobile,
+        city: enquiry.location,
+      },
+      notes: { enquiryId: enquiry.id, trackingId: enquiry.trackingId },
+    });
+    setPaying(false);
+
+    if (payment.status === "cancelled") {
+      setError("Payment cancelled — nothing was charged. You can retry when ready.");
+      return;
+    }
+    if (payment.status === "unavailable") {
+      // The dev preview has no Razorpay secret. Keep the real gateway as the
+      // first choice, and offer a no-money preview checkout only while running
+      // the Vite development server. A production build never shows this.
+      if (import.meta.env.DEV && /not switched on/i.test(payment.message)) {
+        setPreviewCheckout(true);
+        setError(null);
+        return;
+      }
+      setError(payment.message);
+      return;
+    }
+
+    const saved = confirmEnquiryPayment(enquiry.id, enquiry.mobile, {
+      orderId: payment.orderId,
+      paymentId: payment.paymentId,
+      amount: payment.amount,
+    });
+    if (!saved.ok) {
+      setError(`${saved.error} Razorpay payment ID: ${payment.paymentId}`);
+      return;
+    }
+    onChanged();
+    setFlash("Payment successful. Your vehicle is now received for service.");
+  };
+
+  const completePreviewPayment = () => {
+    const stamp = Date.now();
+    const saved = confirmEnquiryPayment(enquiry.id, enquiry.mobile, {
+      orderId: `order_preview_${stamp}`,
+      paymentId: `pay_preview_${stamp}`,
+      amount: lockedAmount,
+      provider: "Preview",
+    });
+    if (!saved.ok) {
+      setError(saved.error);
+      return;
+    }
+    setPreviewCheckout(false);
+    onChanged();
+    setFlash("Preview payment successful. Your vehicle is now received for service.");
+  };
+
+  const report = () => {
+    setReporting(true);
+    const result = reportWorkshop(enquiry.id, enquiry.mobile);
+    setReporting(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setDispute(result.dispute);
+    setError(null);
+    setFlash(`Dispute ${result.dispute.id} raised with the Motor Wallah admin team.`);
+  };
+
   return (
     <section className="mw-trk-workshop" data-testid="track-enquiry">
+      {flash ? (
+        <p className="mw-trk-flash" role="status" data-testid="track-flash">
+          <CheckCircle2 size={14} /> {flash}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="mw-trk-error" role="alert" data-testid="track-action-error">
+          <AlertTriangle size={14} /> {error}
+        </p>
+      ) : null}
+
       <div className="mw-trk-workshop-head">
         <div>
           <p className="mw-trk-kicker">Workshop update · {enquiry.id}</p>
@@ -431,10 +581,18 @@ function CustomerEnquiryCard({ enquiry }: { enquiry: WorkshopEnquiry }) {
             : enquiry.status === "Vehicle Received"
               ? "Your vehicle is at the workshop. The team is preparing the repair checklist and estimate."
               : enquiry.status === "Estimate Sent"
-                ? "The workshop has sent your final estimate. Review the line items below."
-                : enquiry.status === "Completed"
-                  ? "The workshop has completed this job."
-                  : "This enquiry was cancelled."}
+                ? "The workshop has sent your final estimate. Review the line items and approve it to continue."
+                : enquiry.status === "Approved"
+                  ? "You approved the estimate. Share your OTP with the workshop so they can lock the amount."
+                  : enquiry.status === "Estimate Locked"
+                    ? "The workshop verified your OTP. Your amount is locked — pay securely online to start the service."
+                    : enquiry.status === "Paid"
+                      ? "Payment received. Your vehicle is now received for service at the workshop."
+                      : enquiry.status === "Rejected"
+                        ? "You rejected this estimate. The workshop cannot start the repair."
+                        : enquiry.status === "Completed"
+                          ? "The workshop has completed this job."
+                          : "This enquiry was cancelled."}
       </p>
 
       <div className="mw-trk-workshop-grid">
@@ -551,6 +709,143 @@ function CustomerEnquiryCard({ enquiry }: { enquiry: WorkshopEnquiry }) {
           {enquiry.checklist.notes ? (
             <p className="mw-trk-estimate-note">{enquiry.checklist.notes}</p>
           ) : null}
+
+          {enquiry.status === "Estimate Sent" ? (
+            <div className="mw-trk-approval" data-testid="track-approval">
+              <div className="mw-trk-approval-head">
+                <span>Approve this estimate</span>
+                <strong>{rupees(totals.total)}</strong>
+              </div>
+              <p>
+                Approve to receive an OTP on your mobile. Share that OTP with the workshop to lock
+                the amount before paying.
+              </p>
+              <div className="mw-trk-approval-actions">
+                <button
+                  type="button"
+                  className="mw-trk-approve-btn"
+                  onClick={approve}
+                  data-testid="track-approve"
+                >
+                  <CheckCircle2 size={15} /> Approve &amp; Proceed
+                </button>
+                <button
+                  type="button"
+                  className="mw-trk-reject-btn"
+                  onClick={reject}
+                  data-testid="track-reject"
+                >
+                  <XCircle size={15} /> Reject
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {enquiry.status === "Approved" ? (
+            <div className="mw-trk-otp" data-testid="track-otp">
+              <span className="mw-trk-demo-kicker">Approval OTP sent</span>
+              <p>
+                Share this one-time password with {enquiry.workshopName ?? "the workshop"}. They
+                will enter it in their portal to lock your estimate.
+              </p>
+              <strong className="mw-trk-otp-code" data-testid="track-otp-code">
+                {MOCK_ENQUIRY_OTP}
+              </strong>
+              <small>Preview OTP — SMS delivery is simulated for this demo.</small>
+            </div>
+          ) : null}
+
+          {enquiry.status === "Estimate Locked" ? (
+            <div className="mw-trk-payment" data-testid="track-payment">
+              <div className="mw-trk-payment-head">
+                <span>
+                  <CreditCard size={15} /> Razorpay secure checkout
+                </span>
+                <strong>{rupees(lockedAmount)}</strong>
+              </div>
+              <p className="mw-trk-prepaid-notice">
+                <ShieldCheck size={15} /> {PREPAID_ONLY_NOTICE}
+              </p>
+              <button
+                type="button"
+                className="mw-trk-pay-btn"
+                onClick={() => void pay()}
+                disabled={paying}
+                data-testid="track-pay"
+              >
+                {paying ? <Loader2 className="mw-spin" size={15} /> : <CreditCard size={15} />}
+                {paying ? "Opening Razorpay…" : `Pay ${rupees(lockedAmount)} securely`}
+              </button>
+              <small>
+                UPI, cards, net banking and wallets. Razorpay verifies the payment before the job
+                starts.
+              </small>
+
+              {previewCheckout ? (
+                <div className="mw-trk-preview-pay" data-testid="track-preview-checkout">
+                  <div className="mw-trk-preview-head">
+                    <span>Razorpay preview checkout</span>
+                    <strong>{rupees(lockedAmount)}</strong>
+                  </div>
+                  <p className="mw-trk-preview-badge">
+                    Preview mode — no real money is charged. Add RAZORPAY_KEY_SECRET to use live
+                    Razorpay checkout.
+                  </p>
+                  <div className="mw-trk-pay-methods" aria-hidden="true">
+                    <span>UPI</span>
+                    <span>Card</span>
+                    <span>Net banking</span>
+                    <span>Wallet</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="mw-trk-pay-btn"
+                    onClick={completePreviewPayment}
+                    data-testid="track-preview-pay"
+                  >
+                    <ShieldCheck size={15} /> Complete preview payment
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {enquiry.payment.status === "Paid" ? (
+            <div className="mw-trk-paid" data-testid="track-paid">
+              <BadgeCheck size={20} />
+              <div>
+                <strong>Vehicle Received for Service</strong>
+                <p>
+                  {rupees(enquiry.payment.amount ?? lockedAmount)}{" "}
+                  {enquiry.payment.provider === "Preview"
+                    ? "paid in the preview checkout (no real money charged)."
+                    : "paid online via Razorpay."}{" "}
+                  The workshop has been notified and your vehicle is received for service.
+                </p>
+                <small>
+                  Payment ID <b>{enquiry.payment.paymentId}</b>
+                  {enquiry.payment.paidAt
+                    ? ` · ${new Date(enquiry.payment.paidAt).toLocaleString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}`
+                    : ""}
+                </small>
+              </div>
+            </div>
+          ) : null}
+
+          {enquiry.status === "Rejected" ? (
+            <div className="mw-trk-rejected" data-testid="track-rejected">
+              <XCircle size={18} />
+              <p>
+                You rejected this estimate. No payment was taken. Call the workshop if you want a
+                revised quote.
+              </p>
+            </div>
+          ) : null}
         </div>
       ) : (
         <p className="mw-trk-workshop-wait">
@@ -566,6 +861,40 @@ function CustomerEnquiryCard({ enquiry }: { enquiry: WorkshopEnquiry }) {
             <Phone size={13} /> {workshopPhone}
           </a>
         </p>
+      ) : null}
+
+      {enquiry.workshopName && enquiry.status !== "New" && enquiry.status !== "Rejected" ? (
+        dispute ? (
+          <div className="mw-trk-dispute" data-testid="track-dispute">
+            <AlertTriangle size={15} />
+            <div>
+              <strong>
+                Dispute {dispute.id} · {dispute.status}
+              </strong>
+              <span>
+                {dispute.status === "Open"
+                  ? "The admin team is reviewing your report. Do not pay cash or offline."
+                  : dispute.resolution || "Reviewed and closed by the admin team."}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="mw-trk-report-row">
+            <p>
+              <strong>Asked for cash or an offline payment?</strong>
+              <span>That is not allowed. Report the workshop to the admin team.</span>
+            </p>
+            <button
+              type="button"
+              className="mw-trk-report-btn"
+              onClick={report}
+              disabled={reporting}
+              data-testid="track-report-workshop"
+            >
+              <AlertTriangle size={14} /> {reporting ? "Sending…" : "Report Workshop"}
+            </button>
+          </div>
+        )
       ) : null}
     </section>
   );

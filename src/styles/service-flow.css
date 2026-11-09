@@ -426,10 +426,25 @@
   color: oklch(0.45 0.15 300);
 }
 
-.mw-trk-workshop-status[data-enquiry-status="Completed"] {
+.mw-trk-workshop-status[data-enquiry-status="Completed"],
+.mw-trk-workshop-status[data-enquiry-status="Paid"] {
   background: oklch(0.55 0.13 150 / 0.12);
   border-color: oklch(0.55 0.13 150 / 0.26);
   color: oklch(0.42 0.12 150);
+}
+
+.mw-trk-workshop-status[data-enquiry-status="Approved"],
+.mw-trk-workshop-status[data-enquiry-status="Estimate Locked"] {
+  background: oklch(0.7 0.15 80 / 0.14);
+  border-color: oklch(0.7 0.15 80 / 0.3);
+  color: oklch(0.46 0.12 65);
+}
+
+.mw-trk-workshop-status[data-enquiry-status="Rejected"],
+.mw-trk-workshop-status[data-enquiry-status="Cancelled"] {
+  background: oklch(0.58 0.2 25 / 0.1);
+  border-color: oklch(0.58 0.2 25 / 0.24);
+  color: oklch(0.48 0.18 25);
 }
 
 .mw-trk-workshop-copy {
@@ -631,6 +646,398 @@
   background: color-mix(in srgb, var(--primary) 5%, #fff);
   font-size: 0.72rem;
   line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+/* Phase 3 — approval, OTP, prepaid payment and disputes. */
+.mw-trk-flash,
+.mw-trk-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-bottom: 12px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.mw-trk-flash {
+  border: 1px solid oklch(0.58 0.13 150 / 0.26);
+  background: oklch(0.58 0.13 150 / 0.09);
+  color: oklch(0.38 0.12 150);
+}
+
+.mw-trk-error {
+  border: 1px solid oklch(0.58 0.2 25 / 0.24);
+  background: oklch(0.58 0.2 25 / 0.07);
+  color: oklch(0.45 0.18 25);
+}
+
+.mw-trk-approval {
+  margin-top: 12px;
+  padding: 13px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, #fff);
+  background:
+    radial-gradient(
+      200px 90px at 100% 0%,
+      color-mix(in srgb, var(--primary) 9%, transparent),
+      transparent 70%
+    ),
+    rgb(255 255 255 / 0.75);
+}
+
+.mw-trk-approval-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mw-trk-approval-head span {
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.mw-trk-approval-head strong {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--primary);
+}
+
+.mw-trk-approval p,
+.mw-trk-payment p,
+.mw-trk-otp p {
+  margin-top: 6px;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--muted-foreground);
+}
+
+.mw-trk-approval-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 11px;
+}
+
+.mw-trk-approve-btn,
+.mw-trk-reject-btn,
+.mw-trk-pay-btn,
+.mw-trk-report-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 9px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    background 150ms ease;
+}
+
+.mw-trk-approve-btn {
+  padding: 10px 14px;
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: oklch(1 0 0);
+  box-shadow: 0 10px 22px -14px color-mix(in srgb, var(--primary) 65%, transparent);
+}
+
+.mw-trk-approve-btn:hover {
+  transform: translateY(-1px);
+}
+
+.mw-trk-reject-btn {
+  padding: 10px 14px;
+  border: 1px solid oklch(0.58 0.2 25 / 0.3);
+  background: #fff;
+  color: oklch(0.48 0.18 25);
+}
+
+.mw-trk-otp {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px dashed oklch(0.7 0.15 80 / 0.55);
+  background: oklch(0.7 0.15 80 / 0.07);
+  text-align: center;
+}
+
+.mw-trk-demo-kicker {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: oklch(0.46 0.12 65);
+}
+
+.mw-trk-otp-code {
+  display: block;
+  margin: 9px auto 5px;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  letter-spacing: 0.28em;
+  line-height: 1;
+  color: var(--foreground);
+}
+
+.mw-trk-otp small,
+.mw-trk-payment small {
+  display: block;
+  margin-top: 7px;
+  font-size: 0.68rem;
+  line-height: 1.45;
+  color: var(--muted-foreground);
+}
+
+.mw-trk-payment {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--primary) 24%, #fff);
+  background:
+    radial-gradient(
+      220px 100px at 100% 0%,
+      color-mix(in srgb, var(--primary) 8%, transparent),
+      transparent 70%
+    ),
+    #fff;
+}
+
+.mw-trk-payment-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mw-trk-payment-head span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.mw-trk-payment-head strong {
+  font-family: var(--font-display);
+  font-size: 1.24rem;
+  color: var(--primary);
+}
+
+.mw-trk-prepaid-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid oklch(0.7 0.15 80 / 0.35);
+  background: oklch(0.7 0.15 80 / 0.09);
+  color: oklch(0.42 0.11 65);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.mw-trk-pay-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 11px 14px;
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: oklch(1 0 0);
+}
+
+.mw-trk-pay-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.mw-trk-preview-pay {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px dashed oklch(0.7 0.15 80 / 0.5);
+  background: rgb(255 255 255 / 0.72);
+}
+
+.mw-trk-preview-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mw-trk-preview-head span {
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.mw-trk-preview-head strong {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--foreground);
+}
+
+.mw-trk-preview-badge {
+  margin-top: 5px !important;
+  font-size: 0.68rem !important;
+  color: oklch(0.46 0.11 65) !important;
+}
+
+.mw-trk-pay-methods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.mw-trk-pay-methods span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--home-line, oklch(0.9 0.01 250));
+  background: #fff;
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: var(--muted-foreground);
+}
+
+.mw-spin {
+  animation: mw-trk-spin 1s linear infinite;
+}
+
+@keyframes mw-trk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.mw-trk-paid {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 13px;
+  border-radius: 12px;
+  border: 1px solid oklch(0.58 0.13 150 / 0.28);
+  background: oklch(0.58 0.13 150 / 0.08);
+  color: oklch(0.38 0.12 150);
+}
+
+.mw-trk-paid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mw-trk-paid strong {
+  font-size: 0.82rem;
+  color: oklch(0.3 0.1 150);
+}
+
+.mw-trk-paid p {
+  font-size: 0.73rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+.mw-trk-paid small {
+  font-size: 0.66rem;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+
+.mw-trk-rejected {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 11px;
+  border-radius: 10px;
+  border: 1px solid oklch(0.58 0.2 25 / 0.22);
+  background: oklch(0.58 0.2 25 / 0.06);
+  color: oklch(0.46 0.18 25);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.mw-trk-report-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--home-line, oklch(0.9 0.01 250));
+}
+
+.mw-trk-report-row p {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+}
+
+.mw-trk-report-row strong {
+  color: var(--foreground);
+}
+
+.mw-trk-report-btn {
+  padding: 8px 11px;
+  border: 1px solid oklch(0.58 0.2 25 / 0.3);
+  background: #fff;
+  color: oklch(0.48 0.18 25);
+}
+
+.mw-trk-report-btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.mw-trk-dispute {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 11px;
+  border-radius: 10px;
+  border: 1px solid oklch(0.7 0.15 80 / 0.35);
+  background: oklch(0.7 0.15 80 / 0.08);
+  color: oklch(0.44 0.11 65);
+}
+
+.mw-trk-dispute > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mw-trk-dispute strong {
+  font-size: 0.74rem;
+}
+
+.mw-trk-dispute span {
+  font-size: 0.7rem;
+  line-height: 1.45;
   color: var(--muted-foreground);
 }
 

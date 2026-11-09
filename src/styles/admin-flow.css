@@ -1079,7 +1079,8 @@
   font-size: 0.79rem;
   font-weight: 500;
   appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, var(--adm-muted) 50%),
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--adm-muted) 50%),
     linear-gradient(135deg, var(--adm-muted) 50%, transparent 50%);
   background-position:
     calc(100% - 15px) 16px,
@@ -3052,5 +3053,227 @@
   }
   .mw-admin-watchlist strong {
     overflow-wrap: anywhere;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Workshop payment disputes — cash/offline reports from Track Service.
+   -------------------------------------------------------------------------- */
+
+.mw-admin-disputes {
+  display: grid;
+  gap: 16px;
+}
+
+.mw-admin-dispute-kpis {
+  margin-bottom: 0;
+}
+
+.mw-admin-dispute-list {
+  display: grid;
+  gap: 12px;
+}
+
+.mw-admin-dispute {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--adm-line);
+  background: rgb(255 255 255 / 0.68);
+}
+
+.mw-admin-dispute[data-status="Open"] {
+  border-color: oklch(0.58 0.2 25 / 0.22);
+  background:
+    radial-gradient(220px 100px at 100% 0%, oklch(0.58 0.2 25 / 0.06), transparent 72%),
+    rgb(255 255 255 / 0.72);
+}
+
+.mw-admin-dispute-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mw-admin-dispute-head > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.mw-admin-dispute-head strong {
+  font-size: 0.84rem;
+  color: var(--adm-ink);
+}
+
+.mw-admin-dispute-head small {
+  width: 100%;
+  font-size: 0.68rem;
+  color: var(--adm-muted);
+}
+
+.mw-admin-dispute-amount {
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 1.22rem;
+  color: var(--adm-red);
+}
+
+.mw-admin-dispute-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mw-admin-dispute-facts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--adm-line);
+  background: rgb(255 255 255 / 0.6);
+}
+
+.mw-admin-dispute-facts span {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--adm-muted);
+}
+
+.mw-admin-dispute-facts strong {
+  font-size: 0.74rem;
+  color: var(--adm-ink);
+  overflow-wrap: anywhere;
+}
+
+.mw-admin-dispute-facts small {
+  font-size: 0.65rem;
+  color: var(--adm-muted);
+  overflow-wrap: anywhere;
+}
+
+.mw-admin-dispute-reason {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: var(--adm-red-soft);
+  font-size: 0.73rem;
+  line-height: 1.5;
+  color: var(--adm-ink);
+}
+
+.mw-admin-dispute-reason svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--adm-red);
+}
+
+.mw-admin-dispute-resolve {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.mw-admin-dispute-resolve label {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mw-admin-dispute-resolve label span {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--adm-muted);
+}
+
+.mw-admin-dispute-resolve textarea {
+  width: 100%;
+  padding: 8px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--adm-line-strong);
+  background: #fff;
+  font: inherit;
+  font-size: 0.74rem;
+  resize: vertical;
+}
+
+.mw-admin-dispute-resolve textarea:focus {
+  outline: none;
+  border-color: var(--adm-red);
+  box-shadow: 0 0 0 3px var(--adm-red-soft);
+}
+
+.mw-admin-dispute-resolve .mw-admin-submit {
+  width: auto;
+  min-width: 150px;
+  margin: 0;
+}
+
+.mw-admin-dispute-locked {
+  font-size: 0.68rem;
+  color: var(--adm-muted);
+}
+
+.mw-admin-dispute-resolution {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: oklch(0.58 0.13 150 / 0.08);
+  color: oklch(0.38 0.12 150);
+}
+
+.mw-admin-dispute-resolution strong {
+  font-size: 0.74rem;
+}
+
+.mw-admin-dispute-resolution p {
+  margin-top: 1px;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--adm-ink);
+}
+
+.mw-admin-dispute-resolution small {
+  font-size: 0.65rem;
+  color: var(--adm-muted);
+}
+
+.mw-admin-dispute-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--adm-line);
+}
+
+@media (max-width: 900px) {
+  .mw-admin-dispute-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .mw-admin-dispute-facts {
+    grid-template-columns: 1fr;
+  }
+  .mw-admin-dispute-head {
+    flex-wrap: wrap;
   }
 }

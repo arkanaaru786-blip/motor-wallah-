@@ -88,7 +88,11 @@ export const ENQUIRY_STATUSES = [
   "Accepted",
   "Vehicle Received",
   "Estimate Sent",
+  "Approved",
+  "Estimate Locked",
+  "Paid",
   "Completed",
+  "Rejected",
   "Cancelled",
 ] as const;
 
@@ -99,7 +103,11 @@ export const ENQUIRY_CHIP: Record<EnquiryStatus, string> = {
   Accepted: "is-progress",
   "Vehicle Received": "is-parts",
   "Estimate Sent": "is-ready",
+  Approved: "is-progress",
+  "Estimate Locked": "is-ready",
+  Paid: "is-delivered",
   Completed: "is-delivered",
+  Rejected: "is-cancelled",
   Cancelled: "is-cancelled",
 };
 
@@ -109,7 +117,25 @@ export const CUSTOMER_STATUS_LABEL: Record<EnquiryStatus, string> = {
   Accepted: "Workshop accepted",
   "Vehicle Received": "Vehicle in workshop",
   "Estimate Sent": "Estimate sent",
+  Approved: "Approval OTP sent",
+  "Estimate Locked": "Estimate locked — payment pending",
+  Paid: "Vehicle Received for Service",
   Completed: "Completed",
+  Rejected: "Estimate rejected",
+  Cancelled: "Cancelled",
+};
+
+/** Workshop-facing labels. Paid work reads as received for service on both sides. */
+export const WORKSHOP_STATUS_LABEL: Record<EnquiryStatus, string> = {
+  New: "New",
+  Accepted: "Accepted",
+  "Vehicle Received": "Vehicle Received",
+  "Estimate Sent": "Estimate Sent",
+  Approved: "Approved — OTP pending",
+  "Estimate Locked": "Estimate Locked — payment pending",
+  Paid: "Vehicle Received for Service",
+  Completed: "Completed",
+  Rejected: "Rejected by customer",
   Cancelled: "Cancelled",
 };
 
@@ -123,6 +149,9 @@ export function enquiryStageIndex(status: EnquiryStatus): number {
     case "Vehicle Received":
       return 2;
     case "Estimate Sent":
+    case "Approved":
+    case "Estimate Locked":
+    case "Paid":
       return 2;
     case "Completed":
       return 4;
@@ -154,6 +183,51 @@ export type EnquiryAssignment = {
 };
 
 export type EnquiryTimeline = { status: EnquiryStatus; at: string };
+
+export type EnquiryApproval = {
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string;
+  otpCode: string | null;
+  otpSentAt: string | null;
+  otpVerifiedAt: string | null;
+  /** Snapshot of the price the customer accepted; later edits cannot change it. */
+  lockedTotal: number | null;
+};
+
+export type EnquiryPayment = {
+  status: "Pending" | "Paid";
+  /** "Preview" exists only on the development server when Razorpay keys are absent. */
+  provider: "Razorpay" | "Preview";
+  orderId: string | null;
+  paymentId: string | null;
+  amount: number | null;
+  paidAt: string | null;
+};
+
+/** Fixed preview OTP until an SMS provider is connected. */
+export const MOCK_ENQUIRY_OTP = "1234";
+export const PREPAID_ONLY_NOTICE =
+  "Online Prepaid Only. Cash/Offline payments are strictly prohibited.";
+
+const emptyApproval = (): EnquiryApproval => ({
+  approvedAt: null,
+  rejectedAt: null,
+  rejectionReason: "",
+  otpCode: null,
+  otpSentAt: null,
+  otpVerifiedAt: null,
+  lockedTotal: null,
+});
+
+const emptyPayment = (): EnquiryPayment => ({
+  status: "Pending",
+  provider: "Razorpay",
+  orderId: null,
+  paymentId: null,
+  amount: null,
+  paidAt: null,
+});
 
 export type WorkshopEnquiry = {
   id: string;
@@ -189,6 +263,8 @@ export type WorkshopEnquiry = {
     sentAt: string | null;
     sentVersion: number;
   };
+  approval: EnquiryApproval;
+  payment: EnquiryPayment;
   timeline: EnquiryTimeline[];
   createdAt: string;
   updatedAt: string;
@@ -237,12 +313,21 @@ export const MW_AUTO_PARTS: AutoPart[] = [
 
 /* ------------------------------------------------------------------ read */
 
+/** Phase 2 records predate approval/payment, so fill their new fields on read. */
+function normaliseEnquiry(row: WorkshopEnquiry): WorkshopEnquiry {
+  return {
+    ...row,
+    approval: { ...emptyApproval(), ...(row.approval ?? {}) },
+    payment: { ...emptyPayment(), ...(row.payment ?? {}) },
+  };
+}
+
 function readAll(): WorkshopEnquiry[] {
   const raw = replicaRead<unknown>(KEY, []);
   if (!Array.isArray(raw)) return [];
-  return (raw as WorkshopEnquiry[]).filter(
-    (row) => row && typeof row.id === "string" && typeof row.trackingId === "string",
-  );
+  return (raw as WorkshopEnquiry[])
+    .filter((row) => row && typeof row.id === "string" && typeof row.trackingId === "string")
+    .map(normaliseEnquiry);
 }
 
 function writeAll(rows: WorkshopEnquiry[]): EnquiryResult {
@@ -353,6 +438,8 @@ export function createWorkshopEnquiry(input: NewEnquiryInput): CreateEnquiryResu
       sentAt: null,
       sentVersion: 0,
     },
+    approval: emptyApproval(),
+    payment: emptyPayment(),
     timeline: [{ status: "New", at: now }],
     createdAt: now,
     updatedAt: now,
@@ -456,6 +543,12 @@ function editableEnquiry(
   }
   if (enquiry.status !== "Vehicle Received" && enquiry.status !== "Estimate Sent") {
     return { error: "Receive the vehicle before building the checklist." };
+  }
+  if (enquiry.approval.approvedAt || enquiry.approval.rejectedAt) {
+    return {
+      error:
+        "The customer has already responded, so this estimate is locked. It can no longer be edited.",
+    };
   }
   return { rows, enquiry };
 }
@@ -632,7 +725,153 @@ export function sendEstimate(partnerId: string, enquiryId: string): EnquiryResul
       sentAt: now,
       sentVersion: state.enquiry.checklist.sentVersion + 1,
     },
+    approval: emptyApproval(),
+    payment: emptyPayment(),
     updatedAt: now,
     timeline: [...state.enquiry.timeline, { status: "Estimate Sent", at: now }],
+  });
+}
+
+/* ------------------------------------------------------ customer approval */
+
+function customerEnquiry(enquiryId: string, mobile: string): WorkshopEnquiry | null {
+  return (
+    readAll().find(
+      (row) =>
+        row.id === enquiryId &&
+        row.mobile.replace(/\s+/g, "") === mobile.trim().replace(/\s+/g, ""),
+    ) ?? null
+  );
+}
+
+/** Customer accepts the estimate; the demo SMS sends the fixed preview OTP. */
+export function approveEnquiryEstimate(enquiryId: string, mobile: string): EnquiryResult {
+  const rows = readAll();
+  const enquiry = customerEnquiry(enquiryId, mobile);
+  if (!enquiry) return { ok: false, error: "This estimate could not be found for your booking." };
+  if (enquiry.status !== "Estimate Sent") {
+    return { ok: false, error: "This estimate is not waiting for your approval." };
+  }
+
+  const totals = estimateTotals(enquiry);
+  if (totals.total < 1) {
+    return { ok: false, error: "The workshop estimate has no payable amount." };
+  }
+
+  const now = new Date().toISOString();
+  return replaceEnquiry(rows, {
+    ...enquiry,
+    status: "Approved",
+    approval: {
+      ...emptyApproval(),
+      approvedAt: now,
+      otpCode: MOCK_ENQUIRY_OTP,
+      otpSentAt: now,
+      lockedTotal: totals.total,
+    },
+    payment: emptyPayment(),
+    updatedAt: now,
+    timeline: [...enquiry.timeline, { status: "Approved", at: now }],
+  });
+}
+
+/** Rejection is allowed until the workshop verifies the OTP and locks the job. */
+export function rejectEnquiryEstimate(
+  enquiryId: string,
+  mobile: string,
+  reason?: string | undefined,
+): EnquiryResult {
+  const rows = readAll();
+  const enquiry = customerEnquiry(enquiryId, mobile);
+  if (!enquiry) return { ok: false, error: "This estimate could not be found for your booking." };
+  if (enquiry.status !== "Estimate Sent" && enquiry.status !== "Approved") {
+    return { ok: false, error: "This estimate can no longer be rejected online." };
+  }
+
+  const now = new Date().toISOString();
+  return replaceEnquiry(rows, {
+    ...enquiry,
+    status: "Rejected",
+    approval: {
+      ...emptyApproval(),
+      rejectedAt: now,
+      rejectionReason: (reason ?? "Customer rejected the estimate.").trim().slice(0, 300),
+    },
+    payment: emptyPayment(),
+    updatedAt: now,
+    timeline: [...enquiry.timeline, { status: "Rejected", at: now }],
+  });
+}
+
+/* ---------------------------------------------------------- OTP + payment */
+
+/** Workshop checks the OTP the customer shared, then the amount is locked. */
+export function verifyEnquiryOtp(partnerId: string, enquiryId: string, otp: string): EnquiryResult {
+  const rows = readAll();
+  const enquiry = rows.find((row) => row.id === enquiryId);
+  if (!enquiry || enquiry.partnerId !== partnerId) {
+    return { ok: false, error: "That enquiry is not assigned to this workshop." };
+  }
+  if (enquiry.status !== "Approved" || !enquiry.approval.otpCode) {
+    return { ok: false, error: "The customer has not approved this estimate yet." };
+  }
+  if (otp.trim() !== enquiry.approval.otpCode) {
+    return { ok: false, error: "That OTP is incorrect. Ask the customer to read it again." };
+  }
+
+  const now = new Date().toISOString();
+  return replaceEnquiry(rows, {
+    ...enquiry,
+    status: "Estimate Locked",
+    approval: {
+      ...enquiry.approval,
+      otpVerifiedAt: now,
+      lockedTotal: enquiry.approval.lockedTotal ?? estimateTotals(enquiry).total,
+    },
+    updatedAt: now,
+    timeline: [...enquiry.timeline, { status: "Estimate Locked", at: now }],
+  });
+}
+
+/** Called only after Razorpay confirms the signature on the server. */
+export function confirmEnquiryPayment(
+  enquiryId: string,
+  mobile: string,
+  paid: {
+    orderId: string;
+    paymentId: string;
+    amount: number;
+    provider?: "Razorpay" | "Preview" | undefined;
+  },
+): EnquiryResult {
+  const rows = readAll();
+  const enquiry = customerEnquiry(enquiryId, mobile);
+  if (!enquiry) return { ok: false, error: "This booking could not be found." };
+  if (enquiry.status !== "Estimate Locked") {
+    return { ok: false, error: "The workshop must verify the OTP before payment." };
+  }
+  const expected = enquiry.approval.lockedTotal ?? estimateTotals(enquiry).total;
+  if (Math.round(paid.amount) !== Math.round(expected)) {
+    return {
+      ok: false,
+      error:
+        "The paid amount does not match the locked estimate. Contact support with your payment ID.",
+    };
+  }
+
+  const now = new Date().toISOString();
+  return replaceEnquiry(rows, {
+    ...enquiry,
+    status: "Paid",
+    payment: {
+      status: "Paid",
+      provider: paid.provider ?? "Razorpay",
+      orderId: paid.orderId,
+      paymentId: paid.paymentId,
+      amount: Math.round(expected),
+      paidAt: now,
+    },
+    updatedAt: now,
+    timeline: [...enquiry.timeline, { status: "Paid", at: now }],
   });
 }

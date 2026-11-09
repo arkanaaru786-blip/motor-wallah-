@@ -185,7 +185,11 @@ const ENQUIRY_TONE: Record<EnquiryStatus, LeadTone> = {
   Accepted: "progress",
   "Vehicle Received": "progress",
   "Estimate Sent": "progress",
+  Approved: "progress",
+  "Estimate Locked": "progress",
+  Paid: "done",
   Completed: "done",
+  Rejected: "pending",
   Cancelled: "pending",
 };
 
