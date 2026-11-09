@@ -13,6 +13,7 @@
  * applied only to the labour subtotal.
  */
 import { replicaRead, replicaWrite } from "@/lib/cloud-store";
+import { ensureWorkshopPartsOrder, partsOrderForEnquiry } from "@/lib/partner-data";
 import { newTrackingId } from "@/lib/service-tracking";
 
 const KEY = "mw_workshop_enquiries_v1";
@@ -91,6 +92,8 @@ export const ENQUIRY_STATUSES = [
   "Approved",
   "Estimate Locked",
   "Paid",
+  "Ready for Delivery",
+  "Delivered",
   "Completed",
   "Rejected",
   "Cancelled",
@@ -106,6 +109,8 @@ export const ENQUIRY_CHIP: Record<EnquiryStatus, string> = {
   Approved: "is-progress",
   "Estimate Locked": "is-ready",
   Paid: "is-delivered",
+  "Ready for Delivery": "is-ready",
+  Delivered: "is-delivered",
   Completed: "is-delivered",
   Rejected: "is-cancelled",
   Cancelled: "is-cancelled",
@@ -120,6 +125,8 @@ export const CUSTOMER_STATUS_LABEL: Record<EnquiryStatus, string> = {
   Approved: "Approval OTP sent",
   "Estimate Locked": "Estimate locked — payment pending",
   Paid: "Vehicle Received for Service",
+  "Ready for Delivery": "Vehicle ready — inspect & share final OTP",
+  Delivered: "Vehicle delivered",
   Completed: "Completed",
   Rejected: "Estimate rejected",
   Cancelled: "Cancelled",
@@ -134,6 +141,8 @@ export const WORKSHOP_STATUS_LABEL: Record<EnquiryStatus, string> = {
   Approved: "Approved — OTP pending",
   "Estimate Locked": "Estimate Locked — payment pending",
   Paid: "Vehicle Received for Service",
+  "Ready for Delivery": "Ready for Delivery",
+  Delivered: "Completed",
   Completed: "Completed",
   Rejected: "Rejected by customer",
   Cancelled: "Cancelled",
@@ -153,6 +162,9 @@ export function enquiryStageIndex(status: EnquiryStatus): number {
     case "Estimate Locked":
     case "Paid":
       return 2;
+    case "Ready for Delivery":
+      return 3;
+    case "Delivered":
     case "Completed":
       return 4;
     default:
@@ -205,10 +217,20 @@ export type EnquiryPayment = {
   paidAt: string | null;
 };
 
-/** Fixed preview OTP until an SMS provider is connected. */
+export type EnquiryDelivery = {
+  readyAt: string | null;
+  finalOtpCode: string | null;
+  finalOtpSentAt: string | null;
+  finalOtpVerifiedAt: string | null;
+  deliveredAt: string | null;
+};
+
+/** Fixed preview OTPs until an SMS provider is connected. */
 export const MOCK_ENQUIRY_OTP = "1234";
+export const MOCK_FINAL_OTP = "5678";
 export const PREPAID_ONLY_NOTICE =
   "Online Prepaid Only. Cash/Offline payments are strictly prohibited.";
+export const VEHICLE_READY_NOTICE = "Your vehicle is ready. Inspect it and share final OTP.";
 
 const emptyApproval = (): EnquiryApproval => ({
   approvedAt: null,
@@ -227,6 +249,14 @@ const emptyPayment = (): EnquiryPayment => ({
   paymentId: null,
   amount: null,
   paidAt: null,
+});
+
+const emptyDelivery = (): EnquiryDelivery => ({
+  readyAt: null,
+  finalOtpCode: null,
+  finalOtpSentAt: null,
+  finalOtpVerifiedAt: null,
+  deliveredAt: null,
 });
 
 export type WorkshopEnquiry = {
@@ -265,6 +295,7 @@ export type WorkshopEnquiry = {
   };
   approval: EnquiryApproval;
   payment: EnquiryPayment;
+  delivery: EnquiryDelivery;
   timeline: EnquiryTimeline[];
   createdAt: string;
   updatedAt: string;
@@ -319,6 +350,7 @@ function normaliseEnquiry(row: WorkshopEnquiry): WorkshopEnquiry {
     ...row,
     approval: { ...emptyApproval(), ...(row.approval ?? {}) },
     payment: { ...emptyPayment(), ...(row.payment ?? {}) },
+    delivery: { ...emptyDelivery(), ...(row.delivery ?? {}) },
   };
 }
 
@@ -440,6 +472,7 @@ export function createWorkshopEnquiry(input: NewEnquiryInput): CreateEnquiryResu
     },
     approval: emptyApproval(),
     payment: emptyPayment(),
+    delivery: emptyDelivery(),
     timeline: [{ status: "New", at: now }],
     createdAt: now,
     updatedAt: now,
@@ -727,6 +760,7 @@ export function sendEstimate(partnerId: string, enquiryId: string): EnquiryResul
     },
     approval: emptyApproval(),
     payment: emptyPayment(),
+    delivery: emptyDelivery(),
     updatedAt: now,
     timeline: [...state.enquiry.timeline, { status: "Estimate Sent", at: now }],
   });
@@ -770,6 +804,7 @@ export function approveEnquiryEstimate(enquiryId: string, mobile: string): Enqui
       lockedTotal: totals.total,
     },
     payment: emptyPayment(),
+    delivery: emptyDelivery(),
     updatedAt: now,
     timeline: [...enquiry.timeline, { status: "Approved", at: now }],
   });
@@ -798,6 +833,7 @@ export function rejectEnquiryEstimate(
       rejectionReason: (reason ?? "Customer rejected the estimate.").trim().slice(0, 300),
     },
     payment: emptyPayment(),
+    delivery: emptyDelivery(),
     updatedAt: now,
     timeline: [...enquiry.timeline, { status: "Rejected", at: now }],
   });
@@ -860,7 +896,7 @@ export function confirmEnquiryPayment(
   }
 
   const now = new Date().toISOString();
-  return replaceEnquiry(rows, {
+  const next: WorkshopEnquiry = {
     ...enquiry,
     status: "Paid",
     payment: {
@@ -871,7 +907,129 @@ export function confirmEnquiryPayment(
       amount: Math.round(expected),
       paidAt: now,
     },
+    delivery: emptyDelivery(),
     updatedAt: now,
     timeline: [...enquiry.timeline, { status: "Paid", at: now }],
+  };
+  const saved = replaceEnquiry(rows, next);
+  if (!saved.ok) return saved;
+
+  // Phase 4: a paid estimate with replacement parts immediately becomes a
+  // fulfilment order in the Parts Portal. The helper is idempotent, so a
+  // retried confirmation can never create a duplicate order.
+  ensureWorkshopPartsOrder({
+    id: next.id,
+    workshopName: next.workshopName,
+    workshopMobile: next.workshopMobile,
+    vehicle: next.vehicle,
+    vehicleNumber: next.vehicleNumber,
+    location: next.location,
+    parts: next.checklist.replaceItems.map((item) => ({
+      name: item.name,
+      qty: item.qty,
+      cost: item.cost,
+    })),
+  });
+  return saved;
+}
+
+/* --------------------------------------------------- phase 4 · delivery */
+
+/**
+ * The workshop can declare the work complete only after every replacement
+ * part has arrived. The Parts Portal marks its auto order Delivered first; the
+ * workshop reads that status and the courier tracking ID from the same order.
+ */
+export function markReadyForDelivery(partnerId: string, enquiryId: string): EnquiryResult {
+  const rows = readAll();
+  const enquiry = rows.find((row) => row.id === enquiryId);
+  if (!enquiry || enquiry.partnerId !== partnerId) {
+    return { ok: false, error: "That enquiry is not assigned to this workshop." };
+  }
+  if (enquiry.status !== "Paid") {
+    return { ok: false, error: "The vehicle must be paid and received before delivery." };
+  }
+
+  if (enquiry.checklist.replaceItems.length > 0) {
+    const order = partsOrderForEnquiry(enquiry.id);
+    if (!order) {
+      return {
+        ok: false,
+        error: "The automatic MW Auto Parts order is missing. Ask the parts desk to re-check it.",
+      };
+    }
+    if (order.status !== "Delivered") {
+      const tracking = order.trackingId ? ` Tracking ID ${order.trackingId}.` : "";
+      return {
+        ok: false,
+        error: `The parts order is still ${order.status}.${tracking} The parts shop must mark it Delivered first.`,
+      };
+    }
+  }
+
+  const now = new Date().toISOString();
+  return replaceEnquiry(rows, {
+    ...enquiry,
+    status: "Ready for Delivery",
+    delivery: { ...emptyDelivery(), ...enquiry.delivery, readyAt: now },
+    updatedAt: now,
+    timeline: [...enquiry.timeline, { status: "Ready for Delivery", at: now }],
+  });
+}
+
+/**
+ * Customer confirms they inspected the vehicle; the fixed preview SMS OTP is
+ * revealed so they can read it to the workshop at handover.
+ */
+export function shareFinalOtp(enquiryId: string, mobile: string): EnquiryResult {
+  const rows = readAll();
+  const enquiry = customerEnquiry(enquiryId, mobile);
+  if (!enquiry) return { ok: false, error: "This booking could not be found." };
+  if (enquiry.status !== "Ready for Delivery") {
+    return { ok: false, error: "The workshop has not marked this vehicle ready for delivery yet." };
+  }
+
+  const now = new Date().toISOString();
+  return replaceEnquiry(rows, {
+    ...enquiry,
+    delivery: {
+      ...emptyDelivery(),
+      ...enquiry.delivery,
+      finalOtpCode: MOCK_FINAL_OTP,
+      finalOtpSentAt: now,
+    },
+    updatedAt: now,
+  });
+}
+
+/** Workshop verifies the customer's final handover OTP and closes the job. */
+export function verifyFinalOtp(partnerId: string, enquiryId: string, otp: string): EnquiryResult {
+  const rows = readAll();
+  const enquiry = rows.find((row) => row.id === enquiryId);
+  if (!enquiry || enquiry.partnerId !== partnerId) {
+    return { ok: false, error: "That enquiry is not assigned to this workshop." };
+  }
+  if (enquiry.status !== "Ready for Delivery") {
+    return { ok: false, error: "This job is not waiting for a final delivery OTP." };
+  }
+  if (!enquiry.delivery.finalOtpCode || !enquiry.delivery.finalOtpSentAt) {
+    return { ok: false, error: "The customer has not shared the final OTP yet." };
+  }
+  if (otp.trim() !== enquiry.delivery.finalOtpCode) {
+    return { ok: false, error: "That final OTP is incorrect. Ask the customer to read it again." };
+  }
+
+  const now = new Date().toISOString();
+  return replaceEnquiry(rows, {
+    ...enquiry,
+    status: "Delivered",
+    delivery: {
+      ...emptyDelivery(),
+      ...enquiry.delivery,
+      finalOtpVerifiedAt: now,
+      deliveredAt: now,
+    },
+    updatedAt: now,
+    timeline: [...enquiry.timeline, { status: "Delivered", at: now }],
   });
 }

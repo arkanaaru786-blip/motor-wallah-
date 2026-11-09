@@ -10,6 +10,7 @@ import {
   Plus,
   Search,
   Trash2,
+  Truck,
   Wrench,
 } from "lucide-react";
 
@@ -30,7 +31,7 @@ import {
   type JobStatus,
 } from "@/lib/partner-data";
 import type { PartnerSession } from "@/lib/partner-session";
-import { workshopEnquiries } from "@/lib/workshop-enquiries";
+import { WORKSHOP_STATUS_LABEL, workshopEnquiries } from "@/lib/workshop-enquiries";
 
 const JOB_CHIP: Record<JobStatus, string> = {
   Pending: "is-pending",
@@ -90,6 +91,22 @@ export function WorkshopPortal({ session }: { session: PartnerSession }) {
   const open = jobs.filter((job) => job.status !== "Delivered");
   const waiting = jobs.filter((job) => job.status === "Waiting for Parts");
   const ready = jobs.filter((job) => job.status === "Ready for Delivery");
+  const serviceJobs = enquiries.filter(
+    (enquiry) =>
+      enquiry.payment.status === "Paid" ||
+      enquiry.status === "Ready for Delivery" ||
+      enquiry.status === "Delivered" ||
+      enquiry.status === "Completed",
+  );
+  const serviceOpen = serviceJobs.filter(
+    (enquiry) => enquiry.status !== "Delivered" && enquiry.status !== "Completed",
+  ).length;
+  const serviceReady = enquiries.filter(
+    (enquiry) => enquiry.status === "Ready for Delivery",
+  ).length;
+  const serviceCompleted = enquiries.filter(
+    (enquiry) => enquiry.status === "Delivered" || enquiry.status === "Completed",
+  ).length;
 
   const visible = jobs.filter((job) => {
     if (filter !== "all" && job.status !== filter) return false;
@@ -147,8 +164,8 @@ export function WorkshopPortal({ session }: { session: PartnerSession }) {
                 </span>
                 <span className="mw-dealer-kpi-label">Open job cards</span>
               </header>
-              <strong className="mw-dealer-kpi-value">{open.length}</strong>
-              <footer>Pending, in progress or ready for handover.</footer>
+              <strong className="mw-dealer-kpi-value">{open.length + serviceOpen}</strong>
+              <footer>Job cards and paid service jobs still in the workshop.</footer>
             </article>
             <article className="mw-dealer-kpi">
               <header>
@@ -179,10 +196,61 @@ export function WorkshopPortal({ session }: { session: PartnerSession }) {
                 </span>
                 <span className="mw-dealer-kpi-label">Ready for delivery</span>
               </header>
-              <strong className="mw-dealer-kpi-value">{ready.length}</strong>
-              <footer>Completed and waiting for customer pickup.</footer>
+              <strong className="mw-dealer-kpi-value">{ready.length + serviceReady}</strong>
+              <footer>Work complete and waiting for customer handover.</footer>
             </article>
           </section>
+
+          {serviceJobs.length > 0 ? (
+            <section className="mw-dealer-panel is-wide mw-enq-dash">
+              <div className="mw-dealer-panel-head">
+                <div>
+                  <h2>
+                    <Truck size={15} /> Service delivery jobs
+                  </h2>
+                  <p>
+                    Paid enquiries raised from Track Service. Parts tracking, final OTP handover and
+                    completed jobs all appear here.
+                  </p>
+                </div>
+                <div className="mw-dealer-actions">
+                  <span className="mw-dealer-chip is-delivered">{serviceCompleted} completed</span>
+                  <button
+                    type="button"
+                    className="mw-dealer-btn is-small"
+                    onClick={() => setTab("enquiries")}
+                  >
+                    Open service enquiries
+                  </button>
+                </div>
+              </div>
+              <ul className="mw-enq-dash-list" data-testid="workshop-service-jobs">
+                {serviceJobs.map((enquiry) => (
+                  <li key={enquiry.id}>
+                    <div className="mw-enq-dash-main">
+                      <strong>
+                        {enquiry.vehicleNumber} · {enquiry.vehicle}
+                      </strong>
+                      <span>
+                        {enquiry.customerName} · {enquiry.serviceType} · {enquiry.id}
+                      </span>
+                    </div>
+                    <span
+                      className={`mw-dealer-chip ${
+                        enquiry.status === "Delivered" || enquiry.status === "Completed"
+                          ? "is-delivered"
+                          : enquiry.status === "Ready for Delivery"
+                            ? "is-ready"
+                            : "is-progress"
+                      }`}
+                    >
+                      {WORKSHOP_STATUS_LABEL[enquiry.status]}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           <section className="mw-dealer-panels">
             <article className="mw-dealer-panel is-wide">

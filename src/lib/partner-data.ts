@@ -10,7 +10,7 @@
 import { replicaRead, replicaWrite } from "@/lib/cloud-store";
 import { DECOR_CATEGORY_LIST } from "@/lib/decor-store";
 import { PART_CATEGORY_LIST } from "@/lib/parts-store";
-import type { PartnerType } from "@/lib/partners";
+import { listPartnersOfType, type PartnerType } from "@/lib/partners";
 
 const JOBS_KEY = "mw_partner_jobs_v1";
 const ORDERS_KEY = "mw_partner_orders_v1";
@@ -80,6 +80,13 @@ export type PartnerOrder = {
   placedAt: string;
   updatedAt: string;
   history: { status: OrderStatus; at: string }[];
+  /** Workshop jobs are raised automatically from a paid service estimate. */
+  source?: "Store" | "Workshop";
+  /** The workshop enquiry this order fulfils, when it is an auto order. */
+  enquiryRef?: string | null;
+  vehicleNumber?: string | null;
+  /** Added by the parts shop before the order is packed. */
+  trackingId?: string | null;
 };
 
 /* -------------------------------------------------------------- inventory */
@@ -132,6 +139,14 @@ export const partnerOrders = (partnerId: string): PartnerOrder[] =>
   readOrders()
     .filter((order) => order.partnerId === partnerId)
     .sort((a, b) => b.placedAt.localeCompare(a.placedAt));
+
+/** The parts shop that receives automatic workshop orders. */
+const partsDeskPartnerId = (): string =>
+  listPartnersOfType("parts").find((partner) => partner.status === "Active")?.id ?? "MW-PRT-3001";
+
+/** Read the automatic parts order raised for a workshop enquiry, if any. */
+export const partsOrderForEnquiry = (enquiryRef: string): PartnerOrder | null =>
+  readOrders().find((order) => order.enquiryRef === enquiryRef) ?? null;
 
 export const partnerInventory = (partnerId: string): InventoryItem[] =>
   readInventory()
@@ -642,6 +657,102 @@ export function setJobEstimate(
 
 /* ---------------------------------------------------------- order writes */
 
+export type WorkshopPartsOrderInput = {
+  /** Workshop enquiry id, e.g. MW-ENQ-12345. */
+  id: string;
+  workshopName: string | null;
+  workshopMobile: string | null;
+  vehicle: string;
+  vehicleNumber: string;
+  location: string;
+  parts: { name: string; qty: number; cost: number }[];
+};
+
+export type WorkshopPartsOrderResult =
+  { ok: true; order: PartnerOrder | null } | { ok: false; error: string };
+
+function newPartnerOrderId(existing: PartnerOrder[]): string {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const id = `MW-ORD-${Math.floor(Math.random() * 90000) + 10000}`;
+    if (!existing.some((order) => order.id === id)) return id;
+  }
+  return `MW-ORD-${String(Date.now()).slice(-5)}`;
+}
+
+/**
+ * Raise the parts-shop order for a paid workshop job.
+ *
+ * Idempotent: a second payment confirmation or a retried write returns the
+ * order that already exists for the enquiry instead of duplicating it. Jobs
+ * with no replacement parts return `order: null` and nothing is written.
+ */
+export function ensureWorkshopPartsOrder(input: WorkshopPartsOrderInput): WorkshopPartsOrderResult {
+  if (input.parts.length === 0) return { ok: true, order: null };
+
+  const orders = readOrders();
+  const existing = orders.find((order) => order.enquiryRef === input.id);
+  if (existing) return { ok: true, order: existing };
+
+  const now = new Date().toISOString();
+  const order: PartnerOrder = {
+    id: newPartnerOrderId(orders),
+    partnerId: partsDeskPartnerId(),
+    itemType: "parts",
+    customerName: input.workshopName ?? "Motor Wallah workshop",
+    mobile: input.workshopMobile ?? "",
+    city: input.location,
+    address: `Fitment job ${input.id} · ${input.vehicle} (${input.vehicleNumber})`,
+    items: input.parts.map((part) => ({
+      name: part.name,
+      qty: part.qty,
+      price: part.cost,
+    })),
+    status: "New",
+    placedAt: now,
+    updatedAt: now,
+    history: [{ status: "New", at: now }],
+    source: "Workshop",
+    enquiryRef: input.id,
+    vehicleNumber: input.vehicleNumber,
+    trackingId: null,
+  };
+
+  if (!replicaWrite(ORDERS_KEY, [order, ...orders])) {
+    return { ok: false, error: "The parts order could not be saved automatically." };
+  }
+  return { ok: true, order };
+}
+
+/** Parts shop adds (or replaces) the tracking ID the workshop will read. */
+export function setOrderTracking(
+  partnerId: string,
+  orderId: string,
+  trackingId: string,
+): PartnerDataResult {
+  const clean = trackingId.trim().toUpperCase().replace(/\s+/g, "").slice(0, 32);
+  if (clean.length < 4) {
+    return { ok: false, error: "Enter the courier tracking ID (at least 4 characters)." };
+  }
+  const orders = readOrders();
+  const order = orders.find((item) => item.id === orderId);
+  if (!order || order.partnerId !== partnerId) {
+    return { ok: false, error: "That order is not assigned to this partner." };
+  }
+  if (
+    !replicaWrite(
+      ORDERS_KEY,
+      orders.map((item) =>
+        item.id === orderId
+          ? { ...item, trackingId: clean, updatedAt: new Date().toISOString() }
+          : item,
+      ),
+    )
+  ) {
+    return { ok: false, error: "Storage is full or blocked, so the tracking ID was not saved." };
+  }
+  return { ok: true };
+}
+
 export function updateOrderStatus(
   partnerId: string,
   orderId: string,
@@ -654,6 +765,18 @@ export function updateOrderStatus(
     return { ok: false, error: "That order is not assigned to this partner." };
   }
   if (order.status === status) return { ok: true };
+  if (
+    order.source === "Workshop" &&
+    status !== "New" &&
+    status !== "Cancelled" &&
+    !order.trackingId
+  ) {
+    return {
+      ok: false,
+      error:
+        "Add the courier tracking ID before packing or delivering this workshop order, so the workshop can follow it.",
+    };
+  }
   const now = new Date().toISOString();
   const next: PartnerOrder = {
     ...order,

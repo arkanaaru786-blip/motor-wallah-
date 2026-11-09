@@ -12,6 +12,7 @@ import {
   Search,
   ShoppingBag,
   Trash2,
+  Truck,
   X,
 } from "lucide-react";
 
@@ -27,6 +28,7 @@ import {
   partnerOrders,
   removeInventoryItem,
   seedPartnerData,
+  setOrderTracking,
   updateInventoryItem,
   updateOrderStatus,
   type InventoryInput,
@@ -687,8 +689,10 @@ function OrderDetail({
   onInvoice: () => void;
 }) {
   const [status, setStatus] = useState<OrderStatus>(order.status);
+  const [trackingId, setTrackingId] = useState(order.trackingId ?? "");
   const [error, setError] = useState<string | null>(null);
   const total = orderTotal(order);
+  const workshopOrder = order.source === "Workshop";
 
   return (
     <section className="mw-dealer-panel is-wide" data-testid={`partner-order-detail-${order.id}`}>
@@ -702,6 +706,11 @@ function OrderDetail({
           </p>
         </div>
         <div className="mw-dealer-actions">
+          {workshopOrder ? (
+            <span className="mw-dealer-chip is-progress">
+              <Truck size={12} /> Workshop job
+            </span>
+          ) : null}
           <span className={`mw-dealer-chip ${ORDER_CHIP[order.status]}`}>{order.status}</span>
           <button type="button" className="mw-dealer-btn is-small" onClick={onInvoice}>
             <Printer size={13} /> Print invoice
@@ -717,12 +726,12 @@ function OrderDetail({
 
       <div className="mw-partner-facts">
         <div>
-          <span>Customer</span>
+          <span>{workshopOrder ? "Workshop" : "Customer"}</span>
           <strong>{order.customerName}</strong>
         </div>
         <div>
           <span>Mobile</span>
-          <strong>{order.mobile}</strong>
+          <strong>{order.mobile || "—"}</strong>
         </div>
         <div>
           <span>Delivery city</span>
@@ -732,14 +741,75 @@ function OrderDetail({
           <span>Order value</span>
           <strong>{rupees(total)}</strong>
         </div>
+        {workshopOrder ? (
+          <div>
+            <span>Workshop enquiry</span>
+            <strong>{order.enquiryRef ?? "—"}</strong>
+          </div>
+        ) : null}
+        {workshopOrder ? (
+          <div>
+            <span>Vehicle number</span>
+            <strong>{order.vehicleNumber ?? "—"}</strong>
+          </div>
+        ) : null}
       </div>
 
       <p className="mw-partner-address">
         <strong>Delivery address:</strong> {order.address}
       </p>
 
+      {workshopOrder ? (
+        <p className="mw-partner-order-source">
+          <Truck size={14} /> Raised automatically from a paid workshop estimate. Pack it, add the
+          courier tracking ID, then mark it Delivered. The workshop sees the tracking ID in its
+          service enquiry.
+        </p>
+      ) : null}
+
       <div className="mw-partner-detail-grid">
         <div className="mw-partner-block">
+          {workshopOrder ? (
+            <>
+              <h3>Courier tracking ID</h3>
+              <div className="mw-partner-tracking-form">
+                <input
+                  value={trackingId}
+                  onChange={(event) => setTrackingId(event.target.value.toUpperCase())}
+                  placeholder="MW-TRK-48219"
+                  aria-label="Courier tracking ID"
+                  data-testid="partner-order-tracking-input"
+                />
+                <button
+                  type="button"
+                  className="mw-dealer-btn is-small"
+                  onClick={() => {
+                    const result = setOrderTracking(order.partnerId, order.id, trackingId);
+                    if (!result.ok) {
+                      setError(result.error);
+                      onError(result.error);
+                      return;
+                    }
+                    setError(null);
+                    onChanged(`Tracking ID saved for order ${order.id}.`);
+                  }}
+                  data-testid="partner-order-tracking-save"
+                >
+                  <Truck size={13} /> Save tracking
+                </button>
+              </div>
+              {order.trackingId ? (
+                <p className="mw-partner-tracking-current" data-testid="partner-order-tracking">
+                  Current tracking ID <strong>{order.trackingId}</strong>
+                </p>
+              ) : (
+                <p className="mw-dealer-field-hint">
+                  Add this before marking the order Packed, Shipped or Delivered.
+                </p>
+              )}
+            </>
+          ) : null}
+
           <h3>Update status</h3>
           <div className="mw-partner-inline">
             <select

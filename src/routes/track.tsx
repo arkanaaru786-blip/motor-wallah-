@@ -4,12 +4,15 @@ import {
   AlertTriangle,
   ArrowLeft,
   BadgeCheck,
+  BellRing,
   CheckCircle2,
   ClipboardCheck,
   CreditCard,
+  KeyRound,
   Loader2,
   MapPin,
   MessageCircle,
+  PackageCheck,
   Phone,
   Radio,
   ShieldCheck,
@@ -37,8 +40,11 @@ import {
   estimateTotals,
   findEnquiryByTracking,
   MOCK_ENQUIRY_OTP,
+  MOCK_FINAL_OTP,
   PREPAID_ONLY_NOTICE,
   rejectEnquiryEstimate,
+  shareFinalOtp,
+  VEHICLE_READY_NOTICE,
   WORKSHOP_DEPARTMENTS,
   type WorkshopEnquiry,
 } from "@/lib/workshop-enquiries";
@@ -434,6 +440,8 @@ function CustomerEnquiryCard({
   const [paying, setPaying] = useState(false);
   const [previewCheckout, setPreviewCheckout] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [inspected, setInspected] = useState(false);
+  const [sharingOtp, setSharingOtp] = useState(false);
   const [dispute, setDispute] = useState<WorkshopDispute | null>(() =>
     findDisputeForEnquiry(enquiry.id),
   );
@@ -533,6 +541,17 @@ function CustomerEnquiryCard({
     setFlash("Preview payment successful. Your vehicle is now received for service.");
   };
 
+  const shareOtp = () => {
+    setSharingOtp(true);
+    const result = shareFinalOtp(enquiry.id, enquiry.mobile);
+    setSharingOtp(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    applyResult(result, "Final OTP ready. Share it with the workshop after your inspection.");
+  };
+
   const report = () => {
     setReporting(true);
     const result = reportWorkshop(enquiry.id, enquiry.mobile);
@@ -588,11 +607,15 @@ function CustomerEnquiryCard({
                     ? "The workshop verified your OTP. Your amount is locked — pay securely online to start the service."
                     : enquiry.status === "Paid"
                       ? "Payment received. Your vehicle is now received for service at the workshop."
-                      : enquiry.status === "Rejected"
-                        ? "You rejected this estimate. The workshop cannot start the repair."
-                        : enquiry.status === "Completed"
-                          ? "The workshop has completed this job."
-                          : "This enquiry was cancelled."}
+                      : enquiry.status === "Ready for Delivery"
+                        ? VEHICLE_READY_NOTICE
+                        : enquiry.status === "Delivered"
+                          ? "Your vehicle has been delivered. The workshop has completed this job."
+                          : enquiry.status === "Rejected"
+                            ? "You rejected this estimate. The workshop cannot start the repair."
+                            : enquiry.status === "Completed"
+                              ? "The workshop has completed this job."
+                              : "This enquiry was cancelled."}
       </p>
 
       <div className="mw-trk-workshop-grid">
@@ -832,6 +855,80 @@ function CustomerEnquiryCard({
                         minute: "2-digit",
                       })}`
                     : ""}
+                </small>
+              </div>
+            </div>
+          ) : null}
+
+          {enquiry.status === "Ready for Delivery" ? (
+            <div className="mw-trk-ready" data-testid="track-ready">
+              <div className="mw-trk-ready-head">
+                <BellRing size={20} />
+                <div>
+                  <strong>Inspection &amp; final handover</strong>
+                  <p>{VEHICLE_READY_NOTICE}</p>
+                </div>
+              </div>
+              {enquiry.delivery.finalOtpSentAt ? (
+                <div className="mw-trk-final-otp" data-testid="track-final-otp">
+                  <KeyRound size={18} />
+                  <div>
+                    <span>Final handover OTP</span>
+                    <strong data-testid="track-final-otp-code">{MOCK_FINAL_OTP}</strong>
+                    <small>
+                      Share this with the workshop after your inspection. They will verify it to
+                      complete the delivery.
+                    </small>
+                  </div>
+                </div>
+              ) : (
+                <div className="mw-trk-inspect">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={inspected}
+                      onChange={(event) => setInspected(event.target.checked)}
+                      data-testid="track-inspected"
+                    />
+                    <span>I have inspected the vehicle and I am ready for handover.</span>
+                  </label>
+                  <button
+                    type="button"
+                    className="mw-trk-pay-btn"
+                    disabled={!inspected || sharingOtp}
+                    onClick={shareOtp}
+                    data-testid="track-share-final-otp"
+                  >
+                    {sharingOtp ? (
+                      <Loader2 className="mw-spin" size={15} />
+                    ) : (
+                      <KeyRound size={15} />
+                    )}
+                    {sharingOtp ? "Preparing OTP…" : "Share Final OTP"}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : null}
+
+          {enquiry.status === "Delivered" || enquiry.status === "Completed" ? (
+            <div className="mw-trk-delivered" data-testid="track-delivered">
+              <PackageCheck size={22} />
+              <div>
+                <strong>Vehicle Delivered</strong>
+                <p>
+                  The workshop verified your final OTP and handed over the vehicle. This job is now
+                  completed.
+                </p>
+                <small>
+                  {enquiry.delivery.deliveredAt
+                    ? `Delivered ${new Date(enquiry.delivery.deliveredAt).toLocaleString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}`
+                    : "Vehicle handover confirmed by the workshop."}
                 </small>
               </div>
             </div>

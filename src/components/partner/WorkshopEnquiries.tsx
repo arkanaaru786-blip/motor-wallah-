@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BadgeCheck,
   CheckCircle2,
@@ -10,6 +10,7 @@ import {
   LockKeyhole,
   MapPin,
   Package,
+  PackageCheck,
   Phone,
   Plus,
   Search,
@@ -23,6 +24,7 @@ import {
 } from "lucide-react";
 
 import { relativeTime, rupees } from "@/lib/dealer-format";
+import { ensureWorkshopPartsOrder, partsOrderForEnquiry } from "@/lib/partner-data";
 import type { PartnerSession } from "@/lib/partner-session";
 import {
   acceptEnquiry,
@@ -30,6 +32,7 @@ import {
   addReplaceItem,
   ENQUIRY_CHIP,
   estimateTotals,
+  markReadyForDelivery,
   markVehicleReceived,
   MW_AUTO_PARTS,
   removeEnquiryLine,
@@ -37,7 +40,9 @@ import {
   PREPAID_ONLY_NOTICE,
   setEnquiryDiscount,
   setEnquiryNotes,
+  VEHICLE_READY_NOTICE,
   verifyEnquiryOtp,
+  verifyFinalOtp,
   WORKSHOP_DEPARTMENTS,
   WORKSHOP_STATUS_LABEL,
   WORKSHOP_TEAM,
@@ -88,7 +93,10 @@ export function WorkshopEnquiries({
   const visible = rows.filter((row) => {
     if (
       filter === "open" &&
-      (row.status === "Completed" || row.status === "Cancelled" || row.status === "Rejected")
+      (row.status === "Delivered" ||
+        row.status === "Completed" ||
+        row.status === "Cancelled" ||
+        row.status === "Rejected")
     ) {
       return false;
     }
@@ -111,9 +119,16 @@ export function WorkshopEnquiries({
   const selected = rows.find((row) => row.id === selectedId) ?? null;
   const fresh = rows.filter((row) => row.status === "New").length;
   const open = rows.filter(
-    (row) => row.status !== "Completed" && row.status !== "Cancelled" && row.status !== "Rejected",
+    (row) =>
+      row.status !== "Delivered" &&
+      row.status !== "Completed" &&
+      row.status !== "Cancelled" &&
+      row.status !== "Rejected",
   ).length;
   const paid = rows.filter((row) => row.payment.status === "Paid").length;
+  const delivered = rows.filter(
+    (row) => row.status === "Delivered" || row.status === "Completed",
+  ).length;
 
   const changed = (message: string) => {
     setVersion((value) => value + 1);
@@ -216,7 +231,9 @@ export function WorkshopEnquiries({
             <span className="mw-dealer-kpi-label">Prepaid &amp; received</span>
           </header>
           <strong className="mw-dealer-kpi-value">{paid}</strong>
-          <footer>Online payment verified — vehicle received for service.</footer>
+          <footer>
+            {delivered} completed · online payment verified, vehicle received for service.
+          </footer>
         </article>
       </section>
 
@@ -469,6 +486,8 @@ function EnquiryDetail({
       ) : null}
 
       <ApprovalPanel enquiry={enquiry} session={session} run={run} onDone={onDone} />
+
+      <DeliveryPanel enquiry={enquiry} session={session} run={run} onDone={onDone} />
 
       <div className="mw-enq-timeline">
         <h3>Enquiry timeline</h3>
@@ -1187,4 +1206,273 @@ function ApprovalPanel({
   }
 
   return null;
+}
+
+/* ------------------------------------------- phase 4 · delivery handover */
+
+function DeliveryPanel({
+  enquiry,
+  session,
+  run,
+  onDone,
+}: {
+  enquiry: WorkshopEnquiry;
+  session: PartnerSession;
+  run: (result: EnquiryResult, message: string) => void;
+  onDone: (message: string) => void;
+}) {
+  const [otp, setOtp] = useState("");
+  const order = partsOrderForEnquiry(enquiry.id);
+  const orderId = order?.id ?? null;
+  const needsParts = enquiry.checklist.replaceItems.length > 0;
+
+  // Phase 3 jobs paid before this phase have no auto order yet. Backfill one
+  // when the workshop opens the job, so those existing jobs can still move
+  // through parts tracking and final delivery.
+  useEffect(() => {
+    if (enquiry.status !== "Paid" || !needsParts || orderId) return;
+    const result = ensureWorkshopPartsOrder({
+      id: enquiry.id,
+      workshopName: enquiry.workshopName,
+      workshopMobile: enquiry.workshopMobile,
+      vehicle: enquiry.vehicle,
+      vehicleNumber: enquiry.vehicleNumber,
+      location: enquiry.location,
+      parts: enquiry.checklist.replaceItems.map((item) => ({
+        name: item.name,
+        qty: item.qty,
+        cost: item.cost,
+      })),
+    });
+    if (result.ok && result.order) {
+      onDone(`MW Auto Parts order ${result.order.id} created for this paid job.`);
+    }
+  }, [enquiry, needsParts, orderId, onDone]);
+
+  const finished = enquiry.status === "Delivered" || enquiry.status === "Completed";
+  if (enquiry.payment.status !== "Paid" && enquiry.status !== "Ready for Delivery" && !finished) {
+    return null;
+  }
+
+  const partsReady = !needsParts || order?.status === "Delivered";
+  const total = order ? order.items.reduce((sum, item) => sum + item.qty * item.price, 0) : 0;
+  const finalShared = Boolean(enquiry.delivery.finalOtpCode && enquiry.delivery.finalOtpSentAt);
+
+  if (finished) {
+    return (
+      <div className="mw-enq-delivered" data-testid="enquiry-delivered">
+        <PackageCheck size={26} />
+        <div>
+          <span className="mw-enq-section-kicker">Final delivery complete</span>
+          <h3>Job Completed · Vehicle Delivered</h3>
+          <p>
+            The customer&apos;s final OTP was verified and the vehicle was handed over. This job is
+            now closed on both dashboards.
+          </p>
+          <dl className="mw-enq-payment-meta">
+            <div>
+              <dt>Delivered</dt>
+              <dd>
+                {enquiry.delivery.deliveredAt
+                  ? new Date(enquiry.delivery.deliveredAt).toLocaleString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt>Final OTP verified</dt>
+              <dd>
+                {enquiry.delivery.finalOtpVerifiedAt
+                  ? new Date(enquiry.delivery.finalOtpVerifiedAt).toLocaleString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt>Parts order</dt>
+              <dd>
+                {order ? `${order.id} · ${order.trackingId ?? "No tracking ID"}` : "Not required"}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mw-enq-delivery" data-testid="enquiry-delivery-panel">
+      <div className="mw-enq-section-head">
+        <div>
+          <span className="mw-enq-section-kicker">Phase 4 · parts &amp; handover</span>
+          <h3>
+            {enquiry.status === "Ready for Delivery"
+              ? "Final OTP handover"
+              : "Parts & work completion"}
+          </h3>
+        </div>
+        <span
+          className={`mw-dealer-chip ${enquiry.status === "Ready for Delivery" ? "is-ready" : "is-progress"}`}
+        >
+          {enquiry.status === "Ready for Delivery" ? "Ready for Delivery" : "In workshop"}
+        </span>
+      </div>
+
+      {needsParts ? (
+        order ? (
+          <div className="mw-enq-parts-order" data-testid="enquiry-parts-order">
+            <div className="mw-enq-parts-order-head">
+              <span>
+                <Package size={15} /> MW Auto Parts order
+              </span>
+              <span
+                className={`mw-dealer-chip ${
+                  order.status === "Delivered"
+                    ? "is-delivered"
+                    : order.status === "Cancelled"
+                      ? "is-cancelled"
+                      : "is-parts"
+                }`}
+              >
+                {order.status}
+              </span>
+            </div>
+            <div className="mw-enq-parts-order-grid">
+              <div>
+                <span>Parts order</span>
+                <strong>{order.id}</strong>
+              </div>
+              <div>
+                <span>Courier tracking ID</span>
+                <strong data-testid="enquiry-parts-tracking">
+                  {order.trackingId ?? "Awaiting tracking ID from the parts shop"}
+                </strong>
+              </div>
+              <div>
+                <span>Parts value</span>
+                <strong>{rupees(total)}</strong>
+              </div>
+              <div>
+                <span>Order updated</span>
+                <strong>{relativeTime(order.updatedAt)}</strong>
+              </div>
+            </div>
+            <ul className="mw-enq-parts-order-items">
+              {order.items.map((item, index) => (
+                <li key={`${item.name}-${index}`}>
+                  <span>
+                    {item.name} <small>×{item.qty}</small>
+                  </span>
+                  <span>{rupees(item.price * item.qty)}</span>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              className="mw-dealer-btn is-small"
+              onClick={() => onDone("Parts order status refreshed.")}
+              data-testid="enquiry-refresh-parts"
+            >
+              <Package size={13} /> Refresh parts status
+            </button>
+          </div>
+        ) : (
+          <p className="mw-enq-prepaid-notice">
+            <Package size={14} /> The automatic MW Auto Parts order has not loaded yet. Refresh the
+            enquiry after the prepaid payment is confirmed.
+          </p>
+        )
+      ) : (
+        <p className="mw-dealer-field-hint">
+          This job has no replacement parts, so no MW Auto Parts order was needed.
+        </p>
+      )}
+
+      {enquiry.status === "Paid" ? (
+        <div className="mw-enq-delivery-action">
+          <div>
+            <strong>Work finished in the workshop?</strong>
+            <span>
+              {needsParts
+                ? partsReady
+                  ? "The parts order has arrived. Mark the job ready so the customer can inspect it and share the final OTP."
+                  : "Waiting for the parts shop to mark the order Delivered. The tracking ID above updates with the courier."
+                : "Mark the job ready so the customer can inspect it and share the final OTP."}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="mw-dealer-btn is-primary"
+            disabled={!partsReady}
+            onClick={() =>
+              run(
+                markReadyForDelivery(session.partnerId, enquiry.id),
+                "Vehicle marked Ready for Delivery. The customer has been asked to inspect it and share the final OTP.",
+              )
+            }
+            data-testid="enquiry-mark-ready"
+          >
+            <PackageCheck size={15} /> Mark Ready for Delivery
+          </button>
+        </div>
+      ) : null}
+
+      {enquiry.status === "Ready for Delivery" ? (
+        <div className="mw-enq-final-otp" data-testid="enquiry-final-otp">
+          <p className="mw-enq-ready-notice">
+            <Truck size={15} /> {VEHICLE_READY_NOTICE}
+          </p>
+          {finalShared ? (
+            <>
+              <p className="mw-dealer-field-hint">
+                The customer has inspected the vehicle. Ask for the 4-digit final OTP shown on their
+                Track Service page.
+              </p>
+              <div className="mw-enq-otp-row">
+                <label className="mw-dealer-field">
+                  <span>Final delivery OTP</span>
+                  <input
+                    value={otp}
+                    onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 4))}
+                    inputMode="numeric"
+                    maxLength={4}
+                    placeholder="4-digit OTP"
+                    autoComplete="one-time-code"
+                    data-testid="enquiry-final-otp-input"
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="mw-dealer-btn is-primary"
+                  disabled={otp.length !== 4}
+                  onClick={() =>
+                    run(
+                      verifyFinalOtp(session.partnerId, enquiry.id, otp),
+                      "Final OTP verified. Vehicle delivered and job closed.",
+                    )
+                  }
+                  data-testid="enquiry-verify-final-otp"
+                >
+                  <KeyRound size={15} /> Verify final OTP &amp; deliver
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className="mw-dealer-field-hint">
+              Waiting for {enquiry.customerName} to inspect the vehicle and tap Share Final OTP on
+              Track Service.
+            </p>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
 }
