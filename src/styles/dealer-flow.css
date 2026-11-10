@@ -921,3 +921,118 @@
     display: none;
   }
 }
+
+/* ------------------------------------------------- Phase 3B: pricing AI */
+.mw-dealer-pricing-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mw-dealer-pricing-list li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 13px;
+  border: 1px solid var(--dlr-line);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.mw-dealer-pricing-list li.is-reduce {
+  border-color: color-mix(in oklab, var(--dlr-red) 26%, var(--dlr-line));
+  background: color-mix(in oklab, var(--dlr-red) 4%, rgba(255, 255, 255, 0.78));
+}
+
+.mw-dealer-pricing-list li.is-increase {
+  border-color: color-mix(in oklab, var(--dlr-green) 30%, var(--dlr-line));
+  background: color-mix(in oklab, var(--dlr-green) 5%, rgba(255, 255, 255, 0.78));
+}
+
+.mw-dealer-pricing-main {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  flex: 1 1 260px;
+}
+
+.mw-dealer-pricing-main strong {
+  font-size: 0.86rem;
+}
+
+.mw-dealer-pricing-main small {
+  font-size: 0.73rem;
+  line-height: 1.45;
+  color: var(--dlr-muted);
+  max-width: 62ch;
+}
+
+.mw-dealer-pricing-side {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+  text-align: right;
+  flex: 0 1 auto;
+}
+
+.mw-dealer-pricing-side .is-old {
+  font-size: 0.7rem;
+  color: var(--dlr-muted);
+  text-decoration: line-through;
+}
+
+.mw-dealer-pricing-side .is-new {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.mw-dealer-pricing-side small {
+  font-size: 0.68rem;
+  color: var(--dlr-muted);
+}
+
+.mw-dealer-price-chip {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.mw-dealer-pricing-side + .mw-dealer-price-chip {
+  margin-top: 0;
+}
+
+.mw-dealer-price-chip.is-reduce {
+  color: var(--dlr-red);
+  background: color-mix(in oklab, var(--dlr-red) 11%, transparent);
+  border-color: color-mix(in oklab, var(--dlr-red) 30%, transparent);
+}
+
+.mw-dealer-price-chip.is-increase {
+  color: var(--dlr-green);
+  background: color-mix(in oklab, var(--dlr-green) 12%, transparent);
+  border-color: color-mix(in oklab, var(--dlr-green) 32%, transparent);
+}
+
+.mw-dealer-price-chip.is-hold {
+  color: var(--dlr-muted);
+  background: rgba(18, 19, 26, 0.05);
+  border-color: var(--dlr-line);
+}
+
+@media (max-width: 640px) {
+  .mw-dealer-pricing-side {
+    justify-items: start;
+    text-align: left;
+  }
+}

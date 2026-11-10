@@ -17,7 +17,7 @@ function loadRecaptchaScript() {
     script.src = "https://www.google.com/recaptcha/api.js?render=explicit";
     script.async = true;
     script.defer = true;
-    script.dataset.mwRecaptcha = "1";
+    script.dataset["mwRecaptcha"] = "1";
     script.onload = () => resolve();
     script.onerror = () => resolve();
     document.head.appendChild(script);

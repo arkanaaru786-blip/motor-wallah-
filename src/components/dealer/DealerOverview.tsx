@@ -1,10 +1,11 @@
-import { Car, Eye, HandCoins, PlusCircle, ShieldCheck, TrendingUp, Users } from "lucide-react";
+import { Car, Eye, HandCoins, PlusCircle, ShieldCheck, Sparkles, TrendingUp, Users } from "lucide-react";
 
 import { NotificationPermissionButton } from "@/components/notify/NotificationPermissionButton";
 import { dealerCategoryLabel, dealerCategorySingular } from "@/lib/dealer-categories";
 import type { DealerBook, DealerKpis } from "@/lib/dealer-data";
 import { compactRupees, relativeTime, rupees } from "@/lib/dealer-format";
 import type { DealerSession } from "@/lib/dealer-session";
+import { actionLabel, pricingReport } from "@/lib/pricing-suggestions";
 import type { DealerTab } from "./DealerShell";
 
 export function DealerOverview({
@@ -22,6 +23,11 @@ export function DealerOverview({
   const singular = dealerCategorySingular(session.category);
   const newLeads = book.leads.filter((lead) => lead.status === "New");
   const pendingOffers = book.offers.filter((offer) => offer.status === "Pending");
+  const pricing = pricingReport(book.vehicles);
+  const pricingHighlights = pricing.suggestions
+    .filter((item) => item.action !== "hold")
+    .concat(pricing.suggestions.filter((item) => item.action === "hold"))
+    .slice(0, 4);
 
   return (
     <>
@@ -152,6 +158,48 @@ export function DealerOverview({
                     <strong>{rupees(offer.amount)}</strong> for {offer.vehicleName}
                   </span>
                   <span className="is-meta">asking {rupees(offer.askingPrice)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="mw-dealer-panel is-wide mw-dealer-pricing" data-testid="dealer-pricing">
+          <div className="mw-dealer-panel-head">
+            <div>
+              <h2>
+                <Sparkles size={15} /> AI pricing suggestions
+              </h2>
+              <p>
+                Based on views vs leads in your own book — {pricing.dropCount} listing
+                {pricing.dropCount === 1 ? "" : "s"} would convert better with a price drop,{" "}
+                {pricing.raiseCount} can go up. Nothing changes until you edit the listing.
+              </p>
+            </div>
+            <span className="mw-dealer-chip is-active">Avg {pricing.benchmark.avgViews} views</span>
+          </div>
+          {pricingHighlights.length === 0 ? (
+            <p className="mw-dealer-empty">Add a listing to get AI pricing guidance.</p>
+          ) : (
+            <ul className="mw-dealer-pricing-list">
+              {pricingHighlights.map((item) => (
+                <li key={item.vehicleId} className={`is-${item.action}`}>
+                  <div className="mw-dealer-pricing-main">
+                    <span className={`mw-dealer-price-chip is-${item.action}`}>
+                      {actionLabel(item.action)}
+                    </span>
+                    <strong>{item.name}</strong>
+                    <small>{item.reason}</small>
+                  </div>
+                  <div className="mw-dealer-pricing-side">
+                    <span className="is-old">{rupees(item.currentPrice)}</span>
+                    <span className="is-new">
+                      {item.action === "hold" ? "No change" : rupees(item.suggestedPrice)}
+                    </span>
+                    <small>
+                      {item.views} views · {item.leads} leads · {item.confidence}% confidence
+                    </small>
+                  </div>
                 </li>
               ))}
             </ul>

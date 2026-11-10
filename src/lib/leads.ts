@@ -215,8 +215,29 @@ async function sendFormAlertEmail(record: Lead): Promise<void> {
 
 export async function submitLead(lead: Omit<Lead, "createdAt">): Promise<{ ok: true }> {
   const record: Lead = { ...lead, createdAt: new Date().toISOString() };
+  // Phase 3B lead scoring: attach the visitor's session activity (pages, time)
+  // so the admin score does not have to guess on new leads.
+  // Only with analytics consent — otherwise the scorer falls back to inferred
+  // engagement instead of recording page/time signals the visitor refused.
+  let activity: Record<string, string> = {};
+  if (typeof window !== "undefined") {
+    try {
+      const { activitySnapshot, analyticsConsent } = await import("@/lib/analytics");
+      if (analyticsConsent() === "granted") {
+        const snapshot = activitySnapshot();
+        activity = {
+          pagesVisited: String(snapshot.pagesVisited),
+          timeOnSiteSeconds: String(snapshot.timeOnSiteSeconds),
+          priorFormSubmissions: String(snapshot.formsSubmitted),
+        };
+      }
+    } catch {
+      activity = {};
+    }
+  }
   // Preserve bot signals in fields for dashboards that only read the local queue.
   record.fields = {
+    ...activity,
     ...(record.fields ?? {}),
     ...(record.isSuspicious ? { isSuspicious: "true" } : {}),
     ...(record.suspicionReason ? { suspicionReason: record.suspicionReason } : {}),
@@ -238,7 +259,7 @@ export async function submitLead(lead: Omit<Lead, "createdAt">): Promise<{ ok: t
         trackEvent({
           eventType: lead.type === "finance_enquiry" ? "finance_submit" : "form_submit",
           path: window.location.pathname + window.location.search,
-          vehicleName: record.vehicleName,
+          ...(record.vehicleName ? { vehicleName: record.vehicleName } : {}),
           source: record.source,
           metadata: {
             leadType: record.type,

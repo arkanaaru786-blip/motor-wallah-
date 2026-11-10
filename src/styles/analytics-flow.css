@@ -482,3 +482,339 @@
   padding: 18px 22px;
   color: color-mix(in oklab, var(--foreground) 68%, transparent);
 }
+
+/* ==========================================================================
+   Phase 3B — predictive insights, lead scoring, live visitor map
+   ========================================================================== */
+
+.mw-adv-hero-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ------------------------------------------------------------- forecast */
+.mw-adv-forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  padding: 18px 22px 8px;
+}
+
+.mw-adv-forecast-card {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in oklab, var(--adm-line, var(--border)) 90%, transparent);
+  background: color-mix(in oklab, var(--background) 82%, transparent);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+.mw-adv-forecast-card.is-primary {
+  border-color: color-mix(in oklab, var(--primary) 34%, transparent);
+  background:
+    radial-gradient(circle at top left, color-mix(in oklab, var(--primary) 16%, transparent), transparent 62%),
+    color-mix(in oklab, var(--background) 88%, transparent);
+}
+
+.mw-adv-forecast-card p {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: color-mix(in oklab, var(--foreground) 58%, transparent);
+}
+
+.mw-adv-forecast-card strong {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 3.4vw, 36px);
+  line-height: 1.05;
+}
+
+.mw-adv-forecast-card strong.is-text {
+  font-size: clamp(15px, 1.8vw, 19px);
+  line-height: 1.25;
+}
+
+.mw-adv-forecast-card small {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: color-mix(in oklab, var(--foreground) 66%, transparent);
+}
+
+.mw-adv-forecast-card small.is-up {
+  color: var(--primary);
+}
+
+.mw-adv-forecast-card small.is-down {
+  color: oklch(0.58 0.18 30);
+}
+
+.mw-adv-forecast-chart {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  height: 156px;
+  padding: 16px 22px 6px;
+}
+
+.mw-adv-forecast-day {
+  flex: 1 1 0;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  gap: 6px;
+  justify-items: center;
+}
+
+.mw-adv-forecast-bar-track {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--primary) 6%, transparent);
+}
+
+.mw-adv-forecast-bar {
+  width: 100%;
+  min-height: 6px;
+  border-radius: 10px;
+  background: linear-gradient(
+    180deg,
+    var(--primary),
+    color-mix(in oklab, var(--primary) 40%, transparent)
+  );
+}
+
+.mw-adv-forecast-daylabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: color-mix(in oklab, var(--foreground) 58%, transparent);
+}
+
+.mw-adv-forecast-day b {
+  font-size: 12px;
+}
+
+.mw-adv-forecast-note {
+  padding: 2px 22px 18px;
+  font-size: 12px;
+  color: color-mix(in oklab, var(--foreground) 64%, transparent);
+}
+
+/* ---------------------------------------------------------- lead score */
+.mw-adv-score-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 22px;
+  border-bottom: 1px solid color-mix(in oklab, var(--adm-line, var(--border)) 90%, transparent);
+}
+
+.mw-adv-score-note {
+  margin-left: auto;
+  font-size: 12px;
+  color: color-mix(in oklab, var(--foreground) 60%, transparent);
+}
+
+.mw-adv-score-foot {
+  padding: 12px 22px 18px;
+  font-size: 12px;
+  color: color-mix(in oklab, var(--foreground) 60%, transparent);
+}
+
+.mw-adv-rowmeta {
+  margin-top: 2px;
+  font-size: 11px;
+  color: color-mix(in oklab, var(--foreground) 58%, transparent);
+}
+
+.mw-score-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.mw-score-badge small {
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0.66;
+}
+
+.mw-score-badge.is-hot {
+  color: oklch(0.55 0.19 28);
+  background: color-mix(in oklab, oklch(0.55 0.19 28) 12%, transparent);
+  border-color: color-mix(in oklab, oklch(0.55 0.19 28) 36%, transparent);
+}
+
+.mw-score-badge.is-warm {
+  color: oklch(0.56 0.14 70);
+  background: color-mix(in oklab, oklch(0.62 0.15 75) 14%, transparent);
+  border-color: color-mix(in oklab, oklch(0.62 0.15 75) 38%, transparent);
+}
+
+.mw-score-badge.is-cold {
+  color: oklch(0.5 0.07 245);
+  background: color-mix(in oklab, oklch(0.6 0.06 240) 12%, transparent);
+  border-color: color-mix(in oklab, oklch(0.6 0.06 240) 34%, transparent);
+}
+
+/* ---------------------------------------------------------- live map */
+.mw-live-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.mw-live-updated {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: color-mix(in oklab, var(--foreground) 54%, transparent);
+}
+
+.mw-live-map-canvas {
+  width: 100%;
+  height: 380px;
+  background: #eef2f5;
+}
+
+.mw-live-panel .leaflet-container {
+  font-family: var(--font-sans);
+  z-index: 0;
+}
+
+.mw-live-panel .leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  box-shadow: 0 18px 40px -28px rgba(15, 17, 24, 0.5);
+}
+
+.mw-live-popup {
+  display: grid;
+  gap: 2px;
+  min-width: 140px;
+}
+
+.mw-live-popup strong {
+  font-size: 13px;
+}
+
+.mw-live-popup span {
+  font-size: 11px;
+  color: #52555f;
+}
+
+.mw-live-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 22px 16px;
+  font-size: 12px;
+  color: color-mix(in oklab, var(--foreground) 66%, transparent);
+}
+
+.mw-live-legend-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--foreground) 34%, transparent);
+}
+
+.mw-live-legend-dot.is-live {
+  background: var(--primary);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 16%, transparent);
+}
+
+.mw-live-note {
+  margin-left: auto;
+  color: color-mix(in oklab, var(--foreground) 56%, transparent);
+}
+
+.mw-live-dot {
+  background: transparent;
+  border: none;
+}
+
+.mw-live-dot span {
+  position: relative;
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  background: color-mix(in oklab, var(--foreground) 38%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--foreground) 16%, transparent);
+}
+
+.mw-live-dot.is-live span {
+  background: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 34%, transparent);
+}
+
+.mw-live-dot.is-live span::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in oklab, var(--primary) 62%, transparent);
+  animation: mw-live-pulse 1.9s ease-out infinite;
+}
+
+.mw-live-dot.is-demo span {
+  border-style: dashed;
+  background: color-mix(in oklab, var(--foreground) 26%, transparent);
+}
+
+@keyframes mw-live-pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mw-live-dot.is-live span::after {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .mw-live-map-canvas {
+    height: 300px;
+  }
+  .mw-live-note {
+    margin-left: 0;
+    width: 100%;
+  }
+  .mw-adv-forecast-chart {
+    height: 130px;
+  }
+}

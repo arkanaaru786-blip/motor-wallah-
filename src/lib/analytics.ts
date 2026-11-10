@@ -382,6 +382,41 @@ export function bootAnalytics() {
   trackPageView(window.location.pathname + window.location.search, document.title);
 }
 
+export type ActivitySnapshot = {
+  pagesVisited: number;
+  timeOnSiteSeconds: number;
+  formsSubmitted: number;
+};
+
+/**
+ * The visitor's session activity so far, attached to a lead at submit time so
+ * Phase 3B lead scoring has real pages/time signals without a second query.
+ */
+export function activitySnapshot(): ActivitySnapshot {
+  if (!isBrowser()) return { pagesVisited: 1, timeOnSiteSeconds: 0, formsSubmitted: 0 };
+  let meta: Record<string, unknown> = {};
+  try {
+    meta = safeJsonParse<Record<string, unknown>>(
+      window.sessionStorage.getItem(SESSION_META_KEY),
+      {},
+    );
+  } catch {
+    meta = {};
+  }
+  const pagesVisited = Math.max(1, Number(meta["page_views"] ?? 0) || pageViewCount || 1);
+  const started = Date.parse(String(meta["started_at"] ?? ""));
+  const timeOnSiteSeconds = Number.isFinite(started)
+    ? Math.max(1, Math.round((Date.now() - started) / 1000))
+    : Math.max(1, Math.round((isBrowser() ? performance.now() : 1000) / 1000));
+  let formsSubmitted = 0;
+  try {
+    formsSubmitted = readLeadQueue().length;
+  } catch {
+    formsSubmitted = 0;
+  }
+  return { pagesVisited, timeOnSiteSeconds, formsSubmitted };
+}
+
 export function markFormStart(formKey: string) {
   if (!isBrowser()) return;
   try {

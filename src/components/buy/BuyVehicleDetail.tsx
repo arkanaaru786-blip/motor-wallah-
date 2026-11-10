@@ -87,7 +87,7 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
       vehicleId: listing.id,
       vehicleName: [listing.year, listing.brand, listing.model, listing.variant].filter(Boolean).join(" "),
       category: listing.categoryLabel,
-      path: typeof window !== "undefined" ? window.location.pathname : undefined,
+      ...(typeof window !== "undefined" ? { path: window.location.pathname } : {}),
       metadata: { priceLakh: listing.priceLakh, city: listing.city },
     });
   }, [listing.id, listing.brand, listing.model, listing.variant, listing.year, listing.categoryLabel, listing.priceLakh, listing.city]);

@@ -80,6 +80,7 @@ export type Permission =
   | "automation.view"
   | "automation.manage"
   | "reliability.view"
+  | "reports.view"
   | "intelligence.use";
 
 const PERMISSIONS: Record<Role, Permission[]> = {
@@ -96,6 +97,7 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     "automation.view",
     "automation.manage",
     "reliability.view",
+    "reports.view",
     "intelligence.use",
   ],
   manager: [
@@ -109,6 +111,7 @@ const PERMISSIONS: Record<Role, Permission[]> = {
     "automation.view",
     "automation.manage",
     "reliability.view",
+    "reports.view",
     "intelligence.use",
   ],
   // Executives read the whole desk queue, but may only change their own work.

@@ -68,6 +68,7 @@ import { Route as CarsIdRouteImport } from './routes/cars.$id'
 import { Route as FranchiseApplyRouteImport } from './routes/franchise.apply'
 import { Route as InternalEvaluationsRouteImport } from './routes/internal.evaluations'
 import { Route as MasterAdminIndexRouteImport } from './routes/master-admin.index'
+import { Route as MasterAdminAnalyticsRouteImport } from './routes/master-admin.analytics'
 import { Route as MasterAdminAuditRouteImport } from './routes/master-admin.audit'
 import { Route as MasterAdminAutomationRouteImport } from './routes/master-admin.automation'
 import { Route as MasterAdminDealersRouteImport } from './routes/master-admin.dealers'
@@ -378,6 +379,11 @@ const MasterAdminIndexRoute = MasterAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MasterAdminRoute,
 } as any)
+const MasterAdminAnalyticsRoute = MasterAdminAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => MasterAdminRoute,
+} as any)
 const MasterAdminAuditRoute = MasterAdminAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
@@ -506,6 +512,7 @@ export interface FileRoutesByFullPath {
   '/cars/$id': typeof CarsIdRoute
   '/franchise/apply': typeof FranchiseApplyRoute
   '/internal/evaluations': typeof InternalEvaluationsRoute
+  '/master-admin/analytics': typeof MasterAdminAnalyticsRoute
   '/master-admin/audit': typeof MasterAdminAuditRoute
   '/master-admin/automation': typeof MasterAdminAutomationRoute
   '/master-admin/dealers': typeof MasterAdminDealersRoute
@@ -580,6 +587,7 @@ export interface FileRoutesByTo {
   '/cars/$id': typeof CarsIdRoute
   '/franchise/apply': typeof FranchiseApplyRoute
   '/internal/evaluations': typeof InternalEvaluationsRoute
+  '/master-admin/analytics': typeof MasterAdminAnalyticsRoute
   '/master-admin/audit': typeof MasterAdminAuditRoute
   '/master-admin/automation': typeof MasterAdminAutomationRoute
   '/master-admin/dealers': typeof MasterAdminDealersRoute
@@ -656,6 +664,7 @@ export interface FileRoutesById {
   '/cars/$id': typeof CarsIdRoute
   '/franchise/apply': typeof FranchiseApplyRoute
   '/internal/evaluations': typeof InternalEvaluationsRoute
+  '/master-admin/analytics': typeof MasterAdminAnalyticsRoute
   '/master-admin/audit': typeof MasterAdminAuditRoute
   '/master-admin/automation': typeof MasterAdminAutomationRoute
   '/master-admin/dealers': typeof MasterAdminDealersRoute
@@ -733,6 +742,7 @@ export interface FileRouteTypes {
     | '/cars/$id'
     | '/franchise/apply'
     | '/internal/evaluations'
+    | '/master-admin/analytics'
     | '/master-admin/audit'
     | '/master-admin/automation'
     | '/master-admin/dealers'
@@ -807,6 +817,7 @@ export interface FileRouteTypes {
     | '/cars/$id'
     | '/franchise/apply'
     | '/internal/evaluations'
+    | '/master-admin/analytics'
     | '/master-admin/audit'
     | '/master-admin/automation'
     | '/master-admin/dealers'
@@ -882,6 +893,7 @@ export interface FileRouteTypes {
     | '/cars/$id'
     | '/franchise/apply'
     | '/internal/evaluations'
+    | '/master-admin/analytics'
     | '/master-admin/audit'
     | '/master-admin/automation'
     | '/master-admin/dealers'
@@ -1382,6 +1394,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MasterAdminIndexRouteImport
       parentRoute: typeof MasterAdminRoute
     }
+    '/master-admin/analytics': {
+      id: '/master-admin/analytics'
+      path: '/analytics'
+      fullPath: '/master-admin/analytics'
+      preLoaderRoute: typeof MasterAdminAnalyticsRouteImport
+      parentRoute: typeof MasterAdminRoute
+    }
     '/master-admin/audit': {
       id: '/master-admin/audit'
       path: '/audit'
@@ -1496,6 +1515,7 @@ const FranchiseRouteWithChildren = FranchiseRoute._addFileChildren(
 )
 
 interface MasterAdminRouteChildren {
+  MasterAdminAnalyticsRoute: typeof MasterAdminAnalyticsRoute
   MasterAdminAuditRoute: typeof MasterAdminAuditRoute
   MasterAdminAutomationRoute: typeof MasterAdminAutomationRoute
   MasterAdminDealersRoute: typeof MasterAdminDealersRoute
@@ -1508,6 +1528,7 @@ interface MasterAdminRouteChildren {
 }
 
 const MasterAdminRouteChildren: MasterAdminRouteChildren = {
+  MasterAdminAnalyticsRoute: MasterAdminAnalyticsRoute,
   MasterAdminAuditRoute: MasterAdminAuditRoute,
   MasterAdminAutomationRoute: MasterAdminAutomationRoute,
   MasterAdminDealersRoute: MasterAdminDealersRoute,

@@ -374,7 +374,7 @@ function Page() {
       mobile,
       location,
       isSuspicious: botCheck.suspicious,
-      suspicionReason: botCheck.reason,
+      suspicionReason: botCheck.reason ?? undefined,
       submitDurationMs: botCheck.durationMs,
       recaptchaTokenPresent: Boolean(getToken()),
       fields: {

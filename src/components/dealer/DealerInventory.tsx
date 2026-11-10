@@ -10,6 +10,7 @@ import {
 } from "@/lib/dealer-data";
 import { rupees, shortDate } from "@/lib/dealer-format";
 import type { DealerSession } from "@/lib/dealer-session";
+import { actionLabel, pricingReport } from "@/lib/pricing-suggestions";
 import { VehicleForm } from "./VehicleForm";
 
 const CHIP: Record<DealerVehicle["status"], string> = {
@@ -31,6 +32,8 @@ export function DealerInventory({
   const [confirming, setConfirming] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const pricing = pricingReport(vehicles);
+  const suggestionFor = new Map(pricing.suggestions.map((item) => [item.vehicleId, item]));
 
   const save = (input: VehicleInput) => {
     if (!editing) return { ok: false as const, error: "Choose a listing first." };
@@ -122,7 +125,9 @@ export function DealerInventory({
                 </tr>
               </thead>
               <tbody>
-                {vehicles.map((vehicle) => (
+                {vehicles.map((vehicle) => {
+                  const suggestion = suggestionFor.get(vehicle.id);
+                  return (
                   <tr key={vehicle.id} data-testid={`inventory-row-${vehicle.id}`}>
                     <td>
                       <strong>{vehicle.name}</strong>
@@ -130,6 +135,11 @@ export function DealerInventory({
                         {vehicle.year} · {vehicle.km.toLocaleString("en-IN")} km · {vehicle.fuel} ·{" "}
                         {rupees(vehicle.price)}
                       </div>
+                      {suggestion && suggestion.action !== "hold" ? (
+                        <span className={`mw-dealer-price-chip is-${suggestion.action}`}>
+                          {actionLabel(suggestion.action)} to {rupees(suggestion.suggestedPrice)}
+                        </span>
+                      ) : null}
                     </td>
                     <td className="is-num">{vehicle.views.toLocaleString("en-IN")}</td>
                     <td className="is-num">{vehicle.leads}</td>
@@ -185,7 +195,8 @@ export function DealerInventory({
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
