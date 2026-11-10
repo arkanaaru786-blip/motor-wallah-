@@ -19,6 +19,8 @@ import { submitLead } from "@/lib/leads";
 import { toUploadedFile, type UploadedFile } from "@/lib/uploads";
 import { LOCATIONS } from "@/lib/cars-data";
 import { PHONE_DISPLAY, PHONE_HREF, whatsappLink } from "@/lib/site";
+import { clearFormStart, evaluateBotSignals, markFormStart } from "@/lib/analytics";
+import { FormShield, useRecaptchaToken } from "@/components/site/FormShield";
 
 const TITLE = "Sell Your Vehicle — Car, Bike, Truck & Tractor | Motor Wallah";
 const DESCRIPTION =
@@ -92,6 +94,7 @@ type Submission = {
 function Page() {
   const navigate = useNavigate();
   const { view, cat } = Route.useSearch();
+  const { containerRef: recaptchaRef, getToken } = useRecaptchaToken();
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [fuel, setFuel] = useState("");
@@ -125,6 +128,12 @@ function Page() {
     }, 400);
     return () => window.clearTimeout(timer);
   }, [view, category, submission, navigate]);
+
+  useEffect(() => {
+    if (step === "form" && category) {
+      markFormStart("sell_form");
+    }
+  }, [step, category]);
 
   /* Derived, always-valid selections — the Brand -> Model -> Fuel chain can
      never hold a value that does not belong to the chosen category. */

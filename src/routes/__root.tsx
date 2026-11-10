@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -16,6 +17,8 @@ import { siteSettingsRevision, subscribeSiteSettings } from "../lib/site";
 import { AlertWatcher } from "../components/notify/AlertWatcher";
 import { ToastHost } from "../components/notify/ToastHost";
 import { CustomerLoginGate } from "../components/auth/CustomerLoginGate";
+import { ConsentBanner } from "../components/site/ConsentBanner";
+import { bootAnalytics, trackPageView } from "../lib/analytics";
 
 function NotFoundComponent() {
   return (
@@ -131,6 +134,18 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function RouteAnalytics() {
+  const location = useRouterState({ select: (state) => state.location });
+  useEffect(() => {
+    bootAnalytics();
+  }, []);
+  useEffect(() => {
+    const path = `${location.pathname}${location.searchStr ?? ""}`;
+    trackPageView(path, typeof document !== "undefined" ? document.title : undefined);
+  }, [location.pathname, location.searchStr]);
+  return null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   // Starts the Supabase sync once and re-renders the tree when the cloud copy
@@ -149,6 +164,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <RouteAnalytics />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet key={settingsRevision} />
       {/* New-message / order alerts, and the glass toast they appear in. */}
@@ -156,6 +172,7 @@ function RootComponent() {
       <AlertWatcher />
       {/* Smart login: the pop-up only opens when a gated action asks for it. */}
       <CustomerLoginGate />
+      <ConsentBanner />
     </QueryClientProvider>
   );
 }

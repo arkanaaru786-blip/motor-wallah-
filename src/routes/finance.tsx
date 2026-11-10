@@ -49,6 +49,8 @@ import {
 } from "@/lib/finance-partners";
 import { submitLead } from "@/lib/leads";
 import { PHONE_DISPLAY, PHONE_HREF, whatsappLink } from "@/lib/site";
+import { clearFormStart, evaluateBotSignals, markFormStart } from "@/lib/analytics";
+import { FormShield, useRecaptchaToken } from "@/components/site/FormShield";
 
 const TITLE = "Vehicle Finance — Banks & NBFCs | Motor Wallah";
 const DESCRIPTION =
@@ -120,6 +122,7 @@ const brandsForFinance = (categoryId: BuyCategoryId): string[] => {
 function Page() {
   const navigate = useNavigate();
   const { view, cat } = Route.useSearch();
+  const { containerRef: recaptchaRef, getToken } = useRecaptchaToken();
 
   // Step 2 — KYC & vehicle details.
   const [brand, setBrand] = useState("");
@@ -149,6 +152,12 @@ function Page() {
     pendingScroll.current = null;
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [step]);
+
+  useEffect(() => {
+    if (step === "form" && category) {
+      markFormStart("finance_form");
+    }
+  }, [step, category]);
 
   // Defensive fallback for stale form/done URLs — return to the category grid.
   useEffect(() => {
@@ -239,6 +248,7 @@ function Page() {
 
     const vehicleName = `${year} ${safeBrand} ${safeModel}`;
     const lowCibil = cibil === LOW_CIBIL_RANGE;
+    const botCheck = evaluateBotSignals("finance_form", getToken());
 
     // Saved through the project's lead capture — local lead queue first, CRM
     // endpoint (VITE_LEAD_ENDPOINT) second — so the team receives the request.
@@ -248,6 +258,10 @@ function Page() {
       vehicleName,
       name,
       mobile,
+      isSuspicious: botCheck.suspicious,
+      suspicionReason: botCheck.reason,
+      submitDurationMs: botCheck.durationMs,
+      recaptchaTokenPresent: Boolean(getToken()),
       fields: {
         category: activeCategory.label,
         pan,
@@ -266,6 +280,7 @@ function Page() {
         mobile,
       },
     });
+    clearFormStart("finance_form");
 
     setSubmission({
       categoryLabel: activeCategory.label,
@@ -647,14 +662,16 @@ function Page() {
                   </p>
                 )}
 
+                <FormShield containerRef={recaptchaRef} ready={true} />
+
                 <div className="mw-sell-form-foot">
                   <button type="submit" className="mw-sell-submit">
                     Submit Finance Application
                   </button>
                   <p className="mw-sell-form-note">
                     Your KYC and vehicle details are saved to Motor Wallah's lead queue so our
-                    finance team can match you with the right lender. Connect your CRM endpoint
-                    (VITE_LEAD_ENDPOINT) and every submission is also delivered there.
+                    finance team can match you with the right lender. Submissions are protected with
+                    reCAPTCHA and bot detection.
                   </p>
                 </div>
               </form>

@@ -64,6 +64,8 @@ import {
 } from "@/lib/insurance-tracking";
 import { readLeadQueue, submitLead, type Lead } from "@/lib/leads";
 import { PHONE_DISPLAY, PHONE_HREF, whatsappLink } from "@/lib/site";
+import { clearFormStart, evaluateBotSignals, markFormStart } from "@/lib/analytics";
+import { FormShield, useRecaptchaToken } from "@/components/site/FormShield";
 
 const TITLE = "Vehicle Insurance — Instant Quote & Compare | Motor Wallah";
 const DESCRIPTION =
@@ -143,6 +145,7 @@ const leadByReference = (referenceId: string): Lead | undefined =>
 function Page() {
   const navigate = useNavigate();
   const { view, cat, ref } = Route.useSearch();
+  const { containerRef: recaptchaRef, getToken } = useRecaptchaToken();
 
   // Step 2 — vehicle + policy choices.
   const [brand, setBrand] = useState("");
@@ -307,6 +310,7 @@ function Page() {
       insuranceLeads().map((lead) => lead.fields?.["referenceId"] ?? ""),
     );
     const premium = premiumFor(plan, quoteInput);
+    const botCheck = evaluateBotSignals("insurance_form", getToken());
 
     await submitLead({
       type: "insurance_enquiry",
@@ -314,6 +318,10 @@ function Page() {
       vehicleName,
       name,
       mobile,
+      isSuspicious: botCheck.suspicious,
+      suspicionReason: botCheck.reason,
+      submitDurationMs: botCheck.durationMs,
+      recaptchaTokenPresent: Boolean(getToken()),
       fields: {
         referenceId,
         category: category.label,
@@ -331,6 +339,7 @@ function Page() {
         mobile,
       },
     });
+    clearFormStart("insurance_form");
 
     setSubmitting(false);
     setPlan(null);
@@ -786,6 +795,7 @@ function Page() {
                           data-testid="select-plan"
                           onClick={() => {
                             setLeadError(null);
+                            markFormStart("insurance_form");
                             setPlan(quote.insurer);
                           }}
                         >
@@ -1170,6 +1180,8 @@ function Page() {
                 {leadError}
               </p>
             )}
+
+            <FormShield containerRef={recaptchaRef} ready={true} />
 
             <button
               type="submit"

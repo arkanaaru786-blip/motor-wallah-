@@ -25,6 +25,8 @@
 @import "./styles/info-pages.css";
 @import "./styles/auth-flow.css";
 @import "./styles/site-chrome.css";
+@import "./styles/analytics-flow.css";
+
 
 @custom-variant dark (&:is(.dark *));
 

@@ -29,9 +29,7 @@ export type LeadType =
   | "listing_enquiry"
   | "listing_offer"
   | "listing_report"
-  | "general_enquiry";
-
-export type Lead = {
+  | "general_enquiry";export type Lead = {
   type: LeadType;
   source: string;
   vehicleId?: string | undefined;
@@ -47,8 +45,12 @@ export type Lead = {
   /** Preliminary indicative market estimate, in rupees. */
   estimate?: { low: number; high: number; confidence: string; notes: string[] } | undefined;
   /** Internal only: customer expected price vs AI estimate midpoint. */
-  expectation?:
-    { expectedPrice: number; aiMidpoint: number; gap: number; gapPercent: number } | undefined;
+  expectation?: { expectedPrice: number; aiMidpoint: number; gap: number; gapPercent: number } | undefined;
+  /** Bot/fraud signals captured at submit time (kept in the lead queue too). */
+  isSuspicious?: boolean | undefined;
+  suspicionReason?: string | undefined;
+  submitDurationMs?: number | null | undefined;
+  recaptchaTokenPresent?: boolean | undefined;
   createdAt: string;
 };
 
@@ -82,27 +84,50 @@ async function insertLeadRecord(record: Lead): Promise<void> {
       type: (file as { type?: string }).type ?? "",
       size: (file as { size?: number }).size ?? 0,
     }));
+
+  const base = {
+    type: record.type,
+    source: record.source,
+    vehicle_id: record.vehicleId ?? null,
+    vehicle_name: record.vehicleName ?? null,
+    location: record.location ?? null,
+    name: record.name ?? null,
+    mobile: record.mobile ?? null,
+    fields: record.fields ?? {},
+    payload: {
+      estimate: record.estimate ?? null,
+      expectation: record.expectation ?? null,
+      photos: stripFiles(record.photos),
+      documents: stripFiles(record.documents),
+      createdAt: record.createdAt,
+      isSuspicious: record.isSuspicious ?? false,
+      suspicionReason: record.suspicionReason ?? null,
+      submitDurationMs: record.submitDurationMs ?? null,
+      recaptchaTokenPresent: record.recaptchaTokenPresent ?? false,
+    },
+    created_at: record.createdAt,
+  };
+
+  const withSecurity = {
+    ...base,
+    is_suspicious: record.isSuspicious ?? false,
+    suspicion_reason: record.suspicionReason ?? null,
+    submit_duration_ms: record.submitDurationMs ?? null,
+    recaptcha_token_present: record.recaptchaTokenPresent ?? false,
+  };
+
   try {
-    await client.from("leads").insert({
-      type: record.type,
-      source: record.source,
-      vehicle_id: record.vehicleId ?? null,
-      vehicle_name: record.vehicleName ?? null,
-      location: record.location ?? null,
-      name: record.name ?? null,
-      mobile: record.mobile ?? null,
-      fields: record.fields ?? {},
-      payload: {
-        estimate: record.estimate ?? null,
-        expectation: record.expectation ?? null,
-        photos: stripFiles(record.photos),
-        documents: stripFiles(record.documents),
-        createdAt: record.createdAt,
-      },
-      created_at: record.createdAt,
-    });
+    const { error } = await client.from("leads").insert(withSecurity);
+    if (error) {
+      // Backward-compatible fallback if analytics columns/tables are not migrated yet.
+      await client.from("leads").insert(base);
+    }
   } catch {
-    /* the queue already holds the lead — a failed insert must not break capture */
+    try {
+      await client.from("leads").insert(base);
+    } catch {
+      /* the queue already holds the lead — a failed insert must not break capture */
+    }
   }
 }
 
@@ -190,6 +215,13 @@ async function sendFormAlertEmail(record: Lead): Promise<void> {
 
 export async function submitLead(lead: Omit<Lead, "createdAt">): Promise<{ ok: true }> {
   const record: Lead = { ...lead, createdAt: new Date().toISOString() };
+  // Preserve bot signals in fields for dashboards that only read the local queue.
+  record.fields = {
+    ...(record.fields ?? {}),
+    ...(record.isSuspicious ? { isSuspicious: "true" } : {}),
+    ...(record.suspicionReason ? { suspicionReason: record.suspicionReason } : {}),
+    ...(record.submitDurationMs != null ? { submitDurationMs: String(record.submitDurationMs) } : {}),
+  };
   try {
     if (typeof window !== "undefined") {
       const prev = replicaRead<Lead[]>(QUEUE_KEY, []);
@@ -199,7 +231,24 @@ export async function submitLead(lead: Omit<Lead, "createdAt">): Promise<{ ok: t
     /* storage unavailable — lead capture must never break the UI */
   }
   void insertLeadRecord(record);
-  if (typeof window !== "undefined") void sendFormAlertEmail(record);
+  if (typeof window !== "undefined") {
+    if (!record.isSuspicious) void sendFormAlertEmail(record);
+    void import("@/lib/analytics")
+      .then(({ trackEvent }) =>
+        trackEvent({
+          eventType: lead.type === "finance_enquiry" ? "finance_submit" : "form_submit",
+          path: window.location.pathname + window.location.search,
+          vehicleName: record.vehicleName,
+          source: record.source,
+          metadata: {
+            leadType: record.type,
+            suspicious: Boolean(record.isSuspicious),
+            reason: record.suspicionReason ?? null,
+          },
+        }),
+      )
+      .catch(() => {});
+  }
   if (LEAD_ENDPOINT) {
     try {
       await fetch(LEAD_ENDPOINT, {

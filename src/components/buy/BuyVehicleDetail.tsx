@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -19,9 +19,11 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import {
+  BUY_LISTINGS,
   buyListingHighlights,
   fuelLabel,
   getBuyCategory,
+  lakhLabel,
   rupees,
   type BuyListing,
 } from "@/lib/buy-catalog";
@@ -33,6 +35,7 @@ import { ReportListingDialog } from "@/components/buy/ReportListingDialog";
 import { PHONE_HREF, whatsappLink } from "@/lib/site";
 import { submitLead } from "@/lib/leads";
 import { gateCustomerAction } from "@/lib/customer-gate";
+import { trackEvent } from "@/lib/analytics";
 
 const NOT_SHARED = "Not shared by seller yet";
 
@@ -69,8 +72,25 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
   const [offer, setOffer] = useState(false);
 
   // Smart login: browsing is free, these two actions need a verified mobile.
-  const openChat = () => gateCustomerAction("chat", () => setContact(true));
-  const openOffer = () => gateCustomerAction("offer", () => setOffer(true));
+  const openChat = () => {
+    void trackEvent({ eventType: "buy_click", vehicleId: listing.id, vehicleName: listing.brand + " " + listing.model, category: listing.categoryLabel, metadata: { action: "chat_with_seller" } });
+    gateCustomerAction("chat", () => setContact(true));
+  };
+  const openOffer = () => {
+    void trackEvent({ eventType: "buy_click", vehicleId: listing.id, vehicleName: listing.brand + " " + listing.model, category: listing.categoryLabel, metadata: { action: "make_offer" } });
+    gateCustomerAction("offer", () => setOffer(true));
+  };
+
+  useEffect(() => {
+    void trackEvent({
+      eventType: "car_view",
+      vehicleId: listing.id,
+      vehicleName: [listing.year, listing.brand, listing.model, listing.variant].filter(Boolean).join(" "),
+      category: listing.categoryLabel,
+      path: typeof window !== "undefined" ? window.location.pathname : undefined,
+      metadata: { priceLakh: listing.priceLakh, city: listing.city },
+    });
+  }, [listing.id, listing.brand, listing.model, listing.variant, listing.year, listing.categoryLabel, listing.priceLakh, listing.city]);
 
   const category = getBuyCategory(listing.categoryId);
   const name = [listing.brand, listing.model, listing.variant].filter(Boolean).join(" ");
@@ -79,6 +99,25 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
   const sold = listing.status === "Sold";
   const enquiryText = `Hello MOTOR WALLAH, I am interested in the ${name} listed in ${listing.city}.`;
   const mapQuery = `${listing.city}, Madhya Pradesh`;
+
+  const recommendations = useMemo(() => {
+    const price = listing.priceLakh;
+    return BUY_LISTINGS.filter((item) => item.id !== listing.id && item.status !== "Sold")
+      .map((item) => {
+        let score = 0;
+        if (item.categoryId === listing.categoryId) score += 3;
+        if (item.brand === listing.brand) score += 2;
+        const diff = Math.abs(item.priceLakh - price);
+        if (diff <= 1) score += 3;
+        else if (diff <= 2) score += 2;
+        else if (diff <= 3) score += 1;
+        if (item.fuel === listing.fuel) score += 1;
+        return { item, score };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map((row) => row.item);
+  }, [listing]);
 
   const description =
     listing.description ??
@@ -312,7 +351,10 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
                 <button
                   type="button"
                   disabled={sold}
-                  onClick={() => setTestDrive(true)}
+                  onClick={() => {
+                    void trackEvent({ eventType: "buy_click", vehicleId: listing.id, vehicleName: fullName, category: listing.categoryLabel, metadata: { action: "book_test_drive" } });
+                    setTestDrive(true);
+                  }}
                   className="buy-secondary-button"
                 >
                   {sold ? "Vehicle sold" : "Book Test Drive"}
@@ -331,15 +373,16 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
                   href={whatsappLink(enquiryText)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() =>
+                  onClick={() => {
+                    void trackEvent({ eventType: "buy_click", vehicleId: listing.id, vehicleName: fullName, category: listing.categoryLabel, metadata: { action: "whatsapp" } });
                     void submitLead({
                       type: "whatsapp_click",
                       source: "buy_detail",
                       vehicleId: listing.id,
                       vehicleName: fullName,
                       location: listing.city,
-                    })
-                  }
+                    });
+                  }}
                   className="buy-secondary-button buy-secondary-button--link"
                 >
                   <MessageCircle size={16} /> WhatsApp
@@ -365,6 +408,68 @@ export function BuyVehicleDetail({ listing }: { listing: BuyListing }) {
           </aside>
         </div>
       </div>
+
+      {recommendations.length > 0 ? (
+        <section className="home-container mw-rec-panel" aria-labelledby="mw-rec-title">
+          <header className="mw-rec-header">
+            <div>
+              <p className="mw-rec-kicker">Smart recommendations</p>
+              <h2 id="mw-rec-title" className="mw-rec-title">
+                You May Also Like
+              </h2>
+              <p className="mw-rec-sub">
+                Similar vehicles from the same category/brand within a close price range.
+              </p>
+            </div>
+            <Link to="/buy" search={{ category: listing.categoryId }} className="home-cta-ghost home-cta">
+              View more in {category?.label ?? listing.categoryLabel}
+            </Link>
+          </header>
+          <div className="mw-rec-grid">
+            {recommendations.map((item) => {
+              const itemName = [item.brand, item.model, item.variant].filter(Boolean).join(" ");
+              return (
+                <Link
+                  key={item.id}
+                  to="/buy/vehicle/$id"
+                  params={{ id: item.id }}
+                  className="mw-rec-card"
+                  onClick={() =>
+                    void trackEvent({
+                      eventType: "car_view",
+                      vehicleId: item.id,
+                      vehicleName: `${item.year} ${itemName}`,
+                      category: item.categoryLabel,
+                      metadata: { source: "you_may_also_like" },
+                    })
+                  }
+                >
+                  <div className="mw-rec-media">
+                    <img src={item.images[0]} alt={item.photoAlt} loading="lazy" />
+                  </div>
+                  <div className="mw-rec-body">
+                    <div className="mw-rec-meta">
+                      <span>{item.year} • {item.categoryLabel}</span>
+                      <span>{item.city}</span>
+                    </div>
+                    <div>
+                      <p className="mw-rec-name">{itemName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.fuel}{item.transmission ? ` • ${item.transmission}` : ""}
+                        {item.kilometres !== null ? ` • ${item.kilometres.toLocaleString("en-IN")} km` : ""}
+                      </p>
+                    </div>
+                    <div className="mw-rec-foot">
+                      <span className="mw-rec-price">{lakhLabel(item.priceLakh)}</span>
+                      <span>View details →</span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
       <ContactSellerDialog listing={listing} open={contact} onClose={() => setContact(false)} />
       <MakeOfferDialog listing={listing} open={offer} onClose={() => setOffer(false)} />

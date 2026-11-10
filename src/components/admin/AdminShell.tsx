@@ -38,7 +38,6 @@ type NavItem = {
 const LOCKED: { label: string; icon: typeof LayoutDashboard; phase: string }[] = [
   { label: "Inventory & Listings", icon: Boxes, phase: "Phase 4" },
   { label: "Finance Desk", icon: Wallet, phase: "Phase 4" },
-  { label: "Reports & Analytics", icon: BarChart3, phase: "Phase 4" },
 ];
 
 const initials = (name: string) =>
@@ -122,6 +121,9 @@ export function AdminShell({
       icon: Zap,
       ...(typeof ruleCount === "number" ? { count: ruleCount } : {}),
     });
+  }
+  if (can(actor, "reports.view")) {
+    nav.push({ to: "/master-admin/analytics", label: "Reports & Analytics", icon: BarChart3 });
   }
   if (isSuperAdmin(actor)) {
     nav.push({ to: "/master-admin/settings", label: "Site Settings", icon: Settings });

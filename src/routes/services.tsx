@@ -39,6 +39,8 @@ import {
 } from "@/lib/workshop-enquiries";
 import { toUploadedFile, type UploadedFile } from "@/lib/uploads";
 import { PHONE_DISPLAY, PHONE_HREF, whatsappLink } from "@/lib/site";
+import { clearFormStart, evaluateBotSignals, markFormStart } from "@/lib/analytics";
+import { FormShield, useRecaptchaToken } from "@/components/site/FormShield";
 
 const TITLE = "Book a Vehicle Service — Car, Bike & Truck Service | Motor Wallah";
 const DESCRIPTION =
@@ -182,6 +184,7 @@ type Submission = {
 function Page() {
   const navigate = useNavigate();
   const { view, cat, dept } = Route.useSearch();
+  const { containerRef: recaptchaRef, getToken } = useRecaptchaToken();
 
   const [brand, setBrand] = useState("");
   const [photos, setPhotos] = useState<UploadedFile[]>([]);
@@ -222,6 +225,12 @@ function Page() {
     }, 400);
     return () => window.clearTimeout(timer);
   }, [view, category, department, submission, navigate]);
+
+  useEffect(() => {
+    if (step === "form" && category && department) {
+      markFormStart("services_form");
+    }
+  }, [step, category, department]);
 
   const brands = category ? brandTilesFor(category.id) : [];
   const safeBrand = brands.some((b) => b.brand === brand) ? brand : "";
@@ -357,12 +366,17 @@ function Page() {
 
     // The same intent is written to the structured Supabase lead log so the
     // CRM, email alert and dashboard keep one shared reference.
+    const botCheck = evaluateBotSignals("services_form", getToken());
     await submitLead({
       type: "workshop_enquiry",
       source: "services",
       name,
       mobile,
       location,
+      isSuspicious: botCheck.suspicious,
+      suspicionReason: botCheck.reason,
+      submitDurationMs: botCheck.durationMs,
+      recaptchaTokenPresent: Boolean(getToken()),
       fields: {
         category: activeCategory.label,
         department: department.label,
@@ -384,6 +398,7 @@ function Page() {
       },
       photos,
     });
+    clearFormStart("services_form");
 
     setSubmission({
       categoryLabel: activeCategory.label,
@@ -839,14 +854,15 @@ function Page() {
                   </p>
                 )}
 
+                <FormShield containerRef={recaptchaRef} ready={true} />
+
                 <div className="mw-sell-form-foot">
                   <button type="submit" className="mw-sell-submit">
                     Send Workshop Enquiry
                   </button>
                   <p className="mw-sell-form-note">
                     Your enquiry — {department.label}, vehicle, issue, pickup location and preferred
-                    slot — is sent to the workshop desk. You can follow acceptance, pickup and the
-                    final estimate from Track Service with your Tracking ID.
+                    slot — is sent to the workshop desk. Protected with reCAPTCHA and bot checks.
                   </p>
                 </div>
               </form>
