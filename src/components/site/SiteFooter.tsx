@@ -60,7 +60,7 @@ export function SiteFooter() {
             width={1330}
             height={275}
             decoding="async"
-            className="h-12 w-auto select-none sm:h-14"
+            className="h-16 w-auto select-none sm:h-20"
           />
           <p className="mt-4 max-w-xs text-sm text-ink-foreground/70">
             One marketplace to discover, buy, sell, exchange, value and service every kind of
