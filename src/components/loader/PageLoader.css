@@ -1,0 +1,38 @@
+.loader-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(15px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 9999;
+}
+.orbit-container {
+  position: relative; width: 400px; height: 400px;
+  display: flex; align-items: center; justify-content: center;
+}
+.center-logo {
+  width: 140px; z-index: 10;
+  animation: pulse 2s infinite alternate;
+}
+.center-logo img { width: 100%; height: auto; }
+.orbit {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  animation: spin 20s linear infinite;
+}
+.vehicle {
+  position: absolute; width: 90px; height: auto;
+  top: 50%; left: 50%;
+  margin-top: -45px; margin-left: -45px;
+}
+/* Placing 8 items in a circle */
+.pos-1 { transform: rotate(0deg) translate(200px) rotate(0deg); }
+.pos-2 { transform: rotate(45deg) translate(200px) rotate(-45deg); }
+.pos-3 { transform: rotate(90deg) translate(200px) rotate(-90deg); }
+.pos-4 { transform: rotate(135deg) translate(200px) rotate(-135deg); }
+.pos-5 { transform: rotate(180deg) translate(200px) rotate(-180deg); }
+.pos-6 { transform: rotate(225deg) translate(200px) rotate(-225deg); }
+.pos-7 { transform: rotate(270deg) translate(200px) rotate(-270deg); }
+.pos-8 { transform: rotate(315deg) translate(200px) rotate(-315deg); }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+@keyframes pulse { 0% { transform: scale(0.95); } 100% { transform: scale(1.05); } }
+.loading-text { margin-top: 50px; font-family: 'Oswald', sans-serif; letter-spacing: 3px; font-weight: bold; }
+.close-btn { margin-top: 20px; padding: 10px 20px; background: #fff; border: 1px solid #ccc; border-radius: 20px; cursor: pointer; }
