@@ -82,7 +82,7 @@ function DemoLoaderPage() {
 
           <div className="mw-loader__core">
             <span className="mw-loader__halo" aria-hidden="true" />
-            <img src="/icon.svg" alt="Motor Wallah" width={256} height={256} />
+            <img src="/images/MW-logo.png" alt="Motor Wallah" width={612} height={408} />
           </div>
         </div>
 

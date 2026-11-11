@@ -111,8 +111,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      // Shield + MW mark for the browser tab and installed app — never the wordmark.
-      { rel: "icon", href: "/icon.svg", type: "image/svg+xml" },
+      // The provided brand shield for the browser tab and installed app.
+      { rel: "icon", href: "/images/MW-logo.png", type: "image/png" },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],

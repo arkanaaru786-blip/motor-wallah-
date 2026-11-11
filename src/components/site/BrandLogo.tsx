@@ -36,14 +36,14 @@ export function BrandLogo({
       aria-label="Motor Wallah home"
       className="flex shrink-0 items-center gap-2 sm:gap-2.5"
     >
-      {/* Icon-only shield mark: fixed height, auto width — never stretched. */}
+      {/* The provided brand file, untouched: fixed height, auto width. */}
       <img
-        src="/icon.svg"
-        alt=""
-        width={256}
-        height={256}
+        src="/images/MW-logo.png"
+        alt="Motor Wallah"
+        width={612}
+        height={408}
         decoding="async"
-        className={`${iconSize} w-auto shrink-0 select-none drop-shadow-[0_3px_8px_rgba(15,23,42,0.18)]`}
+        className={`${iconSize} w-auto shrink-0 select-none`}
       />
       <span
         className={`font-display font-bold uppercase leading-none tracking-tight ${wordSize} ${

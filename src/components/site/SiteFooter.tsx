@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { Facebook, Instagram, Mail, MapPin, Phone, Youtube } from "lucide-react";
-import footerLogo from "@/assets/brand/motor-wallah-logo-on-dark.svg";
 import {
   BUY_CATEGORIES,
   MAIN_NAV,
@@ -53,15 +52,25 @@ export function SiteFooter() {
     <footer className="bg-ink text-ink-foreground">
       <div className="mx-auto grid max-w-[1600px] gap-10 px-4 py-12 sm:grid-cols-2 lg:grid-cols-5 lg:px-8">
         <div>
-          {/* Full lockup (shield + wordmark + tagline) for the dark footer. */}
-          <img
-            src={footerLogo}
-            alt="Motor Wallah — Drive trust. Drive quality."
-            width={1330}
-            height={275}
-            decoding="async"
-            className="h-auto w-full max-w-[18rem] select-none sm:max-w-[22rem]"
-          />
+          <div className="flex items-center gap-3">
+            {/* The provided brand file, untouched: fixed height, auto width. */}
+            <img
+              src="/images/MW-logo.png"
+              alt="Motor Wallah"
+              width={612}
+              height={408}
+              decoding="async"
+              className="h-14 w-auto shrink-0 select-none sm:h-16"
+            />
+            <div>
+              <p className="font-display text-xl font-bold leading-none">
+                MOTOR <span className="text-primary">WALLAH</span>
+              </p>
+              <p className="mt-1.5 text-[0.7rem] tracking-[0.18em] text-ink-foreground/60">
+                Drive Trust. Drive Quality.
+              </p>
+            </div>
+          </div>
           <p className="mt-4 max-w-xs text-sm text-ink-foreground/70">
             One marketplace to discover, buy, sell, exchange, value and service every kind of
             vehicle.
