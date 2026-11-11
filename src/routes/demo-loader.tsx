@@ -1,30 +1,30 @@
 import { useEffect, type CSSProperties } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, ShieldCheck, Sparkles } from "lucide-react";
-import carImg from "@/assets/homepage/Car.png";
-import bikeImg from "@/assets/homepage/Bike.png";
-import threeWheelerImg from "@/assets/homepage/3 wheeler.png";
-import scvImg from "@/assets/homepage/SCV.png";
-import truckImg from "@/assets/homepage/Truck.png";
-import busImg from "@/assets/homepage/Bus.png";
-import tractorImg from "@/assets/homepage/Tractor.png";
-import taxiImg from "@/assets/homepage/Taxi.png";
+import { ArrowLeft } from "lucide-react";
+import carImg from "@/assets/demo-loader/car.png";
+import bikeImg from "@/assets/demo-loader/bike.png";
+import autoImg from "@/assets/demo-loader/auto.png";
+import truckImg from "@/assets/demo-loader/truck.png";
+import busImg from "@/assets/demo-loader/bus.png";
+import tractorImg from "@/assets/demo-loader/tractor.png";
+import taxiImg from "@/assets/demo-loader/taxi.png";
+import scvImg from "@/assets/demo-loader/scv.png";
 import "@/styles/demo-loader.css";
 
 /**
- * Standalone preview of the page-transition loader: glass overlay, pulsing
- * shield core and eight vehicle categories orbiting on a CSS-only carousel.
- * Nothing here is wired into the live site — the route exists for review only.
+ * Standalone preview of the premium page-transition loader: heavy glass overlay,
+ * a large pulsing shield at the centre and eight raw transparent vehicle images
+ * orbiting on a CSS-only rotation. Nothing here is wired into the live site.
  */
-const CATEGORIES = [
-  { label: "Cars", image: carImg },
-  { label: "Bikes", image: bikeImg },
-  { label: "3-Wheelers", image: threeWheelerImg },
-  { label: "SCV", image: scvImg },
-  { label: "Trucks", image: truckImg },
-  { label: "Buses", image: busImg },
-  { label: "Tractors", image: tractorImg },
+const VEHICLES = [
+  { label: "Car", image: carImg },
+  { label: "Bike", image: bikeImg },
+  { label: "Auto", image: autoImg },
+  { label: "Truck", image: truckImg },
+  { label: "Bus", image: busImg },
+  { label: "Tractor", image: tractorImg },
   { label: "Taxi", image: taxiImg },
+  { label: "SCV", image: scvImg },
 ];
 
 export const Route = createFileRoute("/demo-loader")({
@@ -42,8 +42,8 @@ export const Route = createFileRoute("/demo-loader")({
 });
 
 function DemoLoaderPage() {
-  // Hide the site's consent banner while the demo overlay is open, so the
-  // overlay can be reviewed on its own. Scoped to this route and reverted on exit.
+  // Hide the site's consent banner while the demo overlay is open so the loader
+  // can be reviewed on its own. Scoped to this route and reverted on exit.
   useEffect(() => {
     const root = document.documentElement;
     root.classList.add("mw-demo-open");
@@ -51,52 +51,50 @@ function DemoLoaderPage() {
   }, []);
 
   return (
-    <div className="mw-demo-page">
-      <div className="mw-demo-page__hint">
-        <span className="mw-demo-page__tag">
-          <Sparkles size={14} aria-hidden="true" /> Page transition preview
-        </span>
-        <p className="mw-demo-page__copy">
-          Glass overlay · pulsing shield · eight categories orbiting on a pure CSS carousel.
-        </p>
-      </div>
+    <div className="mw-loader-page">
+      <div className="mw-loader-page__aura" aria-hidden="true" />
 
-      <div className="mw-demo-overlay" role="dialog" aria-label="Loading Motor Wallah" aria-busy="true">
-        <div className="mw-demo-shell">
-          <div className="mw-demo-ring" aria-hidden="true">
-            {CATEGORIES.map((category, index) => (
-              <div
-                key={category.label}
-                className="mw-demo-item"
+      <div
+        className="mw-loader"
+        role="status"
+        aria-live="polite"
+        aria-label="Loading your marketplace"
+      >
+        <div className="mw-loader__stage">
+          <div className="mw-loader__orbit" aria-hidden="true">
+            {VEHICLES.map((vehicle, index) => (
+              <span
+                key={vehicle.label}
+                className="mw-loader__slot"
                 style={{ "--i": index } as CSSProperties}
               >
-                <span className="mw-demo-item__frame">
-                  <img
-                    src={category.image}
-                    alt=""
-                    className="mw-demo-item__img"
-                    width={180}
-                    height={180}
-                    decoding="async"
-                  />
-                </span>
-                <span className="mw-demo-item__label">{category.label}</span>
-              </div>
+                <img
+                  src={vehicle.image}
+                  alt=""
+                  width={320}
+                  height={320}
+                  decoding="async"
+                  draggable={false}
+                />
+              </span>
             ))}
           </div>
 
-          <div className="mw-demo-core">
+          <div className="mw-loader__core">
+            <span className="mw-loader__halo" aria-hidden="true" />
             <img src="/icon.svg" alt="Motor Wallah" width={256} height={256} />
           </div>
-
-          <p className="mw-demo-caption" aria-live="polite">
-            <ShieldCheck size={13} aria-hidden="true" /> Loading your marketplace…
-          </p>
         </div>
 
-        <Link to="/" className="mw-demo-close">
-          <ArrowLeft size={15} aria-hidden="true" /> Close Demo
-        </Link>
+        <div className="mw-loader__footer">
+          <p className="mw-loader__caption">Loading your marketplace...</p>
+          <span className="mw-loader__track" aria-hidden="true">
+            <span className="mw-loader__pulse" />
+          </span>
+          <Link to="/" className="mw-loader__close">
+            <ArrowLeft size={15} aria-hidden="true" /> Close Demo
+          </Link>
+        </div>
       </div>
     </div>
   );
