@@ -189,7 +189,7 @@ function Orbit() {
   const ring = useRef<THREE.Group>(null);
   const items = useRef<(THREE.Group | null)[]>([]);
   const { viewport } = useThree();
-  const fit = Math.min(1, Math.max(0.5, viewport.aspect * 0.82));
+  const fit = Math.min(1, Math.max(0.42, viewport.aspect * 0.62));
 
   useFrame((state, delta) => {
     if (!ring.current) return;
@@ -210,7 +210,7 @@ function Orbit() {
           return (
             <group
               key={index}
-              position={[Math.cos(angle) * 3.9, 0, Math.sin(angle) * 3.9]}
+              position={[Math.cos(angle) * 3.7, 0, Math.sin(angle) * 3.7]}
               rotation={[0, -angle + Math.PI / 2, 0]}
             >
               <group ref={(node) => { items.current[index] = node; }}>
@@ -238,7 +238,7 @@ function Scene() {
     <Canvas
       shadows
       dpr={[1, 1.75]}
-      camera={{ position: [0, 2.9, 11.4], fov: 42 }}
+      camera={{ position: [0, 3.9, 11.0], fov: 42 }}
       // preserveDrawingBuffer keeps the scene visible in screenshots and previews.
       gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
     >
