@@ -239,7 +239,8 @@ function Scene() {
       shadows
       dpr={[1, 1.75]}
       camera={{ position: [0, 2.9, 11.4], fov: 42 }}
-      gl={{ antialias: true, alpha: true }}
+      // preserveDrawingBuffer keeps the scene visible in screenshots and previews.
+      gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
     >
       <CameraRig />
       <color attach="background" args={["#f1f4f8"]} />
