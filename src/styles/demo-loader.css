@@ -1,0 +1,301 @@
+/* ---------------------------------------------------------------
+   /demo-loader — preview only. Nothing here affects the live site.
+   Pure CSS motion: one rotate animation for the ring, one counter
+   rotation to keep the vehicle tiles upright.
+   --------------------------------------------------------------- */
+
+/* The demo is a self-contained preview: suppress the site consent banner while
+   it is open (the class only exists on /demo-loader). */
+html.mw-demo-open .mw-consent {
+  display: none !important;
+}
+
+.mw-demo-page {
+  position: relative;
+  min-height: 100vh;
+  padding: 2.5rem 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background:
+    radial-gradient(60% 50% at 18% 12%, rgba(225, 27, 38, 0.16), transparent 70%),
+    radial-gradient(55% 45% at 82% 22%, rgba(37, 99, 235, 0.14), transparent 72%),
+    radial-gradient(70% 60% at 50% 100%, rgba(15, 23, 42, 0.12), transparent 70%),
+    #f2f4f7;
+  overflow: hidden;
+}
+
+.mw-demo-page__hint {
+  position: relative;
+  z-index: 2;
+  max-width: 34rem;
+  text-align: center;
+  color: #3f4650;
+}
+
+.mw-demo-page__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5a616b;
+}
+
+.mw-demo-page__copy {
+  margin-top: 0.6rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #6b7280;
+}
+
+/* Glass overlay -------------------------------------------------- */
+.mw-demo-overlay {
+  position: fixed;
+  inset: 0;
+  /* Above the site consent banner so the demo reads as a pure overlay. */
+  z-index: 140;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  animation: mw-demo-fade 420ms ease-out both;
+}
+
+/* Carousel ------------------------------------------------------- */
+.mw-demo-shell {
+  --shell: min(92vw, 30rem);
+  --radius: calc(var(--shell) * 0.35);
+  --tile: calc(var(--shell) * 0.19);
+  --spin: 26s;
+  position: relative;
+  width: var(--shell);
+  height: var(--shell);
+  display: grid;
+  place-items: center;
+}
+
+.mw-demo-shell::before {
+  content: "";
+  position: absolute;
+  inset: calc(var(--radius) - var(--tile) * 0.62);
+  border-radius: 50%;
+  border: 1px dashed rgba(148, 163, 184, 0.32);
+}
+
+.mw-demo-ring {
+  position: absolute;
+  inset: 0;
+  animation: mw-demo-rotate var(--spin) linear infinite;
+  will-change: transform;
+}
+
+.mw-demo-item {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--tile);
+  height: calc(var(--tile) + 0.9rem);
+  margin-left: calc(var(--tile) / -2);
+  margin-top: calc(var(--tile) / -2 - 0.45rem);
+  transform: rotate(calc(var(--i) * 45deg)) translate(var(--radius)) rotate(calc(var(--i) * -45deg));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.mw-demo-item__frame {
+  display: grid;
+  place-items: center;
+  width: var(--tile);
+  height: var(--tile);
+  border-radius: 50%;
+  padding: 0.2rem;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 10px 24px -14px rgba(15, 23, 42, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  animation: mw-demo-counter var(--spin) linear infinite;
+  will-change: transform;
+}
+
+.mw-demo-item__img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: 50% 58%;
+  display: block;
+}
+
+.mw-demo-item__label {
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #5c636d;
+  white-space: nowrap;
+  animation: mw-demo-counter var(--spin) linear infinite;
+}
+
+/* Centre shield -------------------------------------------------- */
+.mw-demo-core {
+  position: relative;
+  z-index: 2;
+  width: calc(var(--shell) * 0.3);
+  height: calc(var(--shell) * 0.3);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, #ffffff 0%, rgba(255, 255, 255, 0.72) 60%, rgba(255, 255, 255, 0.35) 100%);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.9),
+    0 18px 40px -22px rgba(15, 23, 42, 0.5);
+  animation: mw-demo-glow 2.6s ease-in-out infinite;
+}
+
+.mw-demo-core img {
+  width: 74%;
+  height: auto;
+  animation: mw-demo-breathe 2.6s ease-in-out infinite;
+}
+
+.mw-demo-caption {
+  position: absolute;
+  bottom: calc(var(--radius) * -0.02);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5a616b;
+  white-space: nowrap;
+  animation: mw-demo-pulse-text 2.6s ease-in-out infinite;
+}
+
+/* Close button --------------------------------------------------- */
+.mw-demo-close {
+  position: absolute;
+  bottom: clamp(1.25rem, 5vh, 2.75rem);
+  left: 50%;
+  translate: -50% 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.7rem 1.4rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(255, 255, 255, 0.85);
+  color: #1f242b;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  box-shadow: 0 16px 34px -20px rgba(15, 23, 42, 0.5);
+  transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.mw-demo-close:hover {
+  transform: translateY(-2px);
+  background: #ffffff;
+  box-shadow: 0 20px 40px -18px rgba(15, 23, 42, 0.55);
+}
+
+.mw-demo-close:focus-visible {
+  outline: 2px solid #e11b26;
+  outline-offset: 3px;
+}
+
+/* Motion --------------------------------------------------------- */
+@keyframes mw-demo-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes mw-demo-counter {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes mw-demo-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.9),
+      0 0 24px 2px rgba(225, 27, 38, 0.18),
+      0 18px 40px -22px rgba(15, 23, 42, 0.5);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.95),
+      0 0 46px 10px rgba(225, 27, 38, 0.3),
+      0 18px 40px -22px rgba(15, 23, 42, 0.5);
+  }
+}
+
+@keyframes mw-demo-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.045);
+  }
+}
+
+@keyframes mw-demo-pulse-text {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes mw-demo-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 420px) {
+  .mw-demo-item__label {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mw-demo-ring,
+  .mw-demo-item__frame,
+  .mw-demo-item__label,
+  .mw-demo-core,
+  .mw-demo-core img,
+  .mw-demo-caption {
+    animation: none;
+  }
+}
