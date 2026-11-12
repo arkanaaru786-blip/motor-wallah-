@@ -1,30 +1,24 @@
 import { useEffect, useRef, useState } from "react";
-import { useRouterState } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
+import "./PageLoader.css";
 
 /**
- * Site-wide page-transition overlay. Same orbit artwork as the demo, but with no
- * caption and no close button, and it fades itself out once the next route is ready.
+ * Site-wide page-transition overlay: the same orbit artwork as the demo, but with
+ * no caption and no close button. It appears when a navigation starts and fades
+ * out once the destination route has resolved.
  */
 
-const VEHICLES = [
-  "car",
-  "bike",
-  "auto",
-  "scv",
-  "truck",
-  "bus",
-  "tractor",
-  "taxi",
-] as const;
+const VEHICLES = ["car", "bike", "auto", "scv", "truck", "bus", "tractor", "taxi"] as const;
 
-/** Long enough to read as intentional on instant navigations, short enough not to nag. */
+/** Short enough not to annoy, long enough that an instant navigation still reads. */
 const MIN_VISIBLE_MS = 420;
 /** Matches the opacity transition in PageLoader.css. */
 const FADE_MS = 300;
+/** Failsafe: never leave the overlay covering the site if an event goes missing. */
+const MAX_VISIBLE_MS = 4000;
 
 export function TransitionLoader() {
-  const isLoading = useRouterState({ select: (state) => state.isLoading });
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const router = useRouter();
   const [visible, setVisible] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const shownAt = useRef(0);
@@ -35,26 +29,10 @@ export function TransitionLoader() {
     timers.current = [];
   };
 
-  useEffect(() => {
+  const hide = () => {
+    if (!shownAt.current) return;
     clearTimers();
-
-    // The standalone demo renders the loader itself — never stack two.
-    if (pathname.startsWith("/demo-loader")) {
-      setVisible(false);
-      setLeaving(false);
-      return;
-    }
-
-    if (isLoading) {
-      shownAt.current = Date.now();
-      setLeaving(false);
-      setVisible(true);
-      return;
-    }
-
-    if (!visible) return;
-
-    const remaining = Math.max(0, MIN_VISIBLE_MS - (Date.now() - shownAt.current));
+    const wait = Math.max(0, MIN_VISIBLE_MS - (Date.now() - shownAt.current));
     timers.current.push(
       window.setTimeout(() => {
         setLeaving(true);
@@ -62,15 +40,45 @@ export function TransitionLoader() {
           window.setTimeout(() => {
             setVisible(false);
             setLeaving(false);
+            shownAt.current = 0;
           }, FADE_MS),
         );
-      }, remaining),
+      }, wait),
     );
+  };
 
-    return clearTimers;
-  }, [isLoading, pathname, visible]);
+  const show = () => {
+    // The demo route renders its own loader — never stack a second one.
+    if (window.location.pathname.startsWith("/demo-loader")) return;
+    clearTimers();
+    shownAt.current = Date.now();
+    setLeaving(false);
+    setVisible(true);
+    timers.current.push(window.setTimeout(hide, MAX_VISIBLE_MS));
+  };
 
-  useEffect(() => clearTimers, []);
+  useEffect(() => {
+    const unsubscribe = [
+      router.subscribe("onBeforeNavigate", show),
+      router.subscribe("onResolved", hide),
+    ];
+    return () => {
+      unsubscribe.forEach((off) => off());
+      clearTimers();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
+
+  // Belt and braces: poll the router's own loading flag while the overlay is up,
+  // so a missed lifecycle event can never leave the site covered.
+  useEffect(() => {
+    if (!visible || leaving) return;
+    const id = window.setInterval(() => {
+      if (!router.state.isLoading) hide();
+    }, 80);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, leaving, router]);
 
   if (!visible) return null;
 
