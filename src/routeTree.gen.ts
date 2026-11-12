@@ -73,6 +73,7 @@ import { Route as MasterAdminIndexRouteImport } from './routes/master-admin.inde
 import { Route as MasterAdminAnalyticsRouteImport } from './routes/master-admin.analytics'
 import { Route as MasterAdminAuditRouteImport } from './routes/master-admin.audit'
 import { Route as MasterAdminAutomationRouteImport } from './routes/master-admin.automation'
+import { Route as MasterAdminBannersRouteImport } from './routes/master-admin.banners'
 import { Route as MasterAdminDealersRouteImport } from './routes/master-admin.dealers'
 import { Route as MasterAdminDisputesRouteImport } from './routes/master-admin.disputes'
 import { Route as MasterAdminEmployeesRouteImport } from './routes/master-admin.employees'
@@ -406,6 +407,11 @@ const MasterAdminAutomationRoute = MasterAdminAutomationRouteImport.update({
   path: '/automation',
   getParentRoute: () => MasterAdminRoute,
 } as any)
+const MasterAdminBannersRoute = MasterAdminBannersRouteImport.update({
+  id: '/banners',
+  path: '/banners',
+  getParentRoute: () => MasterAdminRoute,
+} as any)
 const MasterAdminDealersRoute = MasterAdminDealersRouteImport.update({
   id: '/dealers',
   path: '/dealers',
@@ -529,6 +535,7 @@ export interface FileRoutesByFullPath {
   '/master-admin/analytics': typeof MasterAdminAnalyticsRoute
   '/master-admin/audit': typeof MasterAdminAuditRoute
   '/master-admin/automation': typeof MasterAdminAutomationRoute
+  '/master-admin/banners': typeof MasterAdminBannersRoute
   '/master-admin/dealers': typeof MasterAdminDealersRoute
   '/master-admin/disputes': typeof MasterAdminDisputesRoute
   '/master-admin/employees': typeof MasterAdminEmployeesRoute
@@ -606,6 +613,7 @@ export interface FileRoutesByTo {
   '/master-admin/analytics': typeof MasterAdminAnalyticsRoute
   '/master-admin/audit': typeof MasterAdminAuditRoute
   '/master-admin/automation': typeof MasterAdminAutomationRoute
+  '/master-admin/banners': typeof MasterAdminBannersRoute
   '/master-admin/dealers': typeof MasterAdminDealersRoute
   '/master-admin/disputes': typeof MasterAdminDisputesRoute
   '/master-admin/employees': typeof MasterAdminEmployeesRoute
@@ -685,6 +693,7 @@ export interface FileRoutesById {
   '/master-admin/analytics': typeof MasterAdminAnalyticsRoute
   '/master-admin/audit': typeof MasterAdminAuditRoute
   '/master-admin/automation': typeof MasterAdminAutomationRoute
+  '/master-admin/banners': typeof MasterAdminBannersRoute
   '/master-admin/dealers': typeof MasterAdminDealersRoute
   '/master-admin/disputes': typeof MasterAdminDisputesRoute
   '/master-admin/employees': typeof MasterAdminEmployeesRoute
@@ -765,6 +774,7 @@ export interface FileRouteTypes {
     | '/master-admin/analytics'
     | '/master-admin/audit'
     | '/master-admin/automation'
+    | '/master-admin/banners'
     | '/master-admin/dealers'
     | '/master-admin/disputes'
     | '/master-admin/employees'
@@ -842,6 +852,7 @@ export interface FileRouteTypes {
     | '/master-admin/analytics'
     | '/master-admin/audit'
     | '/master-admin/automation'
+    | '/master-admin/banners'
     | '/master-admin/dealers'
     | '/master-admin/disputes'
     | '/master-admin/employees'
@@ -920,6 +931,7 @@ export interface FileRouteTypes {
     | '/master-admin/analytics'
     | '/master-admin/audit'
     | '/master-admin/automation'
+    | '/master-admin/banners'
     | '/master-admin/dealers'
     | '/master-admin/disputes'
     | '/master-admin/employees'
@@ -1455,6 +1467,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MasterAdminAutomationRouteImport
       parentRoute: typeof MasterAdminRoute
     }
+    '/master-admin/banners': {
+      id: '/master-admin/banners'
+      path: '/banners'
+      fullPath: '/master-admin/banners'
+      preLoaderRoute: typeof MasterAdminBannersRouteImport
+      parentRoute: typeof MasterAdminRoute
+    }
     '/master-admin/dealers': {
       id: '/master-admin/dealers'
       path: '/dealers'
@@ -1558,6 +1577,7 @@ interface MasterAdminRouteChildren {
   MasterAdminAnalyticsRoute: typeof MasterAdminAnalyticsRoute
   MasterAdminAuditRoute: typeof MasterAdminAuditRoute
   MasterAdminAutomationRoute: typeof MasterAdminAutomationRoute
+  MasterAdminBannersRoute: typeof MasterAdminBannersRoute
   MasterAdminDealersRoute: typeof MasterAdminDealersRoute
   MasterAdminDisputesRoute: typeof MasterAdminDisputesRoute
   MasterAdminEmployeesRoute: typeof MasterAdminEmployeesRoute
@@ -1571,6 +1591,7 @@ const MasterAdminRouteChildren: MasterAdminRouteChildren = {
   MasterAdminAnalyticsRoute: MasterAdminAnalyticsRoute,
   MasterAdminAuditRoute: MasterAdminAuditRoute,
   MasterAdminAutomationRoute: MasterAdminAutomationRoute,
+  MasterAdminBannersRoute: MasterAdminBannersRoute,
   MasterAdminDealersRoute: MasterAdminDealersRoute,
   MasterAdminDisputesRoute: MasterAdminDisputesRoute,
   MasterAdminEmployeesRoute: MasterAdminEmployeesRoute,

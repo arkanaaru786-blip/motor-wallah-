@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   ListChecks,
   LogOut,
+  Megaphone,
   ShieldAlert,
   ShieldCheck,
   ScrollText,
@@ -126,6 +127,7 @@ export function AdminShell({
     nav.push({ to: "/master-admin/analytics", label: "Reports & Analytics", icon: BarChart3 });
   }
   if (isSuperAdmin(actor)) {
+    nav.push({ to: "/master-admin/banners", label: "Banners & Ads", icon: Megaphone });
     nav.push({ to: "/master-admin/settings", label: "Site Settings", icon: Settings });
   }
 

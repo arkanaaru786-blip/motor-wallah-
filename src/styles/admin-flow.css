@@ -3277,3 +3277,63 @@
     flex-wrap: wrap;
   }
 }
+
+/* --- Banners & ads ------------------------------------------------------- */
+.mw-admin-banners {
+  display: grid;
+  gap: 18px;
+}
+.mw-admin-banners-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.mw-admin-banners-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.mw-admin-banners-grid > .mw-admin-panel {
+  min-width: 0;
+}
+.mw-admin-banner-card .mw-admin-panel-head h2 {
+  font-size: 1rem;
+}
+.mw-admin-banner-preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 128px;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 17, 24, 0.12);
+  background: rgba(15, 17, 24, 0.04);
+}
+.mw-admin-banner-preview img,
+.mw-admin-banner-preview video {
+  display: block;
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+}
+.mw-admin-banner-empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 18px;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--adm-muted);
+}
+.mw-admin-file {
+  padding: 8px;
+  font-size: 0.72rem;
+}
+.mw-admin-field span svg {
+  vertical-align: -2px;
+  margin-right: 4px;
+}

@@ -22,6 +22,8 @@ import {
   Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BannerAd, BannerMedia, bannerLinkProps } from "@/components/site/BannerAd";
+import { useActiveBanner } from "@/lib/banners";
 import { MakeOfferDialog } from "@/components/buy/MakeOfferDialog";
 import { gateCustomerAction } from "@/lib/customer-gate";
 import { useShortlist } from "@/lib/shortlist";
@@ -144,7 +146,18 @@ const HUB = [
   },
 ] as const;
 
+/**
+ * Franchise banner.
+ *
+ * The artwork is whichever active image (or MP4) the control room has set for
+ * the `franchise_banner` slot; with nothing set the bundled showroom photo is
+ * used, so the section always looks the same as before. When a banner has a
+ * target URL, the artwork is the link and the click is counted.
+ */
 export function FranchiseBanner() {
+  const banner = useActiveBanner("franchise_banner");
+  const link = banner ? bannerLinkProps(banner) : null;
+
   return (
     <section className="home-franchise">
       <div className="home-container">
@@ -162,13 +175,19 @@ export function FranchiseBanner() {
             </Button>
           </div>
           <div className="home-franchise-media">
-            <img
-              src={franchiseShowroom}
-              alt="Premium automotive franchise showroom"
-              width={1920}
-              height={720}
-              loading="lazy"
-            />
+            {banner && link ? (
+              <a className="home-franchise-link" data-testid="franchise-banner-link" {...link}>
+                <BannerMedia banner={banner} />
+              </a>
+            ) : (
+              <img
+                src={franchiseShowroom}
+                alt="Premium automotive franchise showroom"
+                width={1920}
+                height={720}
+                loading="lazy"
+              />
+            )}
           </div>
         </div>
       </div>
@@ -215,29 +234,52 @@ export function MarketplaceHub() {
   );
 }
 
+/**
+ * Business spotlight.
+ *
+ * The sponsored card reads the `business_spotlight` slot: its artwork replaces
+ * the bundled workshop photo, its title replaces the demo brand name, and its
+ * target URL replaces the internal “View details” link. With no active banner
+ * the card is exactly the demo it has always been.
+ */
 export function BusinessSpotlight() {
+  const banner = useActiveBanner("business_spotlight");
+  const link = banner ? bannerLinkProps(banner) : null;
+
   return (
     <section className="home-spotlight">
       <div className="home-container">
         <div className="home-spotlight-card">
-          <img
-            src={businessSpotlight}
-            alt="ABC Auto Care workshop"
-            width={1280}
-            height={720}
-            loading="lazy"
-            className="home-spotlight-image"
-          />
+          {banner && link ? (
+            <a className="home-spotlight-image-link" data-testid="spotlight-banner-link" {...link}>
+              <BannerMedia banner={banner} className="home-spotlight-image" width={1280} height={720} />
+            </a>
+          ) : (
+            <img
+              src={businessSpotlight}
+              alt="ABC Auto Care workshop"
+              width={1280}
+              height={720}
+              loading="lazy"
+              className="home-spotlight-image"
+            />
+          )}
           <div className="home-spotlight-body">
             <p className="home-spotlight-tag">Business Spotlight · Advertisement</p>
-            <h2>ABC Auto Care</h2>
+            <h2>{banner?.title.trim() || "ABC Auto Care"}</h2>
             <p className="home-spotlight-text">Complete Car Service • AC • Denting • Painting</p>
             <p className="home-spotlight-place">
               <MapPin className="h-3.5 w-3.5 text-primary" /> Indore
             </p>
-            <Link to="/services" className="home-spotlight-link">
-              View details <ChevronRight className="h-4 w-4" />
-            </Link>
+            {banner && link ? (
+              <a className="home-spotlight-link" {...link}>
+                View details <ChevronRight className="h-4 w-4" />
+              </a>
+            ) : (
+              <Link to="/services" className="home-spotlight-link">
+                View details <ChevronRight className="h-4 w-4" />
+              </Link>
+            )}
           </div>
           <div className="home-spotlight-action">
             <Button asChild variant="outline" className="home-cta home-cta-outline">
@@ -250,6 +292,16 @@ export function BusinessSpotlight() {
       </div>
     </section>
   );
+}
+
+/** Advertising strip under the homepage categories. Silent unless the slot is live. */
+export function HomeTopAd() {
+  return <BannerAd section="home_top" className="home-ad-top" />;
+}
+
+/** Tall ad under the BUY filters. Silent unless the slot is live. */
+export function SidebarAd() {
+  return <BannerAd section="sidebar" className="mw-ad-sidebar" label="Sponsored" />;
 }
 
 export function PopularVehicles() {

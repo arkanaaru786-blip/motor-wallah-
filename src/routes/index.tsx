@@ -7,6 +7,7 @@ import { BrowseCategories } from "@/components/site/BrowseCategories";
 import {
   BusinessSpotlight,
   FranchiseBanner,
+  HomeTopAd,
   MarketplaceActions,
   MarketplaceHub,
   PopularVehicles,
@@ -38,6 +39,7 @@ function Index() {
       <main>
         <Hero />
         <BrowseCategories />
+        <HomeTopAd />
         <FranchiseBanner />
         <MarketplaceHub />
         <PopularVehicles />

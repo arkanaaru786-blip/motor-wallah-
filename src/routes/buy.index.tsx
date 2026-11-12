@@ -7,6 +7,7 @@ import { StickyActions } from "@/components/site/StickyActions";
 import { EnquiryDialog, type EnquiryField } from "@/components/site/EnquiryDialog";
 import { BuyHub } from "@/components/buy/BuyHub";
 import { BuyServiceSidebar, type BuyServiceFilters } from "@/components/buy/BuySidebar";
+import { BannerAd } from "@/components/site/BannerAd";
 import { BuyFilterBar, BuyActiveFilters, type BuyFilters } from "@/components/buy/BuyFilterBar";
 import { BuyBrandRail } from "@/components/buy/BuyBrandRail";
 import { BuyListingCard } from "@/components/buy/BuyListingCard";
@@ -356,6 +357,7 @@ function BuyPage() {
           <div className="home-container" id="buy-browse">
             <div className={category ? "mw-buy-layout mw-buy-layout--flow" : "mw-buy-layout"}>
               {service ? (
+                <div className="mw-buy-aside">
                 <BuyServiceSidebar
                   service={service}
                   countLabel={countLabel(
@@ -371,6 +373,8 @@ function BuyPage() {
                   onChange={patchService}
                   onClear={clearService}
                 />
+                  <BannerAd section="sidebar" className="mw-ad-sidebar" label="Sponsored" />
+                </div>
               ) : null}
 
               <div className="mw-buy-main">

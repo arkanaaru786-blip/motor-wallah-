@@ -80,6 +80,10 @@ const HEADINGS: Record<string, { title: string; subtitle: string }> = {
     title: "MW Autopilot",
     subtitle: "Rules that run themselves — and a check that no submission goes missing.",
   },
+  banners: {
+    title: "Banners & Ads",
+    subtitle: "Every ad slot on the site — artwork, link, on/off switch and click count.",
+  },
   settings: {
     title: "Site Settings",
     subtitle: "The support number and inbox shown across the public site.",
@@ -94,6 +98,7 @@ function headingFor(pathname: string) {
   if (pathname.startsWith("/master-admin/disputes")) return HEADINGS["disputes"]!;
   if (pathname.startsWith("/master-admin/audit")) return HEADINGS["audit"]!;
   if (pathname.startsWith("/master-admin/automation")) return HEADINGS["automation"]!;
+  if (pathname.startsWith("/master-admin/banners")) return HEADINGS["banners"]!;
   if (pathname.startsWith("/master-admin/settings")) return HEADINGS["settings"]!;
   return HEADINGS["overview"]!;
 }
