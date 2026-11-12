@@ -18,6 +18,7 @@ import { AlertWatcher } from "../components/notify/AlertWatcher";
 import { ToastHost } from "../components/notify/ToastHost";
 import { CustomerLoginGate } from "../components/auth/CustomerLoginGate";
 import { ConsentBanner } from "../components/site/ConsentBanner";
+import { TransitionLoader } from "../components/loader/TransitionLoader";
 import { bootAnalytics, trackPageView } from "../lib/analytics";
 
 function NotFoundComponent() {
@@ -176,6 +177,8 @@ function RootComponent() {
       {/* Smart login: the pop-up only opens when a gated action asks for it. */}
       <CustomerLoginGate />
       <ConsentBanner />
+      {/* Page-transition overlay: glass blur across the route change. */}
+      <TransitionLoader />
     </QueryClientProvider>
   );
 }
