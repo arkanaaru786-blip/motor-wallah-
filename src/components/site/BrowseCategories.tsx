@@ -27,6 +27,11 @@ import bajaj from "@/assets/brands/bajaj.gif";
 import tvs from "@/assets/brands/tvs.svg";
 import eicher from "@/assets/brands/eicher.png";
 import force from "@/assets/brands/force-motors.png";
+import royalEnfield from "@/assets/brands/royal-enfield.svg";
+import piaggio from "@/assets/brands/piaggio.svg";
+import ashokLeyland from "@/assets/brands/ashok-leyland.jpg";
+import sonalika from "@/assets/brands/sonalika.png";
+import swaraj from "@/assets/brands/swaraj.png";
 
 // Only independent scene photographs; unavailable categories stay replaceable.
 const IMAGES: string[] = [cars, bikes, threeWheelers, miniTruck, trucks, buses, tractors, taxis];
@@ -48,6 +53,11 @@ const BRAND_LOGOS: Record<string, string> = {
   TVS: tvs,
   Eicher: eicher,
   Force: force,
+  "Royal Enfield": royalEnfield,
+  Piaggio: piaggio,
+  "Ashok Leyland": ashokLeyland,
+  Sonalika: sonalika,
+  Swaraj: swaraj,
 };
 const CATEGORY_BRANDS = [
   ["Maruti Suzuki", "Hyundai", "Tata", "Toyota"],
