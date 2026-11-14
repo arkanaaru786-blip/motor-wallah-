@@ -11,43 +11,43 @@ import buses from "@/assets/homepage/Bus.png";
 import tractors from "@/assets/homepage/Tractor.png";
 import taxis from "@/assets/homepage/Taxi.png";
 import showroom from "@/assets/franchise-showroom.jpg";
-import maruti from "@/assets/homepage/maruti.svg.asset.json";
-import hyundai from "@/assets/homepage/hyundai.png.asset.json";
-import tata from "@/assets/homepage/tata.png.asset.json";
-import toyota from "@/assets/homepage/toyota.png.asset.json";
-import mahindra from "@/assets/homepage/mahindra.webp.asset.json";
-import honda from "@/assets/homepage/honda.png.asset.json";
-import kia from "@/assets/homepage/kia.png.asset.json";
-import mg from "@/assets/homepage/mg.png.asset.json";
-import renault from "@/assets/homepage/renault.png.asset.json";
-import skoda from "@/assets/homepage/skoda.png.asset.json";
-import bmw from "@/assets/homepage/bmw.png.asset.json";
-import mercedes from "@/assets/homepage/mercedes-benz.png.asset.json";
-import bajaj from "@/assets/homepage/bajaj.gif.asset.json";
-import tvs from "@/assets/homepage/tvs.svg.asset.json";
-import eicher from "@/assets/homepage/eicher.png.asset.json";
-import force from "@/assets/homepage/force-motors.png.asset.json";
+import maruti from "@/assets/brands/maruti.svg";
+import hyundai from "@/assets/brands/hyundai.png";
+import tata from "@/assets/brands/tata.png";
+import toyota from "@/assets/brands/toyota.png";
+import mahindra from "@/assets/brands/mahindra.webp";
+import honda from "@/assets/brands/honda.png";
+import kia from "@/assets/brands/kia.png";
+import mg from "@/assets/brands/mg.png";
+import renault from "@/assets/brands/renault.png";
+import skoda from "@/assets/brands/skoda.png";
+import bmw from "@/assets/brands/bmw.png";
+import mercedes from "@/assets/brands/mercedes-benz.png";
+import bajaj from "@/assets/brands/bajaj.gif";
+import tvs from "@/assets/brands/tvs.svg";
+import eicher from "@/assets/brands/eicher.png";
+import force from "@/assets/brands/force-motors.png";
 
 // Only independent scene photographs; unavailable categories stay replaceable.
 const IMAGES: string[] = [cars, bikes, threeWheelers, miniTruck, trucks, buses, tractors, taxis];
 const BRAND_LOGOS: Record<string, string> = {
-  "Maruti Suzuki": maruti.url,
-  Hyundai: hyundai.url,
-  Tata: tata.url,
-  "Tata Motors": tata.url,
-  Toyota: toyota.url,
-  Mahindra: mahindra.url,
-  Honda: honda.url,
-  Kia: kia.url,
-  MG: mg.url,
-  Renault: renault.url,
-  Škoda: skoda.url,
-  BMW: bmw.url,
-  "Mercedes-Benz": mercedes.url,
-  Bajaj: bajaj.url,
-  TVS: tvs.url,
-  Eicher: eicher.url,
-  Force: force.url,
+  "Maruti Suzuki": maruti,
+  Hyundai: hyundai,
+  Tata: tata,
+  "Tata Motors": tata,
+  Toyota: toyota,
+  Mahindra: mahindra,
+  Honda: honda,
+  Kia: kia,
+  MG: mg,
+  Renault: renault,
+  Škoda: skoda,
+  BMW: bmw,
+  "Mercedes-Benz": mercedes,
+  Bajaj: bajaj,
+  TVS: tvs,
+  Eicher: eicher,
+  Force: force,
 };
 const CATEGORY_BRANDS = [
   ["Maruti Suzuki", "Hyundai", "Tata", "Toyota"],

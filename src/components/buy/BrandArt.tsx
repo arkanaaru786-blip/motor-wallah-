@@ -1,20 +1,20 @@
 import { useState } from "react";
-import maruti from "@/assets/homepage/maruti.svg.asset.json";
-import hyundai from "@/assets/homepage/hyundai.png.asset.json";
-import tata from "@/assets/homepage/tata.png.asset.json";
-import toyota from "@/assets/homepage/toyota.png.asset.json";
-import mahindra from "@/assets/homepage/mahindra.webp.asset.json";
-import honda from "@/assets/homepage/honda.png.asset.json";
-import kia from "@/assets/homepage/kia.png.asset.json";
-import mg from "@/assets/homepage/mg.png.asset.json";
-import renault from "@/assets/homepage/renault.png.asset.json";
-import skoda from "@/assets/homepage/skoda.png.asset.json";
-import bmw from "@/assets/homepage/bmw.png.asset.json";
-import mercedes from "@/assets/homepage/mercedes-benz.png.asset.json";
-import bajaj from "@/assets/homepage/bajaj.gif.asset.json";
-import tvs from "@/assets/homepage/tvs.svg.asset.json";
-import eicher from "@/assets/homepage/eicher.png.asset.json";
-import force from "@/assets/homepage/force-motors.png.asset.json";
+import maruti from "@/assets/brands/maruti.svg";
+import hyundai from "@/assets/brands/hyundai.png";
+import tata from "@/assets/brands/tata.png";
+import toyota from "@/assets/brands/toyota.png";
+import mahindra from "@/assets/brands/mahindra.webp";
+import honda from "@/assets/brands/honda.png";
+import kia from "@/assets/brands/kia.png";
+import mg from "@/assets/brands/mg.png";
+import renault from "@/assets/brands/renault.png";
+import skoda from "@/assets/brands/skoda.png";
+import bmw from "@/assets/brands/bmw.png";
+import mercedes from "@/assets/brands/mercedes-benz.png";
+import bajaj from "@/assets/brands/bajaj.gif";
+import tvs from "@/assets/brands/tvs.svg";
+import eicher from "@/assets/brands/eicher.png";
+import force from "@/assets/brands/force-motors.png";
 // Locally stored brand artwork (Wikimedia Commons / official brand marks).
 import ford from "@/assets/brands/ford.svg";
 import hero from "@/assets/brands/hero.svg";
@@ -40,38 +40,38 @@ import allFineEv from "@/assets/brands/all-fine-ev.svg";
  * Anything without artwork falls back to a clean typographic wordmark.
  */
 const LOGOS: Record<string, string> = {
-  "Maruti Suzuki": maruti.url,
-  "Maruti Suzuki (SCV)": maruti.url,
-  "Maruti Suzuki (Taxi)": maruti.url,
-  Hyundai: hyundai.url,
-  "Hyundai (Taxi)": hyundai.url,
-  Tata: tata.url,
-  "Tata Motors": tata.url,
-  "Tata (SCV)": tata.url,
-  "Tata (Taxi)": tata.url,
-  "Tata Buses": tata.url,
-  Toyota: toyota.url,
-  "Toyota (Taxi)": toyota.url,
-  Mahindra: mahindra.url,
-  "Mahindra (3W)": mahindra.url,
-  "Mahindra (SCV)": mahindra.url,
-  "Mahindra Trucks": mahindra.url,
-  Honda: honda.url,
-  Kia: kia.url,
-  MG: mg.url,
-  Renault: renault.url,
-  Skoda: skoda.url,
-  Škoda: skoda.url,
-  BMW: bmw.url,
-  "Mercedes-Benz": mercedes.url,
-  Bajaj: bajaj.url,
-  TVS: tvs.url,
-  "TVS (3W)": tvs.url,
-  Eicher: eicher.url,
-  "Eicher Trucks": eicher.url,
-  "Eicher Buses": eicher.url,
-  Force: force.url,
-  "Force Motors": force.url,
+  "Maruti Suzuki": maruti,
+  "Maruti Suzuki (SCV)": maruti,
+  "Maruti Suzuki (Taxi)": maruti,
+  Hyundai: hyundai,
+  "Hyundai (Taxi)": hyundai,
+  Tata: tata,
+  "Tata Motors": tata,
+  "Tata (SCV)": tata,
+  "Tata (Taxi)": tata,
+  "Tata Buses": tata,
+  Toyota: toyota,
+  "Toyota (Taxi)": toyota,
+  Mahindra: mahindra,
+  "Mahindra (3W)": mahindra,
+  "Mahindra (SCV)": mahindra,
+  "Mahindra Trucks": mahindra,
+  Honda: honda,
+  Kia: kia,
+  MG: mg,
+  Renault: renault,
+  Skoda: skoda,
+  Škoda: skoda,
+  BMW: bmw,
+  "Mercedes-Benz": mercedes,
+  Bajaj: bajaj,
+  TVS: tvs,
+  "TVS (3W)": tvs,
+  Eicher: eicher,
+  "Eicher Trucks": eicher,
+  "Eicher Buses": eicher,
+  Force: force,
+  "Force Motors": force,
   Ford: ford,
   Hero: hero,
   "Royal Enfield": royalEnfield,
