@@ -302,10 +302,14 @@ export async function uploadBannerMedia(
   const client = staffClient();
   if (!client) return { ok: false, error: "The database is not configured for this build." };
 
+  // Every upload gets its own path, so nothing is ever overwritten. upsert:true
+  // would make Storage read the existing object first, which needs a SELECT
+  // policy on storage.objects and fails RLS for staff uploads; a plain INSERT
+  // only needs the "banners media staff write" policy from supabase/banners.sql.
   const path = `${section}-${Date.now()}.${extensionOf(file)}`;
   const { error } = await client.storage
     .from(MEDIA_BUCKET)
-    .upload(path, file, { cacheControl: "3600", upsert: true, contentType: file.type });
+    .upload(path, file, { cacheControl: "3600", upsert: false, contentType: file.type });
 
   if (error) {
     const message = /bucket/i.test(error.message)
