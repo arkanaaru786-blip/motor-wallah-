@@ -6,6 +6,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { BrowseCategories } from "@/components/site/BrowseCategories";
 import {
   HomeShowcase,
+  HomeTopAd,
   MarketplaceActions,
   TrustStrip,
 } from "@/components/site/HomeMarketplaceSections";
@@ -33,6 +34,8 @@ function Index() {
     <div id="top" className="mw-home min-h-screen bg-background pb-16 md:pb-0">
       <SiteHeader homepage />
       <main>
+        {/* The single full-width homepage banner slot. Silent until live. */}
+        <HomeTopAd />
         <Hero />
         <BrowseCategories />
         <HomeShowcase />

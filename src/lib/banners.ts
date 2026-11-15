@@ -22,44 +22,22 @@ import { staffAccessToken, staffClient, staffSession } from "@/lib/staff-auth";
 export const BANNER_SECTIONS = [
   {
     id: "home_top",
-    label: "Homepage top banner",
-    where: "Full-width strip under the category row on the homepage.",
+    label: "Homepage Top Banner",
+    where: "This image appears in the full-width strip at the top of the homepage.",
     wide: true,
     multiple: false,
   },
   {
     id: "franchise_banner",
-    label: "Franchise banner",
-    where: "The image beside “Become a Franchise Partner” on the homepage.",
+    label: "Franchise Partner Banner",
+    where: "This image appears beside the “Become a Franchise Partner” section on the homepage.",
     wide: false,
-    multiple: false,
-  },
-  {
-    id: "business_spotlight",
-    label: "Business spotlight",
-    where: "The sponsored brand card on the homepage.",
-    wide: true,
     multiple: false,
   },
   {
     id: "sidebar",
-    label: "BUY sidebar ad",
-    where: "Tall card under the filters in the BUY marketplace.",
-    wide: false,
-    multiple: false,
-  },
-  {
-    id: "sidebar_slot_1",
-    label: "Homepage sidebar ad 1",
-    where:
-      "Right column of the homepage, above the advertise button. Upload several images for a carousel.",
-    wide: false,
-    multiple: true,
-  },
-  {
-    id: "sidebar_slot_2",
-    label: "Homepage sidebar ad 2",
-    where: "Second right-column slot on the homepage, above the advertise button.",
+    label: "Sidebar Ad (Single)",
+    where: "This image appears in the single sticky ad on the right side of the homepage.",
     wide: false,
     multiple: true,
   },
@@ -68,9 +46,6 @@ export const BANNER_SECTIONS = [
 export type BannerSection = (typeof BANNER_SECTIONS)[number]["id"];
 export type BannerStatus = "Active" | "Inactive";
 export type BannerMedia = "image" | "video";
-
-export const SIDEBAR_AD_SLOTS = ["sidebar_slot_1", "sidebar_slot_2"] as const;
-export type SidebarAdSlot = (typeof SIDEBAR_AD_SLOTS)[number];
 
 /**
  * Sidebar carousel slots store several image URLs in `image_url` as a JSON

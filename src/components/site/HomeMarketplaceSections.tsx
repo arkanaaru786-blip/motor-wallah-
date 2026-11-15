@@ -4,15 +4,12 @@ import {
   ArrowLeftRight,
   ArrowRight,
   BadgeCheck,
-  Building2,
   Calculator,
-  ChevronRight,
   FileCheck2,
   GitCompareArrows,
   Handshake,
   Heart,
   IndianRupee,
-  MapPin,
   Package,
   Recycle,
   ShieldCheck,
@@ -24,7 +21,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { BannerAd, BannerMedia, bannerLinkProps } from "@/components/site/BannerAd";
 import { useAdLeadDialog } from "@/components/site/AdLeadDialog";
-import { bannerImageList, trackBannerClick, useActiveBanner, useBanners } from "@/lib/banners";
+import {
+  bannerImageList,
+  trackBannerClick,
+  useActiveBanner,
+  useBanners,
+  type BannerSection,
+} from "@/lib/banners";
 import { MakeOfferDialog } from "@/components/buy/MakeOfferDialog";
 import { gateCustomerAction } from "@/lib/customer-gate";
 import { useShortlist } from "@/lib/shortlist";
@@ -34,8 +37,6 @@ import {
   getBuyListing,
   lakhLabel,
 } from "@/lib/buy-catalog";
-import franchiseShowroom from "@/assets/franchise-showroom.jpg";
-import businessSpotlight from "@/assets/business-spotlight.jpg";
 import carPhoto from "@/assets/homepage/Car.png";
 
 // Every card opens the SAME unified BUY listing page — ids come straight from
@@ -158,61 +159,6 @@ const HUB = [
   },
 ] as const;
 
-/**
- * Franchise banner.
- *
- * The artwork is whichever active image (or MP4) the control room has set for
- * the `franchise_banner` slot; with nothing set the bundled showroom photo is
- * used, so the section always looks the same as before. When a banner has a
- * target URL, the artwork is the link and the click is counted.
- */
-export function FranchiseBanner() {
-  const banner = useActiveBanner("franchise_banner");
-  const { captureAdLead, adLeadDialog } = useAdLeadDialog();
-  const link = banner ? bannerLinkProps(banner, captureAdLead) : null;
-
-  return (
-    <section className="home-franchise">
-      <div className="home-container">
-        <div className="home-franchise-panel">
-          <div className="home-franchise-content">
-            <p className="home-franchise-eyebrow">Franchise opportunity</p>
-            <h2>
-              Become a <span>Franchise Partner</span>
-            </h2>
-            <p>Join Motor Wallah and grow your automotive business with us.</p>
-            <Button asChild className="home-cta home-cta-primary">
-              <Link to="/franchise">
-                Apply Now <ArrowRight size={15} />
-              </Link>
-            </Button>
-          </div>
-          <div className="home-franchise-media">
-            {banner ? (
-              link ? (
-                <a className="home-franchise-link" data-testid="franchise-banner-link" {...link}>
-                  <BannerMedia banner={banner} />
-                </a>
-              ) : (
-                <BannerMedia banner={banner} />
-              )
-            ) : (
-              <img
-                src={franchiseShowroom}
-                alt="Premium automotive franchise showroom"
-                width={1920}
-                height={720}
-                loading="lazy"
-              />
-            )}
-          </div>
-        </div>
-      </div>
-      {adLeadDialog}
-    </section>
-  );
-}
-
 export function MarketplaceHub() {
   return (
     <section className="home-hub">
@@ -248,86 +194,6 @@ export function MarketplaceHub() {
           ))}
         </div>
       </div>
-    </section>
-  );
-}
-
-/**
- * Business spotlight.
- *
- * The sponsored card reads the `business_spotlight` slot: its artwork replaces
- * the bundled workshop photo, its title replaces the demo brand name, and its
- * target URL replaces the internal “View details” link. With no active banner
- * the card is exactly the demo it has always been.
- */
-export function BusinessSpotlight() {
-  const banner = useActiveBanner("business_spotlight");
-  const { captureAdLead, adLeadDialog } = useAdLeadDialog();
-  const link = banner ? bannerLinkProps(banner, captureAdLead) : null;
-
-  return (
-    <section className="home-spotlight">
-      <div className="home-container">
-        <div className="home-spotlight-card">
-          {banner ? (
-            link ? (
-              <a
-                className="home-spotlight-image-link"
-                data-testid="spotlight-banner-link"
-                {...link}
-              >
-                <BannerMedia
-                  banner={banner}
-                  className="home-spotlight-image"
-                  width={1280}
-                  height={720}
-                />
-              </a>
-            ) : (
-              <BannerMedia
-                banner={banner}
-                className="home-spotlight-image"
-                width={1280}
-                height={720}
-              />
-            )
-          ) : (
-            <img
-              src={businessSpotlight}
-              alt="ABC Auto Care workshop"
-              width={1280}
-              height={720}
-              loading="lazy"
-              className="home-spotlight-image"
-            />
-          )}
-          <div className="home-spotlight-body">
-            <p className="home-spotlight-tag">Business Spotlight · Advertisement</p>
-            <h2>{banner?.title.trim() || "ABC Auto Care"}</h2>
-            <p className="home-spotlight-text">Complete Car Service • AC • Denting • Painting</p>
-            <p className="home-spotlight-place">
-              <MapPin className="h-3.5 w-3.5 text-primary" /> Indore
-            </p>
-            {banner && link ? (
-              <a className="home-spotlight-link" {...link}>
-                View details <ChevronRight className="h-4 w-4" />
-              </a>
-            ) : (
-              <Link to="/services" className="home-spotlight-link">
-                View details <ChevronRight className="h-4 w-4" />
-              </Link>
-            )}
-          </div>
-          <div className="home-spotlight-action">
-            <Button asChild variant="outline" className="home-cta home-cta-outline">
-              <Link to="/contact">
-                <Building2 /> Advertise Your Business
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-      {adLeadDialog}
     </section>
   );
 }
@@ -442,22 +308,17 @@ export function PopularVehicles() {
 }
 
 /**
- * One customer-ad slot.
+ * The single customer-ad slot.
  *
- * The admin stores several image URLs for the slot; they sit in a snap rail and
- * step forward on their own every few seconds (pausing on hover/focus and when
- * the visitor prefers reduced motion). Both slots live inside the sticky
- * sidebar, so they stay in view while the listing column scrolls.
+ * The admin stores one image (or several, for a carousel) in the `sidebar`
+ * section; the images sit in a snap rail and step forward on their own every
+ * few seconds (pausing on hover/focus and when the visitor prefers reduced
+ * motion). It lives inside the sticky sidebar, so it stays in view while the
+ * listing column scrolls.
  */
-function SidebarAdSlot({
-  slot,
-  label,
-}: {
-  slot: "sidebar_slot_1" | "sidebar_slot_2";
-  label: string;
-}) {
+function SidebarAdSlot({ section, label }: { section: BannerSection; label: string }) {
   const { banners } = useBanners();
-  const banner = banners.find((entry) => entry.section === slot) ?? null;
+  const banner = banners.find((entry) => entry.section === section) ?? null;
   const images = banner && banner.status === "Active" ? bannerImageList(banner) : [];
   const { captureAdLead, adLeadDialog } = useAdLeadDialog();
   const link = banner ? bannerLinkProps(banner, captureAdLead) : null;
@@ -562,17 +423,16 @@ function SidebarAdSlot({
 }
 
 /**
- * Desktop sticky sidebar: exactly two customer ad slots and the advertise CTA
- * below them. The franchise promotion moved into the category band and the tall
- * BUY ad no longer appears here.
+ * Desktop sticky sidebar: one customer ad slot with the advertise CTA below it.
+ * The franchise promotion lives in the category band; the homepage no longer
+ * carries a second sidebar ad.
  */
 export function HomeSidebar() {
   return (
-    <aside className="home-showcase-side" aria-label="Advertisements">
+    <aside className="home-showcase-side" aria-label="Advertisement">
       <div className="home-side-stack">
         <div className="home-side-ads">
-          <SidebarAdSlot slot="sidebar_slot_1" label="Advertisement 1" />
-          <SidebarAdSlot slot="sidebar_slot_2" label="Advertisement 2" />
+          <SidebarAdSlot section="sidebar" label="Advertisement" />
         </div>
 
         <section className="home-side-advertise">

@@ -223,6 +223,7 @@ function SectionCard({
         <div>
           <p className="mw-admin-eyebrow">{label}</p>
           <h2>{banner?.title.trim() || "Untitled slot"}</h2>
+          <p className="mw-admin-banner-where">{where}</p>
         </div>
         <span
           className={`mw-admin-chip${draft.status === "Active" ? " is-ok" : ""}`}
@@ -231,6 +232,15 @@ function SectionCard({
           {draft.status}
         </span>
       </header>
+
+      <div className="mw-admin-banner-live">
+        <span>Live preview</span>
+        <small>
+          {draft.status === "Active" && preview
+            ? "Active on the site"
+            : "Not live until you activate it"}
+        </small>
+      </div>
 
       <div className="mw-admin-banner-preview">
         {preview ? (
@@ -267,7 +277,8 @@ function SectionCard({
 
       <p className="mw-admin-hint">
         <MousePointerClick size={13} />{" "}
-        <strong data-testid={`banner-clicks-${id}`}>{banner?.clicks ?? 0}</strong> clicks · {where}
+        <strong data-testid={`banner-clicks-${id}`}>{banner?.clicks ?? 0}</strong> clicks · every
+        click opens the enquiry form and creates an Ad Lead.
       </p>
 
       <div className="mw-admin-form">

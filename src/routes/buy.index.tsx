@@ -7,7 +7,6 @@ import { StickyActions } from "@/components/site/StickyActions";
 import { EnquiryDialog, type EnquiryField } from "@/components/site/EnquiryDialog";
 import { BuyHub } from "@/components/buy/BuyHub";
 import { BuyServiceSidebar, type BuyServiceFilters } from "@/components/buy/BuySidebar";
-import { BannerAd } from "@/components/site/BannerAd";
 import { BuyFilterBar, BuyActiveFilters, type BuyFilters } from "@/components/buy/BuyFilterBar";
 import { BuyBrandRail } from "@/components/buy/BuyBrandRail";
 import { BuyListingCard } from "@/components/buy/BuyListingCard";
@@ -358,22 +357,18 @@ function BuyPage() {
             <div className={category ? "mw-buy-layout mw-buy-layout--flow" : "mw-buy-layout"}>
               {service ? (
                 <div className="mw-buy-aside">
-                <BuyServiceSidebar
-                  service={service}
-                  countLabel={countLabel(
-                    serviceListingsInCategory(service.id).length,
-                    "listing",
-                  )}
-                  filters={serviceFilters}
-                  options={serviceOptions}
-                  cities={serviceCityList}
-                  bounds={bounds}
-                  activeCount={serviceActiveCount}
-                  onBack={() => navigate({ to: "/buy", search: {}, replace: true })}
-                  onChange={patchService}
-                  onClear={clearService}
-                />
-                  <BannerAd section="sidebar" className="mw-ad-sidebar" label="Sponsored" />
+                  <BuyServiceSidebar
+                    service={service}
+                    countLabel={countLabel(serviceListingsInCategory(service.id).length, "listing")}
+                    filters={serviceFilters}
+                    options={serviceOptions}
+                    cities={serviceCityList}
+                    bounds={bounds}
+                    activeCount={serviceActiveCount}
+                    onBack={() => navigate({ to: "/buy", search: {}, replace: true })}
+                    onChange={patchService}
+                    onClear={clearService}
+                  />
                 </div>
               ) : null}
 
@@ -514,15 +509,15 @@ function BuyPage() {
                       ) : filters.brand &&
                         !brands.some((b) => b.brand === filters.brand && b.count > 0) ? (
                         <p className="mw-empty-text">
-                          There are no {category.label.toLowerCase()} listings for{" "}
-                          {filters.brand} right now — clear the brand filter to see the other brands
-                          in this category.
+                          There are no {category.label.toLowerCase()} listings for {filters.brand}{" "}
+                          right now — clear the brand filter to see the other brands in this
+                          category.
                         </p>
                       ) : filters.model ? (
                         <p className="mw-empty-text">
                           The selected model ({filters.model}) includes discontinued names from the
-                          catalogue, and none has a live listing right now — pick another model
-                          or clear the filters.
+                          catalogue, and none has a live listing right now — pick another model or
+                          clear the filters.
                         </p>
                       ) : (
                         <p className="mw-empty-text">

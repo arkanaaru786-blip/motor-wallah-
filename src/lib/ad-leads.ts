@@ -38,12 +38,9 @@ export const AD_LEADS_SETUP_HINT =
   "The ad_leads table is not in this database yet. Run supabase/ad-leads.sql in the Supabase SQL editor, then reload this page.";
 
 export const SECTION_LABELS: Record<string, string> = {
-  home_top: "Homepage top banner",
-  franchise_banner: "Franchise banner",
-  business_spotlight: "Business spotlight",
-  sidebar: "BUY sidebar ad",
-  sidebar_slot_1: "Homepage sidebar ad 1",
-  sidebar_slot_2: "Homepage sidebar ad 2",
+  home_top: "Homepage Top Banner",
+  franchise_banner: "Franchise Partner Banner",
+  sidebar: "Sidebar Ad",
 };
 
 export const sectionLabel = (section: string): string =>

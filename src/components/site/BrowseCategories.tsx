@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { BannerMedia } from "@/components/site/BannerAd";
-import { useActiveBanner } from "@/lib/banners";
+import { BannerMedia, bannerLinkProps } from "@/components/site/BannerAd";
+import { useAdLeadDialog } from "@/components/site/AdLeadDialog";
+import { trackBannerClick, useActiveBanner } from "@/lib/banners";
 import { BUY_CATEGORIES } from "@/lib/site";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import cars from "@/assets/homepage/Car.png";
@@ -141,26 +142,42 @@ export function BrandStrip() {
  */
 function BodyFranchiseBanner() {
   const banner = useActiveBanner("franchise_banner");
+  const { captureAdLead, adLeadDialog } = useAdLeadDialog();
+  const link = banner ? bannerLinkProps(banner, captureAdLead) : null;
+  const artwork = banner ? (
+    <BannerMedia banner={banner} className="home-body-franchise-image" width={640} height={360} />
+  ) : (
+    <img
+      src={showroom}
+      alt="Premium automotive franchise showroom"
+      width={1280}
+      height={720}
+      loading="lazy"
+      className="home-body-franchise-image"
+    />
+  );
 
   return (
     <section className="home-body-franchise" aria-labelledby="home-body-franchise-title">
       <div className="home-body-franchise-media">
-        {banner ? (
-          <BannerMedia
-            banner={banner}
-            className="home-body-franchise-image"
-            width={640}
-            height={360}
-          />
+        {!banner ? (
+          artwork
+        ) : link ? (
+          <a className="home-body-franchise-link" data-testid="franchise-banner-link" {...link}>
+            {artwork}
+          </a>
         ) : (
-          <img
-            src={showroom}
-            alt="Premium automotive franchise showroom"
-            width={1280}
-            height={720}
-            loading="lazy"
-            className="home-body-franchise-image"
-          />
+          <button
+            type="button"
+            className="home-body-franchise-link home-body-franchise-link--button"
+            aria-haspopup="dialog"
+            onClick={() => {
+              void trackBannerClick(banner.section);
+              captureAdLead(banner);
+            }}
+          >
+            {artwork}
+          </button>
         )}
       </div>
       <div className="home-body-franchise-body">
@@ -175,6 +192,7 @@ function BodyFranchiseBanner() {
           Apply Now <ArrowRight size={14} />
         </Link>
       </div>
+      {adLeadDialog}
     </section>
   );
 }
