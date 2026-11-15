@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Motor Wallah</string>
+    <string name="title_activity_main">Motor Wallah</string>
+    <string name="package_name">com.motorwallah.app</string>
+    <string name="custom_url_scheme">com.motorwallah.app</string>
+</resources>
