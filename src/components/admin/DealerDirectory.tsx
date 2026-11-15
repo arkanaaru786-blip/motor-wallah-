@@ -1,13 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BadgeCheck,
   Ban,
   CheckCircle2,
+  Filter,
   KeyRound,
   PlusCircle,
+  RefreshCw,
   ShieldCheck,
   Store,
   UserCog,
+  X,
 } from "lucide-react";
 
 import type { AdminSession } from "@/lib/admin-auth";
@@ -65,6 +68,12 @@ export function DealerDirectory({ session }: { session: AdminSession }) {
   const [error, setError] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [filter, setFilter] = useState<DealerCategoryId | "all">("all");
+  // The create form is opened from the page-level button, so the dealer list is
+  // what an admin sees first instead of a long form with its save button below
+  // the fold.
+  const [formOpen, setFormOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const formRef = useRef<HTMLElement | null>(null);
   // Plaintext credentials exist only here, once, so the admin can share them.
   const [issued, setIssued] = useState<{
     name: string;
@@ -92,8 +101,37 @@ export function DealerDirectory({ session }: { session: AdminSession }) {
     [dealers],
   );
 
+  const openForm = () => {
+    setFormOpen(true);
+    setError(null);
+    window.requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  };
+
   return (
     <div className="mw-admin-dash">
+      <div className="mw-dealer-pagehead">
+        <div>
+          <p className="mw-admin-eyebrow">Dealer accounts</p>
+          <h2>Add and manage dealer logins</h2>
+          <p>
+            Create a dealer account, assign its one vehicle category, and review every existing
+            dealer below.
+          </p>
+        </div>
+        {mayManage ? (
+          <button
+            type="button"
+            className="mw-dealer-btn is-primary mw-dealer-add"
+            onClick={openForm}
+            data-testid="dealer-add-new"
+          >
+            <PlusCircle size={16} /> Add New Dealer
+          </button>
+        ) : null}
+      </div>
+
       <section className="mw-admin-bento">
         <article className="mw-admin-kpi is-hero">
           <header>
@@ -148,18 +186,27 @@ export function DealerDirectory({ session }: { session: AdminSession }) {
         />
       ) : null}
 
-      {mayManage ? (
-        <section className="mw-admin-panel">
+      {mayManage && formOpen ? (
+        <section className="mw-admin-panel mw-dealer-create" ref={formRef}>
           <div className="mw-admin-panel-head">
             <div>
               <h2>
-                <PlusCircle size={15} /> Create a dealer
+                <PlusCircle size={15} /> Add New Dealer
               </h2>
               <p>
-                Choose the category this dealer may trade in. They see that category only — no
-                category picker, no other inventory.
+                Fill in the dealer details, choose the one category they may trade in, then save.
+                They see that category only — no category picker, no other inventory.
               </p>
             </div>
+            <button
+              type="button"
+              className="mw-dealer-btn is-quiet"
+              onClick={() => setFormOpen(false)}
+              aria-label="Close the add dealer form"
+              data-testid="dealer-form-close"
+            >
+              <X size={14} /> Close
+            </button>
           </div>
           <form
             className="mw-dealer-form"
@@ -191,6 +238,7 @@ export function DealerDirectory({ session }: { session: AdminSession }) {
               );
               setForm(EMPTY_FORM);
               setDealers(listDealers());
+              setFormOpen(false);
             }}
             data-testid="dealer-create-form"
           >
@@ -268,8 +316,20 @@ export function DealerDirectory({ session }: { session: AdminSession }) {
               />
             </label>
             <div className="mw-dealer-form-actions">
-              <button type="submit" className="mw-dealer-btn is-primary" disabled={busy}>
-                <PlusCircle size={15} /> {busy ? "Creating…" : "Create dealer"}
+              <button
+                type="submit"
+                className="mw-dealer-btn is-primary mw-dealer-save"
+                disabled={busy}
+                data-testid="dealer-create-submit"
+              >
+                <PlusCircle size={15} /> {busy ? "Saving dealer…" : "Save Dealer"}
+              </button>
+              <button
+                type="button"
+                className="mw-dealer-btn is-quiet"
+                onClick={() => setFormOpen(false)}
+              >
+                Cancel
               </button>
               <span className="mw-dealer-demo-note">
                 The partner ID (MW-DLR-…) is assigned automatically. Leave the password blank and
@@ -278,6 +338,10 @@ export function DealerDirectory({ session }: { session: AdminSession }) {
             </div>
           </form>
         </section>
+      ) : mayManage ? (
+        <p className="mw-admin-hint" data-testid="dealer-form-closed">
+          Press <strong>Add New Dealer</strong> to open the create form.
+        </p>
       ) : (
         <p className="mw-admin-flash" role="status">
           <ShieldCheck size={14} /> Your role can view dealers but not create or change them.
@@ -292,25 +356,65 @@ export function DealerDirectory({ session }: { session: AdminSession }) {
             </h2>
             <p>Approve, disable, or move a dealer to a different category.</p>
           </div>
-          <label className="mw-admin-select">
-            <span className="sr-only">Filter by category</span>
-            <select
-              value={filter}
-              onChange={(event) => setFilter(event.target.value as DealerCategoryId | "all")}
-              data-testid="dealer-filter-category"
+          <div className="mw-admin-inline">
+            <label className="mw-admin-select">
+              <span className="sr-only">Filter by category</span>
+              <select
+                value={filter}
+                onChange={(event) => setFilter(event.target.value as DealerCategoryId | "all")}
+                data-testid="dealer-filter-category"
+              >
+                <option value="all">All categories</option>
+                {DEALER_CATEGORIES.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="mw-dealer-btn is-small"
+              onClick={() => {
+                setRefreshing(true);
+                void ensureDealers().finally(() => {
+                  setDealers(listDealers());
+                  setRefreshing(false);
+                });
+              }}
+              data-testid="dealer-list-refresh"
             >
-              <option value="all">All categories</option>
-              {DEALER_CATEGORIES.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.label}
-                </option>
-              ))}
-            </select>
-          </label>
+              <RefreshCw size={13} /> {refreshing ? "Refreshing…" : "Refresh"}
+            </button>
+          </div>
         </div>
 
         {visible.length === 0 ? (
-          <p className="mw-admin-empty">No dealers in this category yet.</p>
+          <div className="mw-admin-empty" data-testid="dealer-list-empty">
+            {dealers.length === 0 ? (
+              <>
+                <p>
+                  <strong>No dealer accounts yet.</strong> Use “Add New Dealer” above to create the
+                  first one; it will appear here with its login ID and category.
+                </p>
+                {mayManage ? (
+                  <button type="button" className="mw-dealer-btn is-primary" onClick={openForm}>
+                    <PlusCircle size={15} /> Add New Dealer
+                  </button>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <p>
+                  No dealers are assigned to{" "}
+                  {filter === "all" ? "any category" : dealerCategoryLabel(filter)}.
+                </p>
+                <button type="button" className="mw-dealer-btn" onClick={() => setFilter("all")}>
+                  <Filter size={13} /> Show all {dealers.length} dealers
+                </button>
+              </>
+            )}
+          </div>
         ) : (
           <div className="mw-dealer-tablewrap">
             <table className="mw-dealer-table" data-testid="dealer-admin-table">

@@ -27,7 +27,6 @@
 @import "./styles/site-chrome.css";
 @import "./styles/analytics-flow.css";
 
-
 @custom-variant dark (&:is(.dark *));
 
 /*
@@ -2774,7 +2773,6 @@ a.mw-info-contact-link:hover {
   color: var(--muted-foreground);
 }
 
-
 /* Single sticky sidebar ad */
 .home-side-ads {
   display: grid;
@@ -2859,4 +2857,73 @@ a.mw-info-contact-link:hover {
   padding: 0;
   border: 0;
   background: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Dealer Accounts: page action, create form and empty list           */
+/* ------------------------------------------------------------------ */
+.mw-dealer-pagehead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 2px 2px 0;
+}
+.mw-dealer-pagehead h2 {
+  margin-top: 3px;
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+}
+.mw-dealer-pagehead p {
+  margin-top: 4px;
+  max-width: 62ch;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+.mw-dealer-add {
+  padding: 11px 20px;
+  font-size: 0.86rem;
+  border-radius: 12px;
+  box-shadow: 0 12px 26px oklch(0.55 0.223 27.5 / 0.22);
+}
+.mw-dealer-create .mw-dealer-form-actions {
+  position: sticky;
+  bottom: -1px;
+  z-index: 1;
+  margin-top: 4px;
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--dlr-line);
+  background: linear-gradient(to bottom, rgb(255 255 255 / 0.86), rgb(255 255 255 / 0.98));
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.mw-dealer-create .mw-dealer-save {
+  min-width: 170px;
+  padding: 11px 18px;
+  font-size: 0.86rem;
+}
+.mw-admin-empty p {
+  margin: 0 0 10px;
+  max-width: 56ch;
+  line-height: 1.55;
+}
+.mw-admin-empty .mw-dealer-btn {
+  margin-top: 2px;
+}
+.mw-admin-inline .mw-dealer-btn {
+  align-self: center;
+}
+@media (max-width: 640px) {
+  .mw-dealer-pagehead {
+    align-items: stretch;
+  }
+  .mw-dealer-add {
+    justify-content: center;
+    width: 100%;
+  }
 }
