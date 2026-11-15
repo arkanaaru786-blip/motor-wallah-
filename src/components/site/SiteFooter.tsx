@@ -35,6 +35,7 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
       { label: "FAQs", to: "/faqs" },
       { label: "RTO Services", to: "/rto" },
       { label: "Track a Request", to: "/track" },
+      { label: "Become a Franchise Partner", to: "/franchise" },
     ],
   },
 ];

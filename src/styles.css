@@ -1922,3 +1922,264 @@
 .home-spotlight-image-link {
   display: block;
 }
+
+/* --- Home showcase: listing grid + sticky ad sidebar --------------------- */
+/* Below Hero + categories: vehicles are the main column and every ad slot
+   lives in one right-hand column on desktop. On mobile the same sidebar stacks
+   ABOVE the listing (order swap) so the flow stays Hero -> Categories -> Ads ->
+   Listing, with the carousel scrolling sideways instead of growing tall. */
+.home-showcase {
+  background: var(--surface);
+  padding-block: 8px 48px;
+}
+.home-showcase-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+.home-showcase-main {
+  min-width: 0;
+  order: 2;
+}
+.home-showcase-side {
+  min-width: 0;
+  order: 1;
+}
+@media (min-width: 1024px) {
+  .home-showcase-grid {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 26px;
+  }
+  .home-showcase-main {
+    order: 1;
+  }
+  .home-showcase-side {
+    order: 2;
+    position: sticky;
+    top: 90px;
+  }
+}
+.home-showcase-main .home-section-heading {
+  margin-bottom: 18px;
+}
+
+.home-side-stack {
+  display: grid;
+  gap: 16px;
+}
+
+/* Advertise CTA */
+.home-side-advertise {
+  display: grid;
+  gap: 10px;
+  padding: 20px;
+  border-radius: 16px;
+  background: var(--glass-strong);
+  border: 1px solid var(--home-line);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--home-shadow);
+}
+.home-side-advertise-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+.home-side-advertise h2 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.08;
+  text-transform: uppercase;
+  color: var(--foreground);
+}
+.home-side-advertise-cta {
+  justify-content: center;
+  width: 100%;
+}
+
+/* Franchise card: image on top, copy below, button at the bottom. */
+.home-side-franchise-card {
+  display: none;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--glass-strong);
+  border: 1px solid var(--home-line);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--home-shadow);
+}
+@media (min-width: 1024px) {
+  .home-side-franchise-card {
+    display: block;
+  }
+}
+.home-side-franchise-media {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--muted);
+}
+.home-side-franchise-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.home-side-franchise-body {
+  display: grid;
+  gap: 8px;
+  padding: 18px 18px 20px;
+}
+.home-side-franchise-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+.home-side-franchise-body h2 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.05;
+  text-transform: uppercase;
+  color: var(--foreground);
+}
+.home-side-franchise-body h2 span {
+  color: var(--primary);
+}
+.home-side-franchise-text {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+.home-side-franchise-cta {
+  justify-content: center;
+  width: 100%;
+  margin-top: 4px;
+}
+
+/* Horizontal sponsored carousel */
+.home-side-carousel {
+  min-width: 0;
+}
+.home-side-carousel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.home-side-carousel-head p {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.home-side-carousel-head span {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+.home-side-carousel-rail {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 6px;
+}
+.home-side-carousel-rail::-webkit-scrollbar {
+  display: none;
+}
+.home-side-carousel-card {
+  flex: 0 0 84%;
+  min-width: 0;
+  scroll-snap-align: start;
+}
+@media (min-width: 640px) {
+  .home-side-carousel-card {
+    flex-basis: 58%;
+  }
+}
+@media (min-width: 1024px) {
+  .home-side-carousel-card {
+    flex-basis: 80%;
+  }
+}
+.home-side-carousel-link {
+  display: block;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--glass-strong);
+  border: 1px solid var(--home-line);
+  box-shadow: var(--home-shadow);
+  text-decoration: none;
+}
+.home-side-carousel-media {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  object-fit: cover;
+}
+.home-side-carousel-title {
+  display: block;
+  padding: 9px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--foreground);
+}
+
+/* One tall ad on the desktop sidebar only. */
+.home-side-vertical-ad {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .home-side-vertical-ad {
+    display: block;
+  }
+  .home-side-vertical-ad .mw-ad-media {
+    max-height: 400px;
+  }
+}
+
+/* Featured badge + whole-card detail link */
+.home-listing-card {
+  position: relative;
+}
+.home-listing-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+}
+.home-listing-featured {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 3;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: oklch(1 0 0);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.home-listing-fav,
+.home-listing-actions {
+  position: relative;
+  z-index: 4;
+}

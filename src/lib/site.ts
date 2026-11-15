@@ -79,10 +79,12 @@ export const MAIN_NAV = [
   { label: "Exchange", to: "/exchange" },
   { label: "Value", to: "/sell-your-car" },
   { label: "Compare", to: "/compare" },
+  { label: "New Spare Parts", to: "/accessories" },
+  { label: "Used Spare Parts", to: "/accessories" },
+  { label: "Finance", to: "/finance" },
+  { label: "Insurance", to: "/insurance" },
   { label: "Service", to: "/services" },
   { label: "Scrap", to: "/scrap" },
-  { label: "Decor", to: "/decor" },
-  { label: "Franchise", to: "/franchise" },
 ] as const;
 
 /**

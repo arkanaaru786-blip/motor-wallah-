@@ -135,17 +135,6 @@ export function BrandStrip() {
 function ExploreSideCards() {
   return (
     <aside className="home-explore-side">
-      <Link to="/franchise" className="home-side-card home-side-franchise">
-        <p className="home-side-eyebrow">Become a</p>
-        <h3>Franchise Partner</h3>
-        <span className="home-side-text">
-          Join Motor Wallah and grow your automotive business with us.
-        </span>
-        <span className="home-side-cta">
-          Apply Now <ArrowRight size={14} />
-        </span>
-      </Link>
-
       <Link to="/about" className="home-side-card home-side-showroom">
         <img
           src={showroom}

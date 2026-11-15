@@ -10,23 +10,27 @@ import {
   GitCompareArrows,
   Wrench,
   Recycle,
-  Sparkles,
+  Package,
+  IndianRupee,
+  ShieldCheck,
 } from "lucide-react";
 import { BUY_CATEGORIES, MAIN_NAV } from "@/lib/site";
 import { BrandLogo } from "@/components/site/BrandLogo";
 import { Button } from "@/components/ui/button";
 
-const NAV_ICONS = [
-  ShoppingBag,
-  Store,
-  ArrowLeftRight,
-  Calculator,
-  GitCompareArrows,
-  Wrench,
-  Recycle,
-  Sparkles,
-  Store,
-];
+const NAV_ICONS: Record<string, typeof ShoppingBag> = {
+  Buy: ShoppingBag,
+  Sell: Store,
+  Exchange: ArrowLeftRight,
+  Value: Calculator,
+  Compare: GitCompareArrows,
+  "New Spare Parts": Package,
+  "Used Spare Parts": Recycle,
+  Finance: IndianRupee,
+  Insurance: ShieldCheck,
+  Service: Wrench,
+  Scrap: Recycle,
+};
 
 /**
  * BUY marketplace header: light bar with pill navigation (BUY solid red,
@@ -70,7 +74,7 @@ function BuyPillHeader() {
           <Button
             asChild
             size="sm"
-            className="hidden rounded-full text-[0.6rem] font-bold uppercase lg:inline-flex"
+            className="hidden rounded-full text-[0.6rem] font-bold uppercase 2xl:inline-flex"
           >
             <Link to="/franchise">Become a Franchise Partner</Link>
           </Button>
@@ -106,7 +110,7 @@ export function SiteHeader({
     <header className="sticky top-0 z-50 border-b border-ink-foreground/10 bg-ink text-ink-foreground">
       <div className="mx-auto grid max-w-[1600px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 py-2.5 lg:px-8 xl:flex">
         <BrandLogo homepage={homepage} />
-        <nav className={`ml-auto hidden items-center gap-4 ${homepage ? "" : "xl:flex"}`}>
+        <nav className={`ml-auto hidden items-center gap-3 ${homepage ? "" : "xl:flex"}`}>
           {MAIN_NAV.map((item) =>
             item.label === "Buy" ? (
               <div key="buy" className="group relative">
@@ -172,7 +176,7 @@ export function SiteHeader({
           <Button
             asChild
             size="sm"
-            className="hidden rounded-sm text-[0.6rem] font-bold uppercase lg:inline-flex"
+            className="hidden rounded-sm text-[0.6rem] font-bold uppercase 2xl:inline-flex"
           >
             <Link to="/franchise">Become a Franchise Partner</Link>
           </Button>
@@ -182,8 +186,8 @@ export function SiteHeader({
         aria-label="Primary navigation"
         className={`scrollbar-none flex overflow-x-auto border-t border-ink-foreground/10 px-3 ${homepage ? "home-primary-rail" : "xl:hidden"}`}
       >
-        {MAIN_NAV.map((item, index) => {
-          const Icon = NAV_ICONS[index] ?? Store;
+        {MAIN_NAV.map((item) => {
+          const Icon = NAV_ICONS[item.label] ?? Store;
           return (
             <Link
               key={`${item.label}-${item.to}`}

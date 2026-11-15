@@ -5,12 +5,9 @@ import { StickyActions } from "@/components/site/StickyActions";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { BrowseCategories } from "@/components/site/BrowseCategories";
 import {
-  BusinessSpotlight,
-  FranchiseBanner,
-  HomeTopAd,
+  HomeShowcase,
   MarketplaceActions,
   MarketplaceHub,
-  PopularVehicles,
   TrustStrip,
 } from "@/components/site/HomeMarketplaceSections";
 
@@ -39,11 +36,8 @@ function Index() {
       <main>
         <Hero />
         <BrowseCategories />
-        <HomeTopAd />
-        <FranchiseBanner />
+        <HomeShowcase />
         <MarketplaceHub />
-        <PopularVehicles />
-        <BusinessSpotlight />
         <MarketplaceActions />
         <TrustStrip />
       </main>

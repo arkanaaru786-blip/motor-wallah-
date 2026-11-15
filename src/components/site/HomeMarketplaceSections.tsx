@@ -23,24 +23,31 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BannerAd, BannerMedia, bannerLinkProps } from "@/components/site/BannerAd";
-import { useActiveBanner } from "@/lib/banners";
+import { useActiveBanner, useBanners } from "@/lib/banners";
 import { MakeOfferDialog } from "@/components/buy/MakeOfferDialog";
 import { gateCustomerAction } from "@/lib/customer-gate";
 import { useShortlist } from "@/lib/shortlist";
-import { BUY_CATEGORY_LIST, getBuyListing, lakhLabel, listingsInCategory } from "@/lib/buy-catalog";
+import {
+  BUY_CATEGORY_LIST,
+  HOME_POPULAR_LISTINGS,
+  getBuyListing,
+  lakhLabel,
+} from "@/lib/buy-catalog";
 import franchiseShowroom from "@/assets/franchise-showroom.jpg";
 import businessSpotlight from "@/assets/business-spotlight.jpg";
 import carPhoto from "@/assets/homepage/Car.png";
 
 // Every card opens the SAME unified BUY listing page — ids come straight from
 // the BUY catalogue, so there is no second listing design anywhere.
-const CAR_LISTING = listingsInCategory("cars").find(
-  (listing) => listing.demo && listing.status === "Available",
+const CAR_LISTING = HOME_POPULAR_LISTINGS.find(
+  (listing) => listing.categoryId === "cars" && listing.status === "Available",
 );
 const LISTINGS = [
   ...(CAR_LISTING ? [{ listing: CAR_LISTING, image: carPhoto }] : []),
   ...BUY_CATEGORY_LIST.filter((c) => c.id !== "cars").flatMap((category) => {
-    const listing = listingsInCategory(category.id)[0];
+    const listing = HOME_POPULAR_LISTINGS.find(
+      (entry) => entry.categoryId === category.id && entry.status === "Available",
+    );
     return listing ? [{ listing, image: category.image }] : [];
   }),
 ];
@@ -326,90 +333,239 @@ export function SidebarAd() {
   return <BannerAd section="sidebar" className="mw-ad-sidebar" label="Sponsored" />;
 }
 
+const FEATURED_COUNT = 2;
+
 export function PopularVehicles() {
   const shortlist = useShortlist();
   const [offerId, setOfferId] = useState<string | null>(null);
   const offerListing = offerId ? (getBuyListing(offerId) ?? null) : null;
 
   return (
-    <section className="home-popular">
-      <div className="home-container">
-        <div className="home-section-heading">
-          <div>
-            <p className="home-section-kicker">Featured Listings</p>
-            <h2>
-              Popular <span>Vehicles</span>
-            </h2>
-            <p>Top picks from our marketplace</p>
-          </div>
-          <Link to="/buy" search={{ category: "cars" }}>
-            View all <ArrowRight size={14} />
-          </Link>
+    <section className="home-showcase-main" aria-labelledby="popular-vehicles-title">
+      <div className="home-section-heading">
+        <div>
+          <p className="home-section-kicker">Marketplace</p>
+          <h2 id="popular-vehicles-title">
+            Popular <span>Vehicles</span>
+          </h2>
+          <p>Featured picks and top listings from our marketplace</p>
         </div>
-        <div className="home-listing-grid">
-          {LISTINGS.map(({ listing, image }) => {
-            const name = `${listing.brand} ${listing.model}`;
-            const shortlisted = shortlist.has(listing.id);
-            return (
-              <article key={listing.id} className="home-listing-card">
-                <div className="home-listing-image">
-                  <img
-                    src={image}
-                    alt={`${name} ${listing.categoryLabel} illustrative demo photograph`}
-                    width={720}
-                    height={450}
-                    loading="lazy"
+        <Link to="/buy" search={{ category: "cars" }}>
+          View all <ArrowRight size={14} />
+        </Link>
+      </div>
+      <div className="home-listing-grid">
+        {LISTINGS.map(({ listing, image }, index) => {
+          const name = `${listing.brand} ${listing.model}`;
+          const shortlisted = shortlist.has(listing.id);
+          const featured = index < FEATURED_COUNT;
+          return (
+            <article key={listing.id} className="home-listing-card">
+              {/* The whole card opens the vehicle detail page; the buttons below
+                  sit above this overlay so favourite and offer still work. */}
+              <Link
+                to="/buy/vehicle/$id"
+                params={{ id: listing.id }}
+                className="home-listing-hit"
+                aria-label={`Open details for ${name}`}
+              />
+              <div className="home-listing-image">
+                <img
+                  src={image}
+                  alt={`${name} ${listing.categoryLabel} illustrative demo photograph`}
+                  width={720}
+                  height={450}
+                  loading="lazy"
+                />
+                {featured ? <span className="home-listing-featured">Featured</span> : null}
+                <button
+                  type="button"
+                  className="home-listing-fav"
+                  aria-label={shortlisted ? `Remove ${name} from shortlist` : `Shortlist ${name}`}
+                  aria-pressed={shortlisted}
+                  onClick={() => shortlist.toggle(listing.id)}
+                >
+                  <Heart
+                    size={16}
+                    fill={shortlisted ? "currentColor" : "none"}
+                    aria-hidden="true"
                   />
+                </button>
+              </div>
+              <div className="home-listing-body">
+                <p className="home-listing-brand">{listing.brand}</p>
+                <h3>{name}</h3>
+                <p className="home-listing-variant">{listing.categoryLabel}</p>
+                <p className="home-listing-meta">
+                  {listing.year} · {listing.fuel}
+                </p>
+                <p className="home-listing-meta">
+                  {listing.kilometres !== null
+                    ? `${listing.kilometres.toLocaleString("en-IN")} km`
+                    : "Km on request"}{" "}
+                  · {listing.city}
+                </p>
+                <p className="home-listing-price">{lakhLabel(listing.priceLakh)}</p>
+                <div className="home-listing-actions">
+                  <Button asChild size="sm" className="home-listing-button">
+                    <Link to="/buy/vehicle/$id" params={{ id: listing.id }}>
+                      View Details <ArrowRight size={12} />
+                    </Link>
+                  </Button>
                   <button
                     type="button"
-                    className="home-listing-fav"
-                    aria-label={shortlisted ? `Remove ${name} from shortlist` : `Shortlist ${name}`}
-                    aria-pressed={shortlisted}
-                    onClick={() => shortlist.toggle(listing.id)}
+                    className="home-listing-offer"
+                    onClick={() => gateCustomerAction("offer", () => setOfferId(listing.id))}
                   >
-                    <Heart
-                      size={16}
-                      fill={shortlisted ? "currentColor" : "none"}
-                      aria-hidden="true"
-                    />
+                    Make an Offer
                   </button>
                 </div>
-                <div className="home-listing-body">
-                  <p className="home-listing-brand">{listing.brand}</p>
-                  <h3>{name}</h3>
-                  <p className="home-listing-variant">{listing.categoryLabel}</p>
-                  <p className="home-listing-meta">
-                    {listing.year} · {listing.fuel}
-                  </p>
-                  <p className="home-listing-meta">
-                    {listing.kilometres !== null
-                      ? `${listing.kilometres.toLocaleString("en-IN")} km`
-                      : "Km on request"}{" "}
-                    · {listing.city}
-                  </p>
-                  <p className="home-listing-price">{lakhLabel(listing.priceLakh)}</p>
-                  <div className="home-listing-actions">
-                    <Button asChild size="sm" className="home-listing-button">
-                      <Link to="/buy/vehicle/$id" params={{ id: listing.id }}>
-                        View Details <ArrowRight size={12} />
-                      </Link>
-                    </Button>
-                    <button
-                      type="button"
-                      className="home-listing-offer"
-                      onClick={() => gateCustomerAction("offer", () => setOfferId(listing.id))}
-                    >
-                      Make an Offer
-                    </button>
-                  </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+      {offerListing && (
+        <MakeOfferDialog listing={offerListing} open onClose={() => setOfferId(null)} />
+      )}
+    </section>
+  );
+}
+
+/**
+ * Horizontal ad carousel for the homepage sidebar.
+ *
+ * Every Active banner that has artwork (except the tall sidebar slot, which is
+ * rendered separately) becomes a snap-scrolling card. It is a plain overflow-x
+ * rail, so touch scrolling keeps native momentum and the five ad slots stay in
+ * one compact row instead of pushing the listing down.
+ */
+export function HomeAdCarousel() {
+  const { banners } = useBanners();
+  const ads = banners.filter(
+    (banner) =>
+      banner.status === "Active" && banner.imageUrl.trim() && banner.section !== "sidebar",
+  );
+  if (!ads.length) return null;
+
+  return (
+    <section className="home-side-carousel" aria-label="Sponsored highlights">
+      <div className="home-side-carousel-head">
+        <p>Sponsored</p>
+        <span>Swipe for more</span>
+      </div>
+      <div className="home-side-carousel-rail">
+        {ads.map((banner) => {
+          const link = bannerLinkProps(banner);
+          const media = (
+            <BannerMedia
+              banner={banner}
+              className="home-side-carousel-media"
+              width={640}
+              height={360}
+            />
+          );
+          const title = banner.title.trim();
+          return (
+            <article className="home-side-carousel-card" key={banner.id}>
+              {link ? (
+                <a className="home-side-carousel-link" {...link}>
+                  {media}
+                  {title ? <span className="home-side-carousel-title">{title}</span> : null}
+                </a>
+              ) : (
+                <div className="home-side-carousel-link">
+                  {media}
+                  {title ? <span className="home-side-carousel-title">{title}</span> : null}
                 </div>
-              </article>
-            );
-          })}
+              )}
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Desktop sticky sidebar.
+ *
+ * Image-first franchise card (hidden below desktop; the footer keeps the link
+ * on mobile), the advertise CTA, a horizontal ad carousel and one tall ad.
+ */
+export function HomeSidebar() {
+  const franchise = useActiveBanner("franchise_banner");
+
+  return (
+    <aside className="home-showcase-side" aria-label="Advertise and sponsored">
+      <div className="home-side-stack">
+        <section className="home-side-advertise">
+          <p className="home-side-advertise-kicker">Advertise with us</p>
+          <h2>Put your business in front of every buyer.</h2>
+          <Button asChild className="home-cta home-cta-primary home-side-advertise-cta">
+            <Link to="/contact">
+              Advertise Your Business <ArrowRight size={15} />
+            </Link>
+          </Button>
+        </section>
+
+        <section className="home-side-franchise-card" aria-labelledby="home-side-franchise-title">
+          <div className="home-side-franchise-media">
+            {franchise ? (
+              <BannerMedia
+                banner={franchise}
+                className="home-side-franchise-image"
+                width={640}
+                height={360}
+              />
+            ) : (
+              <img
+                src={franchiseShowroom}
+                alt="Premium automotive franchise showroom"
+                width={1280}
+                height={720}
+                loading="lazy"
+                className="home-side-franchise-image"
+              />
+            )}
+          </div>
+          <div className="home-side-franchise-body">
+            <p className="home-side-franchise-kicker">Franchise opportunity</p>
+            <h2 id="home-side-franchise-title">
+              Become a <span>Franchise Partner</span>
+            </h2>
+            <p className="home-side-franchise-text">
+              Join Motor Wallah and grow your automotive business with us.
+            </p>
+            <Button asChild className="home-cta home-cta-primary home-side-franchise-cta">
+              <Link to="/franchise">
+                Apply Now <ArrowRight size={15} />
+              </Link>
+            </Button>
+          </div>
+        </section>
+
+        <HomeAdCarousel />
+
+        <BannerAd
+          section="sidebar"
+          className="mw-ad-sidebar home-side-vertical-ad"
+          label="Sponsored"
+        />
+      </div>
+    </aside>
+  );
+}
+
+/** Two-column desktop layout: vehicle grid left, sticky ad sidebar right. */
+export function HomeShowcase() {
+  return (
+    <section className="home-showcase">
+      <div className="home-container">
+        <div className="home-showcase-grid">
+          <PopularVehicles />
+          <HomeSidebar />
         </div>
-        {offerListing && (
-          <MakeOfferDialog listing={offerListing} open onClose={() => setOfferId(null)} />
-        )}
       </div>
     </section>
   );
