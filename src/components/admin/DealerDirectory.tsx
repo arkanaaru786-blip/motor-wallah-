@@ -338,10 +338,6 @@ export function DealerDirectory({ session }: { session: AdminSession }) {
             </div>
           </form>
         </section>
-      ) : mayManage ? (
-        <p className="mw-admin-hint" data-testid="dealer-form-closed">
-          Press <strong>Add New Dealer</strong> to open the create form.
-        </p>
       ) : (
         <p className="mw-admin-flash" role="status">
           <ShieldCheck size={14} /> Your role can view dealers but not create or change them.
