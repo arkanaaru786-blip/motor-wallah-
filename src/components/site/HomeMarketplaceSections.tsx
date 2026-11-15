@@ -175,10 +175,14 @@ export function FranchiseBanner() {
             </Button>
           </div>
           <div className="home-franchise-media">
-            {banner && link ? (
-              <a className="home-franchise-link" data-testid="franchise-banner-link" {...link}>
+            {banner ? (
+              link ? (
+                <a className="home-franchise-link" data-testid="franchise-banner-link" {...link}>
+                  <BannerMedia banner={banner} />
+                </a>
+              ) : (
                 <BannerMedia banner={banner} />
-              </a>
+              )
             ) : (
               <img
                 src={franchiseShowroom}
@@ -250,10 +254,28 @@ export function BusinessSpotlight() {
     <section className="home-spotlight">
       <div className="home-container">
         <div className="home-spotlight-card">
-          {banner && link ? (
-            <a className="home-spotlight-image-link" data-testid="spotlight-banner-link" {...link}>
-              <BannerMedia banner={banner} className="home-spotlight-image" width={1280} height={720} />
-            </a>
+          {banner ? (
+            link ? (
+              <a
+                className="home-spotlight-image-link"
+                data-testid="spotlight-banner-link"
+                {...link}
+              >
+                <BannerMedia
+                  banner={banner}
+                  className="home-spotlight-image"
+                  width={1280}
+                  height={720}
+                />
+              </a>
+            ) : (
+              <BannerMedia
+                banner={banner}
+                className="home-spotlight-image"
+                width={1280}
+                height={720}
+              />
+            )
           ) : (
             <img
               src={businessSpotlight}

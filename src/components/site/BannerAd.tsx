@@ -72,7 +72,7 @@ export function bannerLinkProps(banner: Banner) {
   };
 }
 
-/** A standalone ad block: the whole artwork is one link. */
+/** A standalone ad block: the whole artwork is a link when a target URL is set. */
 export function BannerAd({
   section,
   className = "",
@@ -86,15 +86,28 @@ export function BannerAd({
   const banner = activeBanner(section, banners);
   if (!banner) return null;
   const link = bannerLinkProps(banner);
-  if (!link) return null;
+
+  const content = (
+    <>
+      <BannerMedia banner={banner} className="mw-ad-media" />
+      {banner.title ? <span className="mw-ad-title">{banner.title}</span> : null}
+    </>
+  );
 
   return (
-    <section className={`mw-ad ${className}`.trim()} aria-label={label} data-testid={`ad-${section}`}>
+    <section
+      className={`mw-ad ${className}`.trim()}
+      aria-label={label}
+      data-testid={`ad-${section}`}
+    >
       <span className="mw-ad-tag">{label}</span>
-      <a className="mw-ad-link" {...link}>
-        <BannerMedia banner={banner} className="mw-ad-media" />
-        {banner.title ? <span className="mw-ad-title">{banner.title}</span> : null}
-      </a>
+      {link ? (
+        <a className="mw-ad-link" {...link}>
+          {content}
+        </a>
+      ) : (
+        <div className="mw-ad-link">{content}</div>
+      )}
     </section>
   );
 }
