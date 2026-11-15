@@ -354,7 +354,7 @@ export function PopularVehicles() {
           </h2>
           <p>Featured picks and top listings from our marketplace</p>
         </div>
-        <Link to="/buy" search={{ category: "cars" }}>
+        <Link to="/buy">
           View all <ArrowRight size={14} />
         </Link>
       </div>
@@ -551,8 +551,10 @@ export function HomeSidebar() {
   return (
     <aside className="home-showcase-side" aria-label="Advertisements">
       <div className="home-side-stack">
-        <SidebarAdSlot slot="sidebar_slot_1" label="Advertisement" />
-        <SidebarAdSlot slot="sidebar_slot_2" label="Advertisement" />
+        <div className="home-side-ads">
+          <SidebarAdSlot slot="sidebar_slot_1" label="Advertisement 1" />
+          <SidebarAdSlot slot="sidebar_slot_2" label="Advertisement 2" />
+        </div>
 
         <section className="home-side-advertise">
           <p className="home-side-advertise-kicker">Advertise with us</p>

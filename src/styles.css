@@ -2773,3 +2773,46 @@ a.mw-info-contact-link:hover {
   line-height: 1.5;
   color: var(--muted-foreground);
 }
+
+
+/* Two sidebar ad slots side by side (labels above each ad). */
+.home-side-ads {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+.home-side-ads .home-side-slot {
+  min-width: 0;
+}
+.home-side-ads .home-side-slot-head {
+  padding: 8px 10px;
+}
+.home-side-ads .home-side-slot-head p {
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home-side-ads .home-side-slot-head span {
+  display: none;
+}
+.home-side-ads .home-side-slot-rail {
+  gap: 0;
+}
+.home-side-ads .home-side-slot-image {
+  aspect-ratio: 4 / 3;
+}
+.home-side-ads .home-side-slot-empty {
+  padding: 16px 8px;
+  gap: 5px;
+}
+.home-side-ads .home-side-slot-empty p {
+  font-size: 10px;
+  line-height: 1.35;
+}
+.home-side-ads .home-side-slot-empty a {
+  font-size: 8.5px;
+  letter-spacing: 0.04em;
+}
