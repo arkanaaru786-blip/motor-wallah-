@@ -291,6 +291,84 @@ export async function sendFormEmails(input: FormEmailInput): Promise<SendResult[
   return Promise.all(jobs);
 }
 
+export type AdLeadEmailInput = {
+  section: string;
+  sectionLabel: string;
+  bannerTitle: string;
+  advertiserName: string;
+  advertiserEmail: string;
+  name: string;
+  mobile: string;
+  requirement: string;
+  sourcePath: string;
+};
+
+/**
+ * One ad enquiry: a notification to the advertiser (when the banner has an
+ * email) plus a copy for the admin inbox so no lead depends on the advertiser's
+ * inbox being watched.
+ */
+export async function sendAdLeadEmails(input: AdLeadEmailInput): Promise<SendResult[]> {
+  const { admin } = readEnv();
+  const rows: [string, string][] = [
+    ["Name", input.name],
+    ["Mobile", input.mobile],
+    ["Requirement", input.requirement],
+    ["Ad slot", input.sectionLabel],
+    ["Ad", input.bannerTitle],
+    ["Page", input.sourcePath],
+  ];
+  const jobs: Promise<SendResult>[] = [];
+
+  if (input.advertiserEmail) {
+    const body = layout({
+      heading: "New customer enquiry",
+      intro: `${input.name} clicked your advertisement on Motor Wallah and asked to be contacted.`,
+      rows,
+      note: `Reply to this email to reach ${input.name} directly, or call ${input.mobile}.`,
+    });
+    jobs.push(
+      sendEmail({
+        to: input.advertiserEmail,
+        subject: `New enquiry from ${input.name} — Motor Wallah ad`,
+        ...body,
+      }),
+    );
+  }
+
+  const alert = layout({
+    heading: `New ad lead — ${input.advertiserName || input.sectionLabel}`,
+    intro: input.advertiserEmail
+      ? `The advertiser was notified at ${input.advertiserEmail}.`
+      : "This banner has no advertiser email, so only this alert was sent. Add one in Banners & Ads.",
+    rows,
+  });
+  jobs.push(
+    sendEmail({
+      to: admin,
+      subject: `[Motor Wallah] Ad lead — ${input.name} (${input.sectionLabel})`,
+      ...alert,
+    }),
+  );
+
+  return Promise.all(jobs);
+}
+
+/**
+ * Read a server-only environment variable, loading `.env.local` when a local
+ * process has not done it. Deployment values are already in `process.env`.
+ */
+export function serverEnv(name: string): string {
+  const env = (typeof process !== "undefined" ? process.env : {}) as Record<
+    string,
+    string | undefined
+  >;
+  const direct = (env[name] ?? "").trim();
+  if (direct) return direct;
+  loadLocalEnv();
+  return (env[name] ?? "").trim();
+}
+
 export type OrderEmailInput = {
   orderRef: string;
   itemType: string;

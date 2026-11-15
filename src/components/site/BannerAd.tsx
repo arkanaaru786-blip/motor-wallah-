@@ -6,6 +6,7 @@ import {
   trackBannerClick,
   useBanners,
 } from "@/lib/banners";
+import { useAdLeadDialog } from "@/components/site/AdLeadDialog";
 
 /**
  * The ad slots the marketing team controls from the control room.
@@ -55,20 +56,29 @@ export function BannerMedia({
 
 /**
  * Anchor props for a banner: href plus the click counter. Returns null when the
- * row has no usable link, which is how a slot stays un-clickable rather than
- * linking nowhere.
+ * row has no usable link and no enquiry form is attached, which is how a slot
+ * stays un-clickable rather than linking nowhere.
+ *
+ * When `onCapture` is supplied a click no longer leaves the page: it opens the
+ * ad enquiry form instead. The target is kept on the anchor for middle-click
+ * and for the “Continue to advertiser” action after the form is sent.
  */
-export function bannerLinkProps(banner: Banner) {
+export function bannerLinkProps(banner: Banner, onCapture?: (banner: Banner) => void) {
   const href = bannerHref(banner);
-  if (!href) return null;
+  if (!href && !onCapture) return null;
   return {
-    href,
-    onClick: () => {
+    href: href ?? "#",
+    onClick: (event: React.MouseEvent<HTMLAnchorElement>) => {
+      if (onCapture) {
+        event.preventDefault();
+        onCapture(banner);
+      }
       void trackBannerClick(banner.section);
     },
-    ...(opensInNewTab(href)
+    ...(href && opensInNewTab(href)
       ? { target: "_blank", rel: "noopener noreferrer sponsored" }
       : { rel: "sponsored" }),
+    ...(onCapture ? { "aria-haspopup": "dialog" as const } : {}),
   };
 }
 
@@ -84,8 +94,9 @@ export function BannerAd({
 }) {
   const { banners } = useBanners();
   const banner = activeBanner(section, banners);
+  const { captureAdLead, adLeadDialog } = useAdLeadDialog();
   if (!banner) return null;
-  const link = bannerLinkProps(banner);
+  const link = bannerLinkProps(banner, captureAdLead);
 
   const content = (
     <>
@@ -108,6 +119,7 @@ export function BannerAd({
       ) : (
         <div className="mw-ad-link">{content}</div>
       )}
+      {adLeadDialog}
     </section>
   );
 }

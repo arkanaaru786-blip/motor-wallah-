@@ -107,6 +107,10 @@ export type Banner = {
   targetUrl: string;
   status: BannerStatus;
   clicks: number;
+  /** Who receives the enquiries captured when this ad is clicked. */
+  advertiserName: string;
+  advertiserEmail: string;
+  advertiserWhatsapp: string;
 };
 
 export const MAX_MEDIA_BYTES = 2 * 1024 * 1024;
@@ -158,6 +162,9 @@ type Row = {
   target_url: string | null;
   status: string | null;
   clicks: number | null;
+  advertiser_name: string | null;
+  advertiser_email: string | null;
+  advertiser_whatsapp: string | null;
 };
 
 const rowToBanner = (row: Row): Banner => ({
@@ -169,9 +176,21 @@ const rowToBanner = (row: Row): Banner => ({
   targetUrl: row.target_url ?? "",
   status: row.status === "Active" ? "Active" : "Inactive",
   clicks: Number(row.clicks ?? 0),
+  advertiserName: row.advertiser_name ?? "",
+  advertiserEmail: row.advertiser_email ?? "",
+  advertiserWhatsapp: row.advertiser_whatsapp ?? "",
 });
 
-const COLUMNS = "id, section, title, media_type, image_url, target_url, status, clicks";
+const COLUMNS =
+  "id, section, title, media_type, image_url, target_url, status, clicks, advertiser_name, advertiser_email, advertiser_whatsapp";
+
+/** Older databases have not run supabase/ad-leads.sql yet. */
+const COLUMNS_BEFORE_AD_LEADS =
+  "id, section, title, media_type, image_url, target_url, status, clicks";
+
+const isMissingColumn = (error: { code?: string; message?: string } | null): boolean =>
+  Boolean(error) &&
+  (error?.code === "42703" || /column .* does not exist/i.test(error?.message ?? ""));
 
 /** Read every banner row. Safe to call often: concurrent calls share one request. */
 export function loadBanners(): Promise<Snapshot> {
@@ -186,7 +205,27 @@ export function loadBanners(): Promise<Snapshot> {
     }
 
     emit({ ...snapshot, status: snapshot.banners.length ? snapshot.status : "loading" });
-    const { data, error } = await client.from("banners").select(COLUMNS).order("section");
+    let rows: Row[] = [];
+    let error: { code?: string; message?: string } | null = null;
+
+    try {
+      const first = await client.from("banners").select(COLUMNS).order("section");
+      rows = (first.data ?? []) as unknown as Row[];
+      error = first.error;
+
+      // Before supabase/ad-leads.sql the advertiser columns do not exist. Fall
+      // back to the original columns so existing banners keep working.
+      if (error && isMissingColumn(error)) {
+        const fallback = await client
+          .from("banners")
+          .select(COLUMNS_BEFORE_AD_LEADS)
+          .order("section");
+        rows = (fallback.data ?? []) as unknown as Row[];
+        error = fallback.error;
+      }
+    } catch (thrown) {
+      error = { message: thrown instanceof Error ? thrown.message : String(thrown) };
+    }
 
     if (error) {
       const next: Snapshot = isMissingTable(error)
@@ -197,7 +236,7 @@ export function loadBanners(): Promise<Snapshot> {
     }
 
     const next: Snapshot = {
-      banners: ((data ?? []) as Row[]).map(rowToBanner),
+      banners: rows.map(rowToBanner),
       status: "ready",
       error: null,
     };
@@ -272,6 +311,9 @@ export type SaveBannerInput = {
   targetUrl?: string;
   status?: BannerStatus;
   mediaType?: BannerMedia;
+  advertiserName?: string;
+  advertiserEmail?: string;
+  advertiserWhatsapp?: string;
 };
 
 /** Create or update one slot. Staff session required — the database enforces it. */
@@ -292,6 +334,14 @@ export async function saveBanner(
   if (input.targetUrl !== undefined) row["target_url"] = input.targetUrl;
   if (input.status !== undefined) row["status"] = input.status;
   if (input.mediaType !== undefined) row["media_type"] = input.mediaType;
+  // Leave the advertiser columns alone when they are all empty, so a banner can
+  // still be edited before supabase/ad-leads.sql has been run.
+  const advertiser = {
+    advertiser_name: input.advertiserName?.trim() ?? "",
+    advertiser_email: input.advertiserEmail?.trim() ?? "",
+    advertiser_whatsapp: input.advertiserWhatsapp?.trim() ?? "",
+  };
+  if (Object.values(advertiser).some(Boolean)) Object.assign(row, advertiser);
 
   const { data, error } = await client
     .from("banners")
@@ -304,7 +354,9 @@ export async function saveBanner(
       ok: false,
       error: isMissingTable(error)
         ? BANNERS_SETUP_HINT
-        : `${describeSupabaseError(error)} — sign in with a staff account, then save again.`,
+        : isMissingColumn(error)
+          ? "The advertiser columns are not in the banners table yet. Run supabase/ad-leads.sql in the Supabase SQL editor, then save again."
+          : `${describeSupabaseError(error)} — sign in with a staff account, then save again.`,
     };
   }
 

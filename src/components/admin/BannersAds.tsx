@@ -52,6 +52,9 @@ type Draft = {
   imageUrl: string;
   mediaType: "image" | "video";
   status: BannerStatus;
+  advertiserName: string;
+  advertiserEmail: string;
+  advertiserWhatsapp: string;
 };
 
 const draftFrom = (banner: Banner | undefined): Draft => ({
@@ -60,6 +63,9 @@ const draftFrom = (banner: Banner | undefined): Draft => ({
   imageUrl: banner?.imageUrl ?? "",
   mediaType: banner?.mediaType ?? "image",
   status: banner?.status ?? "Inactive",
+  advertiserName: banner?.advertiserName ?? "",
+  advertiserEmail: banner?.advertiserEmail ?? "",
+  advertiserWhatsapp: banner?.advertiserWhatsapp ?? "",
 });
 
 /** Empty is allowed (artwork-only slot); anything else must resolve to a link. */
@@ -103,13 +109,19 @@ function SectionCard({
     banner?.imageUrl,
     banner?.mediaType,
     banner?.status,
+    banner?.advertiserName,
+    banner?.advertiserEmail,
+    banner?.advertiserWhatsapp,
   ]);
 
   const dirty =
     draft.title !== (banner?.title ?? "") ||
     draft.targetUrl !== (banner?.targetUrl ?? "") ||
     draft.imageUrl !== (banner?.imageUrl ?? "") ||
-    draft.status !== (banner?.status ?? "Inactive");
+    draft.status !== (banner?.status ?? "Inactive") ||
+    draft.advertiserName !== (banner?.advertiserName ?? "") ||
+    draft.advertiserEmail !== (banner?.advertiserEmail ?? "") ||
+    draft.advertiserWhatsapp !== (banner?.advertiserWhatsapp ?? "");
 
   const update = (patch: Partial<Draft>) => setDraft((current) => ({ ...current, ...patch }));
 
@@ -121,6 +133,11 @@ function SectionCard({
     const linkProblem = targetProblem(next.targetUrl);
     if (linkProblem) {
       setError(linkProblem);
+      return;
+    }
+    const email = next.advertiserEmail.trim();
+    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      setError("The advertiser email does not look valid — leave it blank or fix it.");
       return;
     }
     if (next.status === "Active" && splitImageUrls(next.imageUrl).length === 0) {
@@ -136,6 +153,9 @@ function SectionCard({
       imageUrl: next.imageUrl,
       mediaType: next.mediaType,
       status: next.status,
+      advertiserName: next.advertiserName.trim(),
+      advertiserEmail: email,
+      advertiserWhatsapp: next.advertiserWhatsapp.trim(),
     });
     setSaving(false);
 
@@ -274,6 +294,46 @@ function SectionCard({
           <small className="mw-admin-hint">
             Website, WhatsApp, Instagram or a phone number. Opens in a new tab; every click is
             counted.
+          </small>
+        </label>
+
+        <div className="mw-admin-formgrid">
+          <label className="mw-admin-field">
+            <span>Advertiser name</span>
+            <input
+              className="mw-admin-input"
+              value={draft.advertiserName}
+              onChange={(event) => update({ advertiserName: event.target.value })}
+              placeholder="ABC Auto Care"
+              data-testid={`banner-advertiser-name-${id}`}
+            />
+          </label>
+          <label className="mw-admin-field">
+            <span>Advertiser email</span>
+            <input
+              className="mw-admin-input"
+              type="email"
+              value={draft.advertiserEmail}
+              onChange={(event) => update({ advertiserEmail: event.target.value })}
+              placeholder="owner@business.in"
+              data-testid={`banner-advertiser-email-${id}`}
+            />
+          </label>
+        </div>
+
+        <label className="mw-admin-field">
+          <span>Advertiser WhatsApp</span>
+          <input
+            className="mw-admin-input"
+            value={draft.advertiserWhatsapp}
+            onChange={(event) => update({ advertiserWhatsapp: event.target.value })}
+            placeholder="919999999999"
+            data-testid={`banner-advertiser-whatsapp-${id}`}
+          />
+          <small className="mw-admin-hint">
+            Where enquiries from this ad are sent. Email is delivered automatically; WhatsApp needs
+            WHATSAPP_ACCESS_TOKEN on the server, and is always available as a one-click forward in
+            Ad Leads.
           </small>
         </label>
 
@@ -573,7 +633,9 @@ export function BannersAdsPanel({ session }: { session: AdminSession }) {
 
         <p className="mw-admin-setup-hint">
           First time here? Run <code>supabase/banners.sql</code> in the Supabase SQL editor — it
-          creates the table, the click counter and the storage bucket.
+          creates the table, the click counter and the storage bucket. Then run{" "}
+          <code>supabase/ad-leads.sql</code> so enquiries from these ads are stored and shown in the
+          Ad Leads tab.
         </p>
       </section>
     </div>

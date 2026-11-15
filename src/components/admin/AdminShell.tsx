@@ -6,6 +6,7 @@ import {
   Boxes,
   Building2,
   ClipboardList,
+  Inbox,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -128,6 +129,7 @@ export function AdminShell({
   }
   if (isSuperAdmin(actor)) {
     nav.push({ to: "/master-admin/banners", label: "Banners & Ads", icon: Megaphone });
+    nav.push({ to: "/master-admin/ad-leads", label: "Ad Leads", icon: Inbox });
     nav.push({ to: "/master-admin/settings", label: "Site Settings", icon: Settings });
   }
 

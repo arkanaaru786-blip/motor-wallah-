@@ -84,6 +84,10 @@ const HEADINGS: Record<string, { title: string; subtitle: string }> = {
     title: "Banners & Ads",
     subtitle: "Every ad slot on the site — artwork, link, on/off switch and click count.",
   },
+  "ad-leads": {
+    title: "Ad Leads",
+    subtitle: "Every customer who clicked an advertisement — call, WhatsApp or forward the lead.",
+  },
   settings: {
     title: "Site Settings",
     subtitle: "The support number and inbox shown across the public site.",
@@ -99,6 +103,7 @@ function headingFor(pathname: string) {
   if (pathname.startsWith("/master-admin/audit")) return HEADINGS["audit"]!;
   if (pathname.startsWith("/master-admin/automation")) return HEADINGS["automation"]!;
   if (pathname.startsWith("/master-admin/banners")) return HEADINGS["banners"]!;
+  if (pathname.startsWith("/master-admin/ad-leads")) return HEADINGS["ad-leads"]!;
   if (pathname.startsWith("/master-admin/settings")) return HEADINGS["settings"]!;
   return HEADINGS["overview"]!;
 }

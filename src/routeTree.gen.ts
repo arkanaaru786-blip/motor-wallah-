@@ -54,6 +54,7 @@ import { Route as WarrantyRsaRouteImport } from './routes/warranty-rsa'
 import { Route as WorkshopRouteImport } from './routes/workshop'
 import { Route as WorkshopLoginRouteImport } from './routes/workshop-login'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
+import { Route as ApiAdLeadRouteImport } from './routes/api/ad-lead'
 import { Route as ApiSendEmailRouteImport } from './routes/api/send-email'
 import { Route as BuyIndexRouteImport } from './routes/buy.index'
 import { Route as BuyBikesRouteImport } from './routes/buy.bikes'
@@ -69,6 +70,7 @@ import { Route as CarsIdRouteImport } from './routes/cars.$id'
 import { Route as FranchiseApplyRouteImport } from './routes/franchise.apply'
 import { Route as InternalEvaluationsRouteImport } from './routes/internal.evaluations'
 import { Route as MasterAdminIndexRouteImport } from './routes/master-admin.index'
+import { Route as MasterAdminAdLeadsRouteImport } from './routes/master-admin.ad-leads'
 import { Route as MasterAdminAnalyticsRouteImport } from './routes/master-admin.analytics'
 import { Route as MasterAdminAuditRouteImport } from './routes/master-admin.audit'
 import { Route as MasterAdminAutomationRouteImport } from './routes/master-admin.automation'
@@ -311,6 +313,11 @@ const ApiSplatRoute = ApiSplatRouteImport.update({
   path: '/api/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdLeadRoute = ApiAdLeadRouteImport.update({
+  id: '/api/ad-lead',
+  path: '/api/ad-lead',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSendEmailRoute = ApiSendEmailRouteImport.update({
   id: '/api/send-email',
   path: '/api/send-email',
@@ -384,6 +391,11 @@ const InternalEvaluationsRoute = InternalEvaluationsRouteImport.update({
 const MasterAdminIndexRoute = MasterAdminIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => MasterAdminRoute,
+} as any)
+const MasterAdminAdLeadsRoute = MasterAdminAdLeadsRouteImport.update({
+  id: '/ad-leads',
+  path: '/ad-leads',
   getParentRoute: () => MasterAdminRoute,
 } as any)
 const MasterAdminAnalyticsRoute = MasterAdminAnalyticsRouteImport.update({
@@ -513,6 +525,7 @@ export interface FileRoutesByFullPath {
   '/workshop': typeof WorkshopRoute
   '/workshop-login': typeof WorkshopLoginRoute
   '/api/$': typeof ApiSplatRoute
+  '/api/ad-lead': typeof ApiAdLeadRoute
   '/api/send-email': typeof ApiSendEmailRoute
   '/buy/bikes': typeof BuyBikesRoute
   '/buy/buses': typeof BuyBusesRoute
@@ -525,6 +538,7 @@ export interface FileRoutesByFullPath {
   '/cars/$id': typeof CarsIdRoute
   '/franchise/apply': typeof FranchiseApplyRoute
   '/internal/evaluations': typeof InternalEvaluationsRoute
+  '/master-admin/ad-leads': typeof MasterAdminAdLeadsRoute
   '/master-admin/analytics': typeof MasterAdminAnalyticsRoute
   '/master-admin/audit': typeof MasterAdminAuditRoute
   '/master-admin/automation': typeof MasterAdminAutomationRoute
@@ -590,6 +604,7 @@ export interface FileRoutesByTo {
   '/workshop': typeof WorkshopRoute
   '/workshop-login': typeof WorkshopLoginRoute
   '/api/$': typeof ApiSplatRoute
+  '/api/ad-lead': typeof ApiAdLeadRoute
   '/api/send-email': typeof ApiSendEmailRoute
   '/buy/bikes': typeof BuyBikesRoute
   '/buy/buses': typeof BuyBusesRoute
@@ -602,6 +617,7 @@ export interface FileRoutesByTo {
   '/cars/$id': typeof CarsIdRoute
   '/franchise/apply': typeof FranchiseApplyRoute
   '/internal/evaluations': typeof InternalEvaluationsRoute
+  '/master-admin/ad-leads': typeof MasterAdminAdLeadsRoute
   '/master-admin/analytics': typeof MasterAdminAnalyticsRoute
   '/master-admin/audit': typeof MasterAdminAuditRoute
   '/master-admin/automation': typeof MasterAdminAutomationRoute
@@ -669,6 +685,7 @@ export interface FileRoutesById {
   '/workshop': typeof WorkshopRoute
   '/workshop-login': typeof WorkshopLoginRoute
   '/api/$': typeof ApiSplatRoute
+  '/api/ad-lead': typeof ApiAdLeadRoute
   '/api/send-email': typeof ApiSendEmailRoute
   '/buy/bikes': typeof BuyBikesRoute
   '/buy/buses': typeof BuyBusesRoute
@@ -681,6 +698,7 @@ export interface FileRoutesById {
   '/cars/$id': typeof CarsIdRoute
   '/franchise/apply': typeof FranchiseApplyRoute
   '/internal/evaluations': typeof InternalEvaluationsRoute
+  '/master-admin/ad-leads': typeof MasterAdminAdLeadsRoute
   '/master-admin/analytics': typeof MasterAdminAnalyticsRoute
   '/master-admin/audit': typeof MasterAdminAuditRoute
   '/master-admin/automation': typeof MasterAdminAutomationRoute
@@ -749,6 +767,7 @@ export interface FileRouteTypes {
     | '/workshop'
     | '/workshop-login'
     | '/api/$'
+    | '/api/ad-lead'
     | '/api/send-email'
     | '/buy/bikes'
     | '/buy/buses'
@@ -761,6 +780,7 @@ export interface FileRouteTypes {
     | '/cars/$id'
     | '/franchise/apply'
     | '/internal/evaluations'
+    | '/master-admin/ad-leads'
     | '/master-admin/analytics'
     | '/master-admin/audit'
     | '/master-admin/automation'
@@ -826,6 +846,7 @@ export interface FileRouteTypes {
     | '/workshop'
     | '/workshop-login'
     | '/api/$'
+    | '/api/ad-lead'
     | '/api/send-email'
     | '/buy/bikes'
     | '/buy/buses'
@@ -838,6 +859,7 @@ export interface FileRouteTypes {
     | '/cars/$id'
     | '/franchise/apply'
     | '/internal/evaluations'
+    | '/master-admin/ad-leads'
     | '/master-admin/analytics'
     | '/master-admin/audit'
     | '/master-admin/automation'
@@ -904,6 +926,7 @@ export interface FileRouteTypes {
     | '/workshop'
     | '/workshop-login'
     | '/api/$'
+    | '/api/ad-lead'
     | '/api/send-email'
     | '/buy/bikes'
     | '/buy/buses'
@@ -916,6 +939,7 @@ export interface FileRouteTypes {
     | '/cars/$id'
     | '/franchise/apply'
     | '/internal/evaluations'
+    | '/master-admin/ad-leads'
     | '/master-admin/analytics'
     | '/master-admin/audit'
     | '/master-admin/automation'
@@ -983,6 +1007,7 @@ export interface RootRouteChildren {
   WorkshopRoute: typeof WorkshopRoute
   WorkshopLoginRoute: typeof WorkshopLoginRoute
   ApiSplatRoute: typeof ApiSplatRoute
+  ApiAdLeadRoute: typeof ApiAdLeadRoute
   ApiSendEmailRoute: typeof ApiSendEmailRoute
   BuyBikesRoute: typeof BuyBikesRoute
   BuyBusesRoute: typeof BuyBusesRoute
@@ -1321,6 +1346,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ad-lead': {
+      id: '/api/ad-lead'
+      path: '/api/ad-lead'
+      fullPath: '/api/ad-lead'
+      preLoaderRoute: typeof ApiAdLeadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/send-email': {
       id: '/api/send-email'
       path: '/api/send-email'
@@ -1424,6 +1456,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/master-admin/'
       preLoaderRoute: typeof MasterAdminIndexRouteImport
+      parentRoute: typeof MasterAdminRoute
+    }
+    '/master-admin/ad-leads': {
+      id: '/master-admin/ad-leads'
+      path: '/ad-leads'
+      fullPath: '/master-admin/ad-leads'
+      preLoaderRoute: typeof MasterAdminAdLeadsRouteImport
       parentRoute: typeof MasterAdminRoute
     }
     '/master-admin/analytics': {
@@ -1554,6 +1593,7 @@ const FranchiseRouteWithChildren = FranchiseRoute._addFileChildren(
 )
 
 interface MasterAdminRouteChildren {
+  MasterAdminAdLeadsRoute: typeof MasterAdminAdLeadsRoute
   MasterAdminAnalyticsRoute: typeof MasterAdminAnalyticsRoute
   MasterAdminAuditRoute: typeof MasterAdminAuditRoute
   MasterAdminAutomationRoute: typeof MasterAdminAutomationRoute
@@ -1568,6 +1608,7 @@ interface MasterAdminRouteChildren {
 }
 
 const MasterAdminRouteChildren: MasterAdminRouteChildren = {
+  MasterAdminAdLeadsRoute: MasterAdminAdLeadsRoute,
   MasterAdminAnalyticsRoute: MasterAdminAnalyticsRoute,
   MasterAdminAuditRoute: MasterAdminAuditRoute,
   MasterAdminAutomationRoute: MasterAdminAutomationRoute,
@@ -1631,6 +1672,7 @@ const rootRouteChildren: RootRouteChildren = {
   WorkshopRoute: WorkshopRoute,
   WorkshopLoginRoute: WorkshopLoginRoute,
   ApiSplatRoute: ApiSplatRoute,
+  ApiAdLeadRoute: ApiAdLeadRoute,
   ApiSendEmailRoute: ApiSendEmailRoute,
   BuyBikesRoute: BuyBikesRoute,
   BuyBusesRoute: BuyBusesRoute,

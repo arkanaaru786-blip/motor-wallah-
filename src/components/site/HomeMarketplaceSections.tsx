@@ -23,7 +23,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BannerAd, BannerMedia, bannerLinkProps } from "@/components/site/BannerAd";
-import { bannerImageList, useActiveBanner, useBanners } from "@/lib/banners";
+import { useAdLeadDialog } from "@/components/site/AdLeadDialog";
+import { bannerImageList, trackBannerClick, useActiveBanner, useBanners } from "@/lib/banners";
 import { MakeOfferDialog } from "@/components/buy/MakeOfferDialog";
 import { gateCustomerAction } from "@/lib/customer-gate";
 import { useShortlist } from "@/lib/shortlist";
@@ -167,7 +168,8 @@ const HUB = [
  */
 export function FranchiseBanner() {
   const banner = useActiveBanner("franchise_banner");
-  const link = banner ? bannerLinkProps(banner) : null;
+  const { captureAdLead, adLeadDialog } = useAdLeadDialog();
+  const link = banner ? bannerLinkProps(banner, captureAdLead) : null;
 
   return (
     <section className="home-franchise">
@@ -206,6 +208,7 @@ export function FranchiseBanner() {
           </div>
         </div>
       </div>
+      {adLeadDialog}
     </section>
   );
 }
@@ -259,7 +262,8 @@ export function MarketplaceHub() {
  */
 export function BusinessSpotlight() {
   const banner = useActiveBanner("business_spotlight");
-  const link = banner ? bannerLinkProps(banner) : null;
+  const { captureAdLead, adLeadDialog } = useAdLeadDialog();
+  const link = banner ? bannerLinkProps(banner, captureAdLead) : null;
 
   return (
     <section className="home-spotlight">
@@ -323,6 +327,7 @@ export function BusinessSpotlight() {
           </div>
         </div>
       </div>
+      {adLeadDialog}
     </section>
   );
 }
@@ -454,7 +459,8 @@ function SidebarAdSlot({
   const { banners } = useBanners();
   const banner = banners.find((entry) => entry.section === slot) ?? null;
   const images = banner && banner.status === "Active" ? bannerImageList(banner) : [];
-  const link = banner ? bannerLinkProps(banner) : null;
+  const { captureAdLead, adLeadDialog } = useAdLeadDialog();
+  const link = banner ? bannerLinkProps(banner, captureAdLead) : null;
   const railRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -525,6 +531,18 @@ function SidebarAdSlot({
                   <a className="home-side-slot-link" {...link}>
                     {media}
                   </a>
+                ) : banner ? (
+                  <button
+                    type="button"
+                    className="home-side-slot-link home-side-slot-link--button"
+                    aria-haspopup="dialog"
+                    onClick={() => {
+                      void trackBannerClick(banner.section);
+                      captureAdLead(banner);
+                    }}
+                  >
+                    {media}
+                  </button>
                 ) : (
                   media
                 )}
@@ -538,6 +556,7 @@ function SidebarAdSlot({
           <Link to="/contact">Advertise here</Link>
         </div>
       )}
+      {adLeadDialog}
     </section>
   );
 }
