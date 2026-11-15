@@ -3,10 +3,22 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { StickyActions } from "@/components/site/StickyActions";
 import { BuyVehicleDetail } from "@/components/buy/BuyVehicleDetail";
-import { buyListingName, getBuyListing, lakhLabel } from "@/lib/buy-catalog";
+import {
+  buyListingName,
+  getBuyListing,
+  lakhLabel,
+  registerApprovedListings,
+} from "@/lib/buy-catalog";
+import { loadApprovedListings } from "@/lib/vehicle-approvals";
 
 export const Route = createFileRoute("/buy/vehicle/$id")({
-  loader: ({ params }) => {
+  loader: async ({ params }) => {
+    // Admin-approved dealer listings live in Supabase rather than the seeded
+    // catalogue, so load them before resolving the route.
+    if (params.id.startsWith("dealer-")) {
+      const approved = await loadApprovedListings();
+      if (approved.length > 0) registerApprovedListings(approved);
+    }
     const listing = getBuyListing(params.id);
     if (!listing) throw notFound();
     return { listing };

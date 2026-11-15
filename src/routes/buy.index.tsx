@@ -24,6 +24,7 @@ import {
   getBuyCategory,
   listingsInCategory,
   priceBounds,
+  registerApprovedListings,
   type BuyCategoryId,
   type BuyListing,
 } from "@/lib/buy-catalog";
@@ -39,6 +40,7 @@ import {
   type BuyServiceListing,
 } from "@/lib/buy-services";
 import { useShortlist } from "@/lib/shortlist";
+import { loadApprovedListings } from "@/lib/vehicle-approvals";
 import type { LeadType } from "@/lib/leads";
 
 const TITLE = "Buy Pre-Owned Vehicles — Cars, Bikes, Trucks & Tractors | Motor Wallah";
@@ -143,12 +145,27 @@ function BuyPage() {
     defaultServiceFilters(),
   );
   const [shortlistedOnly, setShortlistedOnly] = useState(false);
+  // Approved dealer listings load after the first paint (RLS only exposes
+  // Approved rows publicly) and then join the normal category grid.
+  const [approvedListings, setApprovedListings] = useState<BuyListing[]>([]);
   const [offerListing, setOfferListing] = useState<BuyListing | null>(null);
   const [serviceEnquiry, setServiceEnquiry] = useState<{
     listing: BuyServiceListing;
     mode: "apply" | "enquire";
   } | null>(null);
   const shouldScroll = useRef(false);
+
+  useEffect(() => {
+    let alive = true;
+    void loadApprovedListings().then((listings) => {
+      if (!alive || listings.length === 0) return;
+      registerApprovedListings(listings);
+      setApprovedListings(listings);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // Every category gets a clean filter state and its own price range.
   useEffect(() => {
@@ -206,7 +223,7 @@ function BuyPage() {
   const results = useMemo(() => {
     if (!categoryId) return [];
     const [low, high] = filters.price;
-    return listingsInCategory(categoryId)
+    return listingsInCategory(categoryId, approvedListings)
       .filter((listing) => !filters.brand || listing.brand === filters.brand)
       .filter((listing) => !filters.model || listing.model === filters.model)
       .filter((listing) => filters.fuels.length === 0 || filters.fuels.includes(listing.fuel))
@@ -219,7 +236,7 @@ function BuyPage() {
       .filter((listing) => !filters.verifiedOnly || listing.verified)
       .filter((listing) => !shortlistedOnly || shortlist.ids.includes(listing.id))
       .sort((a, b) => b.year - a.year || a.priceLakh - b.priceLakh);
-  }, [categoryId, filters, shortlistedOnly, shortlist.ids]);
+  }, [categoryId, filters, shortlistedOnly, shortlist.ids, approvedListings]);
 
   const activeCount = categoryId
     ? [

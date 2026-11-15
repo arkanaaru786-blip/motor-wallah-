@@ -78,9 +78,12 @@ import { Route as MasterAdminBannersRouteImport } from './routes/master-admin.ba
 import { Route as MasterAdminDealersRouteImport } from './routes/master-admin.dealers'
 import { Route as MasterAdminDisputesRouteImport } from './routes/master-admin.disputes'
 import { Route as MasterAdminEmployeesRouteImport } from './routes/master-admin.employees'
+import { Route as MasterAdminJobVacanciesRouteImport } from './routes/master-admin.job-vacancies'
+import { Route as MasterAdminOrdersRouteImport } from './routes/master-admin.orders'
 import { Route as MasterAdminPartnersRouteImport } from './routes/master-admin.partners'
 import { Route as MasterAdminSettingsRouteImport } from './routes/master-admin.settings'
 import { Route as MasterAdminTrackerRouteImport } from './routes/master-admin.tracker'
+import { Route as MasterAdminVehicleApprovalsRouteImport } from './routes/master-admin.vehicle-approvals'
 import { Route as MasterAdminLoginRouteImport } from './routes/master-admin_.login'
 import { Route as ApiOrdersIndexRouteImport } from './routes/api/orders/index'
 import { Route as BuyVehicleIdRouteImport } from './routes/buy.vehicle.$id'
@@ -433,6 +436,16 @@ const MasterAdminEmployeesRoute = MasterAdminEmployeesRouteImport.update({
   path: '/employees',
   getParentRoute: () => MasterAdminRoute,
 } as any)
+const MasterAdminJobVacanciesRoute = MasterAdminJobVacanciesRouteImport.update({
+  id: '/job-vacancies',
+  path: '/job-vacancies',
+  getParentRoute: () => MasterAdminRoute,
+} as any)
+const MasterAdminOrdersRoute = MasterAdminOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => MasterAdminRoute,
+} as any)
 const MasterAdminPartnersRoute = MasterAdminPartnersRouteImport.update({
   id: '/partners',
   path: '/partners',
@@ -448,6 +461,12 @@ const MasterAdminTrackerRoute = MasterAdminTrackerRouteImport.update({
   path: '/tracker',
   getParentRoute: () => MasterAdminRoute,
 } as any)
+const MasterAdminVehicleApprovalsRoute =
+  MasterAdminVehicleApprovalsRouteImport.update({
+    id: '/vehicle-approvals',
+    path: '/vehicle-approvals',
+    getParentRoute: () => MasterAdminRoute,
+  } as any)
 const MasterAdminLoginRoute = MasterAdminLoginRouteImport.update({
   id: '/master-admin_/login',
   path: '/master-admin/login',
@@ -546,9 +565,12 @@ export interface FileRoutesByFullPath {
   '/master-admin/dealers': typeof MasterAdminDealersRoute
   '/master-admin/disputes': typeof MasterAdminDisputesRoute
   '/master-admin/employees': typeof MasterAdminEmployeesRoute
+  '/master-admin/job-vacancies': typeof MasterAdminJobVacanciesRoute
+  '/master-admin/orders': typeof MasterAdminOrdersRoute
   '/master-admin/partners': typeof MasterAdminPartnersRoute
   '/master-admin/settings': typeof MasterAdminSettingsRoute
   '/master-admin/tracker': typeof MasterAdminTrackerRoute
+  '/master-admin/vehicle-approvals': typeof MasterAdminVehicleApprovalsRoute
   '/master-admin/login': typeof MasterAdminLoginRoute
   '/buy/': typeof BuyIndexRoute
   '/cars/': typeof CarsIndexRoute
@@ -625,9 +647,12 @@ export interface FileRoutesByTo {
   '/master-admin/dealers': typeof MasterAdminDealersRoute
   '/master-admin/disputes': typeof MasterAdminDisputesRoute
   '/master-admin/employees': typeof MasterAdminEmployeesRoute
+  '/master-admin/job-vacancies': typeof MasterAdminJobVacanciesRoute
+  '/master-admin/orders': typeof MasterAdminOrdersRoute
   '/master-admin/partners': typeof MasterAdminPartnersRoute
   '/master-admin/settings': typeof MasterAdminSettingsRoute
   '/master-admin/tracker': typeof MasterAdminTrackerRoute
+  '/master-admin/vehicle-approvals': typeof MasterAdminVehicleApprovalsRoute
   '/master-admin/login': typeof MasterAdminLoginRoute
   '/buy': typeof BuyIndexRoute
   '/cars': typeof CarsIndexRoute
@@ -706,9 +731,12 @@ export interface FileRoutesById {
   '/master-admin/dealers': typeof MasterAdminDealersRoute
   '/master-admin/disputes': typeof MasterAdminDisputesRoute
   '/master-admin/employees': typeof MasterAdminEmployeesRoute
+  '/master-admin/job-vacancies': typeof MasterAdminJobVacanciesRoute
+  '/master-admin/orders': typeof MasterAdminOrdersRoute
   '/master-admin/partners': typeof MasterAdminPartnersRoute
   '/master-admin/settings': typeof MasterAdminSettingsRoute
   '/master-admin/tracker': typeof MasterAdminTrackerRoute
+  '/master-admin/vehicle-approvals': typeof MasterAdminVehicleApprovalsRoute
   '/master-admin_/login': typeof MasterAdminLoginRoute
   '/buy/': typeof BuyIndexRoute
   '/cars/': typeof CarsIndexRoute
@@ -788,9 +816,12 @@ export interface FileRouteTypes {
     | '/master-admin/dealers'
     | '/master-admin/disputes'
     | '/master-admin/employees'
+    | '/master-admin/job-vacancies'
+    | '/master-admin/orders'
     | '/master-admin/partners'
     | '/master-admin/settings'
     | '/master-admin/tracker'
+    | '/master-admin/vehicle-approvals'
     | '/master-admin/login'
     | '/buy/'
     | '/cars/'
@@ -867,9 +898,12 @@ export interface FileRouteTypes {
     | '/master-admin/dealers'
     | '/master-admin/disputes'
     | '/master-admin/employees'
+    | '/master-admin/job-vacancies'
+    | '/master-admin/orders'
     | '/master-admin/partners'
     | '/master-admin/settings'
     | '/master-admin/tracker'
+    | '/master-admin/vehicle-approvals'
     | '/master-admin/login'
     | '/buy'
     | '/cars'
@@ -947,9 +981,12 @@ export interface FileRouteTypes {
     | '/master-admin/dealers'
     | '/master-admin/disputes'
     | '/master-admin/employees'
+    | '/master-admin/job-vacancies'
+    | '/master-admin/orders'
     | '/master-admin/partners'
     | '/master-admin/settings'
     | '/master-admin/tracker'
+    | '/master-admin/vehicle-approvals'
     | '/master-admin_/login'
     | '/buy/'
     | '/cars/'
@@ -1514,6 +1551,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MasterAdminEmployeesRouteImport
       parentRoute: typeof MasterAdminRoute
     }
+    '/master-admin/job-vacancies': {
+      id: '/master-admin/job-vacancies'
+      path: '/job-vacancies'
+      fullPath: '/master-admin/job-vacancies'
+      preLoaderRoute: typeof MasterAdminJobVacanciesRouteImport
+      parentRoute: typeof MasterAdminRoute
+    }
+    '/master-admin/orders': {
+      id: '/master-admin/orders'
+      path: '/orders'
+      fullPath: '/master-admin/orders'
+      preLoaderRoute: typeof MasterAdminOrdersRouteImport
+      parentRoute: typeof MasterAdminRoute
+    }
     '/master-admin/partners': {
       id: '/master-admin/partners'
       path: '/partners'
@@ -1533,6 +1584,13 @@ declare module '@tanstack/react-router' {
       path: '/tracker'
       fullPath: '/master-admin/tracker'
       preLoaderRoute: typeof MasterAdminTrackerRouteImport
+      parentRoute: typeof MasterAdminRoute
+    }
+    '/master-admin/vehicle-approvals': {
+      id: '/master-admin/vehicle-approvals'
+      path: '/vehicle-approvals'
+      fullPath: '/master-admin/vehicle-approvals'
+      preLoaderRoute: typeof MasterAdminVehicleApprovalsRouteImport
       parentRoute: typeof MasterAdminRoute
     }
     '/master-admin_/login': {
@@ -1601,9 +1659,12 @@ interface MasterAdminRouteChildren {
   MasterAdminDealersRoute: typeof MasterAdminDealersRoute
   MasterAdminDisputesRoute: typeof MasterAdminDisputesRoute
   MasterAdminEmployeesRoute: typeof MasterAdminEmployeesRoute
+  MasterAdminJobVacanciesRoute: typeof MasterAdminJobVacanciesRoute
+  MasterAdminOrdersRoute: typeof MasterAdminOrdersRoute
   MasterAdminPartnersRoute: typeof MasterAdminPartnersRoute
   MasterAdminSettingsRoute: typeof MasterAdminSettingsRoute
   MasterAdminTrackerRoute: typeof MasterAdminTrackerRoute
+  MasterAdminVehicleApprovalsRoute: typeof MasterAdminVehicleApprovalsRoute
   MasterAdminIndexRoute: typeof MasterAdminIndexRoute
 }
 
@@ -1616,9 +1677,12 @@ const MasterAdminRouteChildren: MasterAdminRouteChildren = {
   MasterAdminDealersRoute: MasterAdminDealersRoute,
   MasterAdminDisputesRoute: MasterAdminDisputesRoute,
   MasterAdminEmployeesRoute: MasterAdminEmployeesRoute,
+  MasterAdminJobVacanciesRoute: MasterAdminJobVacanciesRoute,
+  MasterAdminOrdersRoute: MasterAdminOrdersRoute,
   MasterAdminPartnersRoute: MasterAdminPartnersRoute,
   MasterAdminSettingsRoute: MasterAdminSettingsRoute,
   MasterAdminTrackerRoute: MasterAdminTrackerRoute,
+  MasterAdminVehicleApprovalsRoute: MasterAdminVehicleApprovalsRoute,
   MasterAdminIndexRoute: MasterAdminIndexRoute,
 }
 

@@ -292,11 +292,23 @@ export const HOME_POPULAR_LISTINGS: BuyListing[] = [
   ...EXTRA_NON_CAR_LISTINGS,
 ];
 
-export const listingsInCategory = (categoryId: BuyCategoryId) =>
-  BUY_LISTINGS.filter((l) => l.categoryId === categoryId);
+/**
+ * Dealer vehicles approved in Master Admin → Vehicle Approvals. Registered at
+ * runtime by the public catalogue loader so an approval appears in the normal
+ * category grid without rebuilding the seeded catalogue.
+ */
+let APPROVED_LISTINGS: BuyListing[] = [];
+
+export const registerApprovedListings = (listings: BuyListing[]) => {
+  APPROVED_LISTINGS = listings;
+};
+
+export const listingsInCategory = (categoryId: BuyCategoryId, extra: BuyListing[] = []) =>
+  [...BUY_LISTINGS, ...APPROVED_LISTINGS, ...extra].filter((l) => l.categoryId === categoryId);
 
 export const getBuyListing = (id: string) =>
-  BUY_LISTINGS.find((l) => l.id === id) ?? HOME_POPULAR_LISTINGS.find((l) => l.id === id);
+  [...BUY_LISTINGS, ...APPROVED_LISTINGS].find((l) => l.id === id) ??
+  HOME_POPULAR_LISTINGS.find((l) => l.id === id);
 
 export const listingCount = (categoryId: BuyCategoryId) => listingsInCategory(categoryId).length;
 

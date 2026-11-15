@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, BriefcaseBusiness, CheckCircle2, MapPin, Mail } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
@@ -6,6 +6,7 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { StickyActions } from "@/components/site/StickyActions";
 import { submitLead } from "@/lib/leads";
 import { SUPPORT_EMAIL } from "@/lib/site";
+import { loadOpenVacancies } from "@/lib/job-vacancies";
 
 const TITLE = "Careers | Motor Wallah";
 const DESCRIPTION =
@@ -25,7 +26,10 @@ export const Route = createFileRoute("/careers")({
   component: Page,
 });
 
-const POSITIONS = [
+type Position = { role: string; team: string; location: string; type: string; text: string };
+
+/** Shown until the control room publishes its first vacancy. */
+const BUILT_IN_POSITIONS: Position[] = [
   {
     role: "Vehicle Inspection Engineer",
     team: "Quality & Inspection",
@@ -61,7 +65,7 @@ const POSITIONS = [
     type: "Full-time",
     text: "Coordinate inspections, pickups, documentation and partner schedules.",
   },
-] as const;
+];
 
 type Status = "idle" | "sending" | "sent" | "error";
 
@@ -69,12 +73,34 @@ function Page() {
   const [name, setName] = useState("");
   const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<string>(POSITIONS[0].role);
+  const [positions, setPositions] = useState<Position[]>(BUILT_IN_POSITIONS);
+  const [role, setRole] = useState<string>(BUILT_IN_POSITIONS[0]!.role);
   const [experience, setExperience] = useState("0-2 years");
   const [resume, setResume] = useState("");
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+
+  // Vacancies published in Master Admin → Job Vacancies own this list. If the
+  // table is unavailable or empty, the built-in roles keep the page useful.
+  useEffect(() => {
+    let alive = true;
+    void loadOpenVacancies().then((result) => {
+      if (!alive || result.vacancies.length === 0) return;
+      const next = result.vacancies.map((vacancy) => ({
+        role: vacancy.title,
+        team: vacancy.department || "Motor Wallah",
+        location: vacancy.location || "Indore",
+        type: vacancy.employmentType || "Full-time",
+        text: vacancy.description,
+      }));
+      setPositions(next);
+      setRole((current) => (next.some((item) => item.role === current) ? current : next[0]!.role));
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -141,7 +167,7 @@ function Page() {
               </h2>
             </div>
             <div className="mw-jobs">
-              {POSITIONS.map((position) => (
+              {positions.map((position) => (
                 <article key={position.role} className="mw-job">
                   <div>
                     <h3>{position.role}</h3>
@@ -221,7 +247,7 @@ function Page() {
                     <label className="mw-info-field">
                       <span>Role</span>
                       <select value={role} onChange={(event) => setRole(event.target.value)}>
-                        {POSITIONS.map((position) => (
+                        {positions.map((position) => (
                           <option key={position.role} value={position.role}>
                             {position.role}
                           </option>

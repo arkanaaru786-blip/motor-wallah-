@@ -2961,3 +2961,99 @@ a.mw-info-contact-link:hover {
   color: var(--dlr-red);
   border-color: color-mix(in oklab, var(--dlr-red) 35%, transparent);
 }
+
+/* ------------------------------------------------------------------ */
+/* Desktop marketplace typography + density (public pages only)        */
+/*                                                                    */
+/* On wide screens the public site reads as a full website rather than */
+/* a stretched phone app: a 1280px centred canvas, slightly smaller    */
+/* display type and four listing columns from 1024px. Scoped to        */
+/* .mw-home / .mw-buy / .mw-info so Master Control is untouched.       */
+/* ------------------------------------------------------------------ */
+@media (min-width: 1024px) {
+  .mw-home .home-container,
+  .mw-buy .home-container,
+  .mw-info .home-container {
+    max-width: 1280px;
+    padding-inline: 28px;
+  }
+
+  .mw-home .home-hero {
+    min-height: 470px;
+  }
+  .mw-home .home-hero-content {
+    padding-block: 42px 34px;
+  }
+  .mw-home .home-hero-copy {
+    max-width: 600px;
+  }
+  .mw-home .home-hero-copy h1 {
+    font-size: clamp(34px, 4vw, 56px);
+    line-height: 1;
+  }
+  .mw-home .home-hero-sub {
+    margin-top: 12px;
+    font-size: 15px;
+  }
+  .mw-home .home-hero-cta {
+    margin-top: 20px;
+  }
+
+  .mw-home .home-listing-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .mw-home .home-listing-body {
+    padding: 12px 12px 14px;
+  }
+  .mw-home .home-listing-body h3 {
+    font-size: 14px;
+    min-height: 34px;
+  }
+  .mw-home .home-listing-price {
+    font-size: 18px;
+  }
+
+  .mw-buy .buy-listing-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .mw-buy .buy-hero {
+    padding-block: 28px 24px;
+  }
+  .mw-buy .buy-hero-title {
+    font-size: clamp(28px, 3.2vw, 42px);
+  }
+
+  .mw-info .mw-info-hero h1 {
+    font-size: clamp(30px, 3.6vw, 46px);
+  }
+}
+
+/* Rejection note + status chips used by Vehicle Approvals and Job Vacancies */
+.mw-approval-reject {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.mw-approval-reject input {
+  flex: 1 1 180px;
+  min-width: 0;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--dlr-line-strong);
+  background: var(--dlr-surface-solid);
+  font-size: 12px;
+  color: var(--dlr-ink);
+}
+.mw-admin .mw-dealer-chip.is-rejected {
+  color: var(--dlr-red);
+  background: color-mix(in oklab, var(--dlr-red) 10%, transparent);
+  border-color: color-mix(in oklab, var(--dlr-red) 30%, transparent);
+}
+.mw-admin .mw-dealer-chip.is-closed {
+  color: var(--dlr-muted);
+  background: color-mix(in oklab, var(--dlr-muted) 10%, transparent);
+  border-color: var(--dlr-line);
+}

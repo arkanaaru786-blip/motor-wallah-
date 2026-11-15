@@ -4,6 +4,7 @@ import {
   Activity,
   BarChart3,
   Boxes,
+  BriefcaseBusiness,
   Building2,
   ClipboardList,
   Inbox,
@@ -15,6 +16,7 @@ import {
   ShieldCheck,
   ScrollText,
   Settings,
+  ShoppingBag,
   Store,
   Users,
   Wallet,
@@ -128,6 +130,17 @@ export function AdminShell({
     nav.push({ to: "/master-admin/analytics", label: "Reports & Analytics", icon: BarChart3 });
   }
   if (isSuperAdmin(actor)) {
+    nav.push({ to: "/master-admin/orders", label: "Orders", icon: ShoppingBag });
+    nav.push({
+      to: "/master-admin/vehicle-approvals",
+      label: "Vehicle Approvals",
+      icon: ShieldCheck,
+    });
+    nav.push({
+      to: "/master-admin/job-vacancies",
+      label: "Job Vacancies",
+      icon: BriefcaseBusiness,
+    });
     nav.push({ to: "/master-admin/banners", label: "Banners & Ads", icon: Megaphone });
     nav.push({ to: "/master-admin/ad-leads", label: "Ad Leads", icon: Inbox });
     nav.push({ to: "/master-admin/settings", label: "Site Settings", icon: Settings });

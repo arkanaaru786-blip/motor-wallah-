@@ -80,6 +80,18 @@ const HEADINGS: Record<string, { title: string; subtitle: string }> = {
     title: "MW Autopilot",
     subtitle: "Rules that run themselves — and a check that no submission goes missing.",
   },
+  orders: {
+    title: "Orders",
+    subtitle: "Every auto parts and decor order, with payment and fulfilment in one table.",
+  },
+  "vehicle-approvals": {
+    title: "Vehicle Approvals",
+    subtitle: "Review dealer submissions before they go live on the public marketplace.",
+  },
+  "job-vacancies": {
+    title: "Job Vacancies",
+    subtitle: "The roles published on the public careers page, managed from one desk.",
+  },
   banners: {
     title: "Banners & Ads",
     subtitle: "Every ad slot on the site — artwork, link, on/off switch and click count.",
@@ -102,6 +114,9 @@ function headingFor(pathname: string) {
   if (pathname.startsWith("/master-admin/disputes")) return HEADINGS["disputes"]!;
   if (pathname.startsWith("/master-admin/audit")) return HEADINGS["audit"]!;
   if (pathname.startsWith("/master-admin/automation")) return HEADINGS["automation"]!;
+  if (pathname.startsWith("/master-admin/orders")) return HEADINGS["orders"]!;
+  if (pathname.startsWith("/master-admin/vehicle-approvals")) return HEADINGS["vehicle-approvals"]!;
+  if (pathname.startsWith("/master-admin/job-vacancies")) return HEADINGS["job-vacancies"]!;
   if (pathname.startsWith("/master-admin/banners")) return HEADINGS["banners"]!;
   if (pathname.startsWith("/master-admin/ad-leads")) return HEADINGS["ad-leads"]!;
   if (pathname.startsWith("/master-admin/settings")) return HEADINGS["settings"]!;

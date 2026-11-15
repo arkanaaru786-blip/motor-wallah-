@@ -3,6 +3,7 @@ import { CheckCircle2, PlusCircle } from "lucide-react";
 
 import { dealerCategoryLabel, dealerCategorySingular } from "@/lib/dealer-categories";
 import { addVehicle, type VehicleInput } from "@/lib/dealer-data";
+import { submitVehicleForApproval } from "@/lib/vehicle-approvals";
 import type { DealerSession } from "@/lib/dealer-session";
 import { VehicleForm } from "./VehicleForm";
 
@@ -22,7 +23,15 @@ export function DealerAddVehicle({
   const submit = (input: VehicleInput) => {
     const result = addVehicle(session, input);
     if (!result.ok) return result;
-    setFlash(`${result.value.name} added to your ${category.toLowerCase()} inventory.`);
+    // Every new listing also enters the Master Admin approval queue as Pending;
+    // it only reaches the public marketplace once an admin approves it.
+    void submitVehicleForApproval(
+      { dealerId: session.dealerId, category: session.category, dealerName: session.name },
+      result.value,
+    );
+    setFlash(
+      `${result.value.name} added to your ${category.toLowerCase()} inventory and sent for Motor Wallah approval.`,
+    );
     onAdded();
     return { ok: true as const };
   };
@@ -54,7 +63,10 @@ export function DealerAddVehicle({
             <h2>
               <PlusCircle size={15} /> New {singular.toLowerCase()} listing
             </h2>
-            <p>New listings start as Pending until you or Motor Wallah staff publish them.</p>
+            <p>
+              New listings start as Pending and go live on the marketplace after Motor Wallah
+              review.
+            </p>
           </div>
         </div>
         <VehicleForm session={session} submitLabel={`Add ${singular}`} onSubmit={submit} />
