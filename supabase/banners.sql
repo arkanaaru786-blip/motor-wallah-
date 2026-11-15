@@ -5,8 +5,10 @@
 --
 -- What it creates
 --   banners              one row per ad slot (home_top, franchise_banner,
---                        business_spotlight, sidebar) with its media, link,
---                        status and click count
+--                        business_spotlight, sidebar, sidebar_slot_1,
+--                        sidebar_slot_2) with its media, link, status and
+--                        click count. The two sidebar slots store several
+--                        image URLs as a JSON array in image_url.
 --   track_banner_click() the counting function the public site calls
 --   the "banners"        public Storage bucket that holds the uploaded media
 --                        (images and 2 MB MP4s)
@@ -39,7 +41,9 @@ insert into public.banners (section, title) values
   ('home_top',           'Homepage top banner'),
   ('franchise_banner',   'Franchise banner'),
   ('business_spotlight', 'Business spotlight'),
-  ('sidebar',            'Sidebar ad')
+  ('sidebar',            'BUY sidebar ad'),
+  ('sidebar_slot_1',     'Homepage sidebar ad 1'),
+  ('sidebar_slot_2',     'Homepage sidebar ad 2')
 on conflict (section) do nothing;
 
 drop trigger if exists banners_touch on public.banners;

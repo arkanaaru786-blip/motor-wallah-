@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { BannerMedia } from "@/components/site/BannerAd";
+import { useActiveBanner } from "@/lib/banners";
 import { BUY_CATEGORIES } from "@/lib/site";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import cars from "@/assets/homepage/Car.png";
@@ -132,28 +134,55 @@ export function BrandStrip() {
   );
 }
 
+/**
+ * Franchise banner in the demo card's old spot: artwork on top, heading below
+ * and the Apply button at the bottom. It uses the live `franchise_banner` row
+ * when one is active and the bundled showroom photo otherwise.
+ */
+function BodyFranchiseBanner() {
+  const banner = useActiveBanner("franchise_banner");
+
+  return (
+    <section className="home-body-franchise" aria-labelledby="home-body-franchise-title">
+      <div className="home-body-franchise-media">
+        {banner ? (
+          <BannerMedia
+            banner={banner}
+            className="home-body-franchise-image"
+            width={640}
+            height={360}
+          />
+        ) : (
+          <img
+            src={showroom}
+            alt="Premium automotive franchise showroom"
+            width={1280}
+            height={720}
+            loading="lazy"
+            className="home-body-franchise-image"
+          />
+        )}
+      </div>
+      <div className="home-body-franchise-body">
+        <p className="home-body-franchise-kicker">Franchise opportunity</p>
+        <h3 id="home-body-franchise-title">
+          Become a <span>Franchise Partner</span>
+        </h3>
+        <p className="home-body-franchise-text">
+          Join Motor Wallah and grow your automotive business with us.
+        </p>
+        <Link to="/franchise" className="home-body-franchise-cta">
+          Apply Now <ArrowRight size={14} />
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 function ExploreSideCards() {
   return (
     <aside className="home-explore-side">
-      <Link to="/about" className="home-side-card home-side-showroom">
-        <img
-          src={showroom}
-          alt="Motor Wallah vehicle showroom"
-          width={1280}
-          height={720}
-          loading="lazy"
-        />
-        <span className="home-side-showroom-body">
-          <span className="home-side-showroom-text">
-            Quality Vehicles.
-            <br />
-            Trusted Partners.
-          </span>
-          <span className="home-side-arrow" aria-hidden="true">
-            <ArrowRight size={14} />
-          </span>
-        </span>
-      </Link>
+      <BodyFranchiseBanner />
     </aside>
   );
 }

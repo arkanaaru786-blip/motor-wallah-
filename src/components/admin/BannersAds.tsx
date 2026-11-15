@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Save,
   ShieldCheck,
+  Trash2,
   Video,
 } from "lucide-react";
 import type { AdminSession } from "@/lib/admin-auth";
@@ -23,6 +24,7 @@ import {
   loadBanners,
   mediaProblem,
   saveBanner,
+  splitImageUrls,
   uploadBannerMedia,
   useBanners,
   type Banner,
@@ -76,12 +78,14 @@ function SectionCard({
   where,
   banner,
   signedIn,
+  multiple,
 }: {
   id: BannerSection;
   label: string;
   where: string;
   banner: Banner | undefined;
   signedIn: boolean;
+  multiple: boolean;
 }) {
   const [draft, setDraft] = useState<Draft>(() => draftFrom(banner));
   const [saving, setSaving] = useState(false);
@@ -92,7 +96,14 @@ function SectionCard({
   // Keep the form in step with the row after a save or a fresh read.
   useEffect(() => {
     setDraft(draftFrom(banner));
-  }, [banner?.section, banner?.title, banner?.targetUrl, banner?.imageUrl, banner?.mediaType, banner?.status]);
+  }, [
+    banner?.section,
+    banner?.title,
+    banner?.targetUrl,
+    banner?.imageUrl,
+    banner?.mediaType,
+    banner?.status,
+  ]);
 
   const dirty =
     draft.title !== (banner?.title ?? "") ||
@@ -112,7 +123,7 @@ function SectionCard({
       setError(linkProblem);
       return;
     }
-    if (next.status === "Active" && !next.imageUrl) {
+    if (next.status === "Active" && splitImageUrls(next.imageUrl).length === 0) {
       setError("Upload the artwork first — an active banner needs an image or a video.");
       return;
     }
@@ -140,30 +151,51 @@ function SectionCard({
     );
   }
 
-  async function handleFile(file: File | null) {
-    if (!file) return;
+  async function handleFiles(files: File[]) {
+    if (!files.length) return;
     setError(null);
     setFlash(null);
 
-    const problem = mediaProblem(file);
-    if (problem) {
-      setError(problem);
-      return;
-    }
+    const existing = multiple ? splitImageUrls(draft.imageUrl) : [];
+    const uploaded: string[] = [];
+    let mediaType = draft.mediaType;
+    let problem: string | null = null;
 
     setUploading(true);
-    const result = await uploadBannerMedia(id, file);
+    for (const file of files) {
+      const issue = mediaProblem(file);
+      if (issue) {
+        problem = `${file.name}: ${issue}`;
+        continue;
+      }
+      const result = await uploadBannerMedia(id, file);
+      if (!result.ok || !result.url) {
+        problem = result.error ?? "Could not upload that file.";
+        continue;
+      }
+      uploaded.push(result.url);
+      mediaType = result.mediaType ?? mediaType;
+    }
     setUploading(false);
 
-    if (!result.ok || !result.url) {
-      setError(result.error ?? "Could not upload that file.");
+    if (!uploaded.length) {
+      setError(problem ?? "Could not upload those files.");
       return;
     }
-    update({ imageUrl: result.url, mediaType: result.mediaType ?? "image" });
-    setFlash("Uploaded. Press Save to publish it.");
+    if (multiple) {
+      update({ imageUrl: JSON.stringify([...existing, ...uploaded]) });
+      setFlash(
+        `${uploaded.length} image${uploaded.length === 1 ? "" : "s"} uploaded. Press Save to publish.`,
+      );
+    } else {
+      update({ imageUrl: uploaded[0]!, mediaType });
+      setFlash("Uploaded. Press Save to publish it.");
+    }
+    if (problem) setError(problem);
   }
 
-  const preview = draft.imageUrl;
+  const images = splitImageUrls(draft.imageUrl);
+  const preview = images[0] ?? "";
 
   return (
     <section className="mw-admin-panel mw-admin-banner-card" data-testid={`banner-card-${id}`}>
@@ -182,7 +214,7 @@ function SectionCard({
 
       <div className="mw-admin-banner-preview">
         {preview ? (
-          draft.mediaType === "video" ? (
+          draft.mediaType === "video" && !multiple ? (
             <video src={preview} autoPlay muted loop playsInline />
           ) : (
             <img src={preview} alt="" />
@@ -194,9 +226,28 @@ function SectionCard({
         )}
       </div>
 
+      {multiple && images.length ? (
+        <div className="mw-admin-banner-thumbs" data-testid={`banner-thumbs-${id}`}>
+          {images.map((url, index) => (
+            <div className="mw-admin-banner-thumb" key={`${url}-${index}`}>
+              <img src={url} alt={`Slide ${index + 1}`} />
+              <button
+                type="button"
+                aria-label={`Remove slide ${index + 1}`}
+                onClick={() =>
+                  update({ imageUrl: JSON.stringify(images.filter((entry) => entry !== url)) })
+                }
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
       <p className="mw-admin-hint">
-        <MousePointerClick size={13} /> <strong data-testid={`banner-clicks-${id}`}>{banner?.clicks ?? 0}</strong>{" "}
-        clicks · {where}
+        <MousePointerClick size={13} />{" "}
+        <strong data-testid={`banner-clicks-${id}`}>{banner?.clicks ?? 0}</strong> clicks · {where}
       </p>
 
       <div className="mw-admin-form">
@@ -228,18 +279,29 @@ function SectionCard({
 
         <label className="mw-admin-field">
           <span>
-            {draft.mediaType === "video" ? <Video size={13} /> : <ImageIcon size={13} />} Upload
-            JPG, PNG or MP4
+            {multiple ? (
+              <ImageIcon size={13} />
+            ) : draft.mediaType === "video" ? (
+              <Video size={13} />
+            ) : (
+              <ImageIcon size={13} />
+            )}{" "}
+            {multiple ? "Upload carousel images (JPG, PNG, WebP)" : "Upload JPG, PNG or MP4"}
           </span>
           <input
             className="mw-admin-input mw-admin-file"
             type="file"
-            accept={ACCEPTED_MEDIA_ATTR}
-            onChange={(event) => void handleFile(event.target.files?.[0] ?? null)}
+            multiple={multiple}
+            accept={multiple ? "image/jpeg,image/png,image/webp" : ACCEPTED_MEDIA_ATTR}
+            onChange={(event) => void handleFiles(Array.from(event.target.files ?? []))}
             data-testid={`banner-file-${id}`}
           />
           <small className="mw-admin-hint">
-            Up to {(MAX_MEDIA_BYTES / (1024 * 1024)).toFixed(0)} MB. {uploading ? "Uploading…" : ""}
+            Up to {(MAX_MEDIA_BYTES / (1024 * 1024)).toFixed(0)} MB per file.{" "}
+            {multiple
+              ? `${images.length} slide${images.length === 1 ? "" : "s"} in this slot. `
+              : ""}
+            {uploading ? "Uploading…" : ""}
           </small>
         </label>
       </div>
@@ -268,7 +330,9 @@ function SectionCard({
         <button
           type="button"
           className="mw-admin-ghost"
-          onClick={() => void persist({ status: draft.status === "Active" ? "Inactive" : "Active" })}
+          onClick={() =>
+            void persist({ status: draft.status === "Active" ? "Inactive" : "Active" })
+          }
           disabled={!signedIn || saving || uploading}
           data-testid={`banner-toggle-${id}`}
         >
@@ -404,6 +468,7 @@ export function BannersAdsPanel({ session }: { session: AdminSession }) {
             where={section.where}
             banner={banners.find((entry) => entry.section === section.id)}
             signedIn={signedIn}
+            multiple={section.multiple}
           />
         ))}
       </div>
@@ -443,7 +508,13 @@ export function BannersAdsPanel({ session }: { session: AdminSession }) {
                   : "No public.staff row matches this user id, so the database will refuse the write."}
             </p>
             <p className="mw-admin-hint">
-              Checked through {staff?.checked === "rpc" ? "is_staff()" : staff?.checked === "table" ? "the staff row" : "nothing (the call failed)"}.
+              Checked through{" "}
+              {staff?.checked === "rpc"
+                ? "is_staff()"
+                : staff?.checked === "table"
+                  ? "the staff row"
+                  : "nothing (the call failed)"}
+              .
             </p>
             {staff?.checked === "none" && staff.error ? (
               <p className="mw-admin-error" data-testid="banners-staff-error">

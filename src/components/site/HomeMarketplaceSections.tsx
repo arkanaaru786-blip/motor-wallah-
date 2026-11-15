@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowLeftRight,
@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BannerAd, BannerMedia, bannerLinkProps } from "@/components/site/BannerAd";
-import { useActiveBanner, useBanners } from "@/lib/banners";
+import { bannerImageList, useActiveBanner, useBanners } from "@/lib/banners";
 import { MakeOfferDialog } from "@/components/buy/MakeOfferDialog";
 import { gateCustomerAction } from "@/lib/customer-gate";
 import { useShortlist } from "@/lib/shortlist";
@@ -58,6 +58,10 @@ const ACTIONS = [
   { label: "Exchange", to: "/exchange", icon: ArrowLeftRight, text: "Upgrade easily" },
   { label: "Value", to: "/sell-your-car", icon: Calculator, text: "Know your worth" },
   { label: "Compare", to: "/compare", icon: GitCompareArrows, text: "Make the right choice" },
+  { label: "New Spare Parts", to: "/accessories", icon: Package, text: "Genuine new parts" },
+  { label: "Used Spare Parts", to: "/accessories", icon: Recycle, text: "Verified used parts" },
+  { label: "Finance", to: "/finance", icon: IndianRupee, text: "Easy vehicle finance" },
+  { label: "Insurance", to: "/insurance", icon: ShieldCheck, text: "Cover that fits" },
   { label: "Service", to: "/services", icon: Wrench, text: "Keep it running" },
   { label: "Scrap", to: "/scrap", icon: Recycle, text: "Turn old into value" },
 ] as const;
@@ -433,72 +437,123 @@ export function PopularVehicles() {
 }
 
 /**
- * Horizontal ad carousel for the homepage sidebar.
+ * One customer-ad slot.
  *
- * Every Active banner that has artwork (except the tall sidebar slot, which is
- * rendered separately) becomes a snap-scrolling card. It is a plain overflow-x
- * rail, so touch scrolling keeps native momentum and the five ad slots stay in
- * one compact row instead of pushing the listing down.
+ * The admin stores several image URLs for the slot; they sit in a snap rail and
+ * step forward on their own every few seconds (pausing on hover/focus and when
+ * the visitor prefers reduced motion). Both slots live inside the sticky
+ * sidebar, so they stay in view while the listing column scrolls.
  */
-export function HomeAdCarousel() {
+function SidebarAdSlot({
+  slot,
+  label,
+}: {
+  slot: "sidebar_slot_1" | "sidebar_slot_2";
+  label: string;
+}) {
   const { banners } = useBanners();
-  const ads = banners.filter(
-    (banner) =>
-      banner.status === "Active" && banner.imageUrl.trim() && banner.section !== "sidebar",
-  );
-  if (!ads.length) return null;
+  const banner = banners.find((entry) => entry.section === slot) ?? null;
+  const images = banner && banner.status === "Active" ? bannerImageList(banner) : [];
+  const link = banner ? bannerLinkProps(banner) : null;
+  const railRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail || images.length < 2) return;
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
+
+    let index = 0;
+    let paused = false;
+    const timer = window.setInterval(() => {
+      if (paused) return;
+      index = (index + 1) % images.length;
+      const card = rail.children[index] as HTMLElement | undefined;
+      if (card) rail.scrollTo({ left: card.offsetLeft, behavior: "smooth" });
+    }, 4200);
+
+    const pause = () => {
+      paused = true;
+    };
+    const resume = () => {
+      paused = false;
+    };
+    rail.addEventListener("pointerenter", pause);
+    rail.addEventListener("pointerleave", resume);
+    rail.addEventListener("focusin", pause);
+    rail.addEventListener("focusout", resume);
+
+    return () => {
+      window.clearInterval(timer);
+      rail.removeEventListener("pointerenter", pause);
+      rail.removeEventListener("pointerleave", resume);
+      rail.removeEventListener("focusin", pause);
+      rail.removeEventListener("focusout", resume);
+    };
+  }, [images.length]);
 
   return (
-    <section className="home-side-carousel" aria-label="Sponsored highlights">
-      <div className="home-side-carousel-head">
-        <p>Sponsored</p>
-        <span>Swipe for more</span>
+    <section className="home-side-slot" aria-label={label}>
+      <div className="home-side-slot-head">
+        <p>{label}</p>
+        {images.length > 1 ? <span>Auto</span> : null}
       </div>
-      <div className="home-side-carousel-rail">
-        {ads.map((banner) => {
-          const link = bannerLinkProps(banner);
-          const media = (
-            <BannerMedia
-              banner={banner}
-              className="home-side-carousel-media"
-              width={640}
-              height={360}
-            />
-          );
-          const title = banner.title.trim();
-          return (
-            <article className="home-side-carousel-card" key={banner.id}>
-              {link ? (
-                <a className="home-side-carousel-link" {...link}>
-                  {media}
-                  {title ? <span className="home-side-carousel-title">{title}</span> : null}
-                </a>
-              ) : (
-                <div className="home-side-carousel-link">
-                  {media}
-                  {title ? <span className="home-side-carousel-title">{title}</span> : null}
-                </div>
-              )}
-            </article>
-          );
-        })}
-      </div>
+      {images.length ? (
+        <div className="home-side-slot-rail" ref={railRef}>
+          {images.map((source, index) => {
+            const media = (
+              <img
+                className="home-side-slot-image"
+                src={source}
+                alt={
+                  banner?.title
+                    ? `${banner.title} slide ${index + 1}`
+                    : `${label} slide ${index + 1}`
+                }
+                loading="lazy"
+                width={640}
+                height={360}
+              />
+            );
+            return (
+              <div className="home-side-slot-card" key={`${source}-${index}`}>
+                {link ? (
+                  <a className="home-side-slot-link" {...link}>
+                    {media}
+                  </a>
+                ) : (
+                  media
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="home-side-slot-empty">
+          <p>Customer ad space</p>
+          <Link to="/contact">Advertise here</Link>
+        </div>
+      )}
     </section>
   );
 }
 
 /**
- * Desktop sticky sidebar.
- *
- * Image-first franchise card (hidden below desktop; the footer keeps the link
- * on mobile), the advertise CTA, a horizontal ad carousel and one tall ad.
+ * Desktop sticky sidebar: exactly two customer ad slots and the advertise CTA
+ * below them. The franchise promotion moved into the category band and the tall
+ * BUY ad no longer appears here.
  */
 export function HomeSidebar() {
-  const franchise = useActiveBanner("franchise_banner");
-
   return (
-    <aside className="home-showcase-side" aria-label="Advertise and sponsored">
+    <aside className="home-showcase-side" aria-label="Advertisements">
       <div className="home-side-stack">
+        <SidebarAdSlot slot="sidebar_slot_1" label="Advertisement" />
+        <SidebarAdSlot slot="sidebar_slot_2" label="Advertisement" />
+
         <section className="home-side-advertise">
           <p className="home-side-advertise-kicker">Advertise with us</p>
           <h2>Put your business in front of every buyer.</h2>
@@ -508,50 +563,6 @@ export function HomeSidebar() {
             </Link>
           </Button>
         </section>
-
-        <section className="home-side-franchise-card" aria-labelledby="home-side-franchise-title">
-          <div className="home-side-franchise-media">
-            {franchise ? (
-              <BannerMedia
-                banner={franchise}
-                className="home-side-franchise-image"
-                width={640}
-                height={360}
-              />
-            ) : (
-              <img
-                src={franchiseShowroom}
-                alt="Premium automotive franchise showroom"
-                width={1280}
-                height={720}
-                loading="lazy"
-                className="home-side-franchise-image"
-              />
-            )}
-          </div>
-          <div className="home-side-franchise-body">
-            <p className="home-side-franchise-kicker">Franchise opportunity</p>
-            <h2 id="home-side-franchise-title">
-              Become a <span>Franchise Partner</span>
-            </h2>
-            <p className="home-side-franchise-text">
-              Join Motor Wallah and grow your automotive business with us.
-            </p>
-            <Button asChild className="home-cta home-cta-primary home-side-franchise-cta">
-              <Link to="/franchise">
-                Apply Now <ArrowRight size={15} />
-              </Link>
-            </Button>
-          </div>
-        </section>
-
-        <HomeAdCarousel />
-
-        <BannerAd
-          section="sidebar"
-          className="mw-ad-sidebar home-side-vertical-ad"
-          label="Sponsored"
-        />
       </div>
     </aside>
   );

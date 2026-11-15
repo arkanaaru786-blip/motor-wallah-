@@ -25,30 +25,78 @@ export const BANNER_SECTIONS = [
     label: "Homepage top banner",
     where: "Full-width strip under the category row on the homepage.",
     wide: true,
+    multiple: false,
   },
   {
     id: "franchise_banner",
     label: "Franchise banner",
     where: "The image beside “Become a Franchise Partner” on the homepage.",
     wide: false,
+    multiple: false,
   },
   {
     id: "business_spotlight",
     label: "Business spotlight",
     where: "The sponsored brand card on the homepage.",
     wide: true,
+    multiple: false,
   },
   {
     id: "sidebar",
-    label: "Sidebar ad",
+    label: "BUY sidebar ad",
     where: "Tall card under the filters in the BUY marketplace.",
     wide: false,
+    multiple: false,
+  },
+  {
+    id: "sidebar_slot_1",
+    label: "Homepage sidebar ad 1",
+    where:
+      "Right column of the homepage, above the advertise button. Upload several images for a carousel.",
+    wide: false,
+    multiple: true,
+  },
+  {
+    id: "sidebar_slot_2",
+    label: "Homepage sidebar ad 2",
+    where: "Second right-column slot on the homepage, above the advertise button.",
+    wide: false,
+    multiple: true,
   },
 ] as const;
 
 export type BannerSection = (typeof BANNER_SECTIONS)[number]["id"];
 export type BannerStatus = "Active" | "Inactive";
 export type BannerMedia = "image" | "video";
+
+export const SIDEBAR_AD_SLOTS = ["sidebar_slot_1", "sidebar_slot_2"] as const;
+export type SidebarAdSlot = (typeof SIDEBAR_AD_SLOTS)[number];
+
+/**
+ * Sidebar carousel slots store several image URLs in `image_url` as a JSON
+ * array, so one row still describes one slot without a schema change. Older
+ * single-URL values keep working.
+ */
+export function splitImageUrls(raw: string): string[] {
+  const value = raw.trim();
+  if (!value) return [];
+  if (value.startsWith("[")) {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(
+          (entry): entry is string => typeof entry === "string" && entry.trim().length > 0,
+        );
+      }
+    } catch {
+      /* not JSON — treat the value as one URL */
+    }
+  }
+  return [value];
+}
+
+export const bannerImageList = (banner: Banner | null | undefined): string[] =>
+  banner ? splitImageUrls(banner.imageUrl) : [];
 
 export type Banner = {
   id: string;
@@ -206,17 +254,15 @@ export function useActiveBanner(section: BannerSection): Banner | null {
 export async function trackBannerClick(section: string) {
   const client = supabaseClient();
   if (!client) return;
-  void client
-    .rpc("track_banner_click", { p_section: section })
-    .then(({ error }) => {
-      if (error) return;
-      emit({
-        ...snapshot,
-        banners: snapshot.banners.map((banner) =>
-          banner.section === section ? { ...banner, clicks: banner.clicks + 1 } : banner,
-        ),
-      });
+  void client.rpc("track_banner_click", { p_section: section }).then(({ error }) => {
+    if (error) return;
+    emit({
+      ...snapshot,
+      banners: snapshot.banners.map((banner) =>
+        banner.section === section ? { ...banner, clicks: banner.clicks + 1 } : banner,
+      ),
     });
+  });
 }
 
 export type SaveBannerInput = {
@@ -265,7 +311,11 @@ export async function saveBanner(
   const banner = data ? rowToBanner(data as Row) : undefined;
   if (banner) {
     const others = snapshot.banners.filter((entry) => entry.section !== banner.section);
-    emit({ banners: [...others, banner].sort((a, b) => a.section.localeCompare(b.section)), status: "ready", error: null });
+    emit({
+      banners: [...others, banner].sort((a, b) => a.section.localeCompare(b.section)),
+      status: "ready",
+      error: null,
+    });
   } else {
     void loadBanners();
   }

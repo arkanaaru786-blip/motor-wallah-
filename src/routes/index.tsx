@@ -7,7 +7,6 @@ import { BrowseCategories } from "@/components/site/BrowseCategories";
 import {
   HomeShowcase,
   MarketplaceActions,
-  MarketplaceHub,
   TrustStrip,
 } from "@/components/site/HomeMarketplaceSections";
 
@@ -37,7 +36,6 @@ function Index() {
         <Hero />
         <BrowseCategories />
         <HomeShowcase />
-        <MarketplaceHub />
         <MarketplaceActions />
         <TrustStrip />
       </main>
