@@ -9,11 +9,18 @@ import { describeSupabaseError } from "@/lib/supabase";
 /**
  * Password reset landing page for Supabase recovery links.
  *
- * Supabase appends the session to the URL fragment
+ * Supabase delivers the recovery session in the URL fragment, e.g.
  *   #access_token=…&refresh_token=…&type=recovery
- * The staff client is created with detectSessionInUrl:false (it shares no storage
- * with the visitor client), so this page reads the fragment itself, establishes
- * the session, and then lets the person choose a new password.
+ *
+ * The staff client keeps its own storage and is created with
+ * `detectSessionInUrl: false`, so automatic URL detection is off for it. This
+ * page therefore (1) subscribes to `onAuthStateChange` for a PASSWORD_RECOVERY /
+ * SIGNED_IN event and (2) reads the fragment itself and calls `setSession` to
+ * create the temporary recovery session. The fragment is cleared from the
+ * address bar as soon as it is read.
+ *
+ * This route is public (no auth guard): a signed-out visitor must be able to
+ * open a recovery link and reach the new-password form.
  */
 export function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -27,82 +34,119 @@ export function ResetPasswordPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    const client = staffClient();
+    if (!client) {
+      setStatus("invalid");
+      setMessage(
+        "The database is not configured for this build, so the password cannot be reset here.",
+      );
+      return;
+    }
+
     let alive = true;
+    let settled = false;
+    let fallbackTimer: number | null = null;
 
-    const apply = async () => {
-      const raw = window.location.hash.replace(/^#/, "");
-      if (!raw) {
-        if (alive) {
-          setStatus("invalid");
-          setMessage(
-            "This reset link is missing its sign-in token. Open the most recent reset email on this device, or request a new link.",
-          );
-        }
-        return;
-      }
-
-      const params = new URLSearchParams(raw);
-      const type = params.get("type");
-      const accessToken = params.get("access_token");
-      const refreshToken = params.get("refresh_token") ?? "";
-      const hashError = params.get("error_description") ?? params.get("error");
-
-      // Remove the token from the address bar as soon as it is read.
-      window.history.replaceState(null, "", window.location.pathname + window.location.search);
-
-      if (hashError) {
-        if (alive) {
-          setStatus("invalid");
-          setMessage(decodeURIComponent(hashError.replace(/\+/g, " ")));
-        }
-        return;
-      }
-
-      if (type !== "recovery" || !accessToken) {
-        if (alive) {
-          setStatus("invalid");
-          setMessage(
-            "This link is not a password reset link, or it has already been used. Request a new reset email and try again.",
-          );
-        }
-        return;
-      }
-
-      const client = staffClient();
-      if (!client) {
-        if (alive) {
-          setStatus("invalid");
-          setMessage(
-            "The database is not configured for this build, so the password cannot be reset here.",
-          );
-        }
-        return;
-      }
-
-      const { data, error: sessionError } = await client.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-
-      if (!alive) return;
-
-      if (sessionError || !data.session) {
-        setStatus("invalid");
-        setMessage(
-          sessionError
-            ? `${describeSupabaseError(sessionError)} This reset link may have expired — request a new one.`
-            : "This reset link could not be verified. It may have expired — request a new one.",
-        );
-        return;
-      }
-
-      setEmail(data.session.user.email ?? null);
+    const settleReady = (userEmail: string | null) => {
+      if (!alive || settled) return;
+      settled = true;
+      if (fallbackTimer !== null) window.clearTimeout(fallbackTimer);
+      setEmail(userEmail);
       setStatus("ready");
     };
 
-    void apply();
+    const settleInvalid = (text: string) => {
+      if (!alive || settled) return;
+      settled = true;
+      if (fallbackTimer !== null) window.clearTimeout(fallbackTimer);
+      setStatus("invalid");
+      setMessage(text);
+    };
+
+    // 1) Listen for Supabase auth events. A recovery link produces
+    // PASSWORD_RECOVERY (and some flows emit SIGNED_IN); either means we have a
+    // temporary session and may show the new-password form.
+    const {
+      data: { subscription },
+    } = client.auth.onAuthStateChange((event, session) => {
+      if (!alive) return;
+      if ((event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") && session) {
+        settleReady(session.user.email ?? null);
+      }
+    });
+
+    const applyFromUrl = async () => {
+      // 2) Try to read the recovery token from the URL hash ourselves, since the
+      // staff client does not auto-detect sessions from the URL.
+      const hash = window.location.hash.replace(/^#/, "");
+      const query = window.location.search.replace(/^\?/, "");
+
+      // Prefer the fragment (implicit flow: #access_token=…&type=recovery).
+      const params = new URLSearchParams(hash || query);
+      const type = params.get("type");
+      const accessToken = params.get("access_token");
+      const refreshToken = params.get("refresh_token") ?? "";
+      const urlError = params.get("error_description") ?? params.get("error");
+
+      const hasRecoveryPayload = type === "recovery" || !!accessToken;
+
+      // Clear tokens from the URL as soon as we've read them so they are not
+      // left in history or leaked via the referrer.
+      if (hash || (query && hasRecoveryPayload)) {
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+
+      if (urlError) {
+        settleInvalid(decodeURIComponent(urlError.replace(/\+/g, " ")));
+        return;
+      }
+
+      if (accessToken) {
+        const { data, error: sessionError } = await client.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (!alive) return;
+
+        if (sessionError || !data.session) {
+          settleInvalid(
+            sessionError
+              ? `${describeSupabaseError(sessionError)} This reset link may have expired — request a new one.`
+              : "This reset link could not be verified. It may have expired — request a new one.",
+          );
+          return;
+        }
+
+        settleReady(data.session.user.email ?? null);
+        return;
+      }
+
+      // 3) No token in the URL — a session may already exist (e.g. the auth
+      // listener fired, or the user refreshed mid-recovery). Accept it only when
+      // it is present; otherwise fall through to the invalid timeout.
+      const { data } = await client.auth.getSession();
+      if (!alive) return;
+      if (data.session) {
+        settleReady(data.session.user.email ?? null);
+      }
+    };
+
+    void applyFromUrl();
+
+    // If neither an auth event nor a URL token yields a session, explain why
+    // after a short grace period (gives onAuthStateChange time to fire).
+    fallbackTimer = window.setTimeout(() => {
+      settleInvalid(
+        "This reset link is missing its sign-in token or has already been used. Open the most recent reset email on this device, or request a new link.",
+      );
+    }, 2500);
+
     return () => {
       alive = false;
+      if (fallbackTimer !== null) window.clearTimeout(fallbackTimer);
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -126,6 +170,17 @@ export function ResetPasswordPage() {
       return;
     }
 
+    // Confirm the temporary recovery session is still present before updating.
+    const { data } = await client.auth.getSession();
+    if (!data.session) {
+      setError("Your recovery session is no longer active. Open the reset link again to continue.");
+      setStatus("invalid");
+      setMessage(
+        "This reset link has expired or was already used. Request a new reset email and try again.",
+      );
+      return;
+    }
+
     setBusy(true);
     try {
       const { error: updateError } = await client.auth.updateUser({ password });
@@ -133,6 +188,8 @@ export function ResetPasswordPage() {
         setError(describeSupabaseError(updateError));
         return;
       }
+
+      // Password saved — only now leave the recovery page.
       setStatus("done");
       setMessage("Your password has been updated. You can sign in with it now.");
       window.setTimeout(() => {
