@@ -78,8 +78,10 @@ function readAll(): Dealer[] {
       dealer &&
       typeof dealer.id === "string" &&
       isDealerCategory(dealer.category) &&
-      // Seeded demo logins from earlier builds are hidden/removed on read.
-      !dealer.email.toLowerCase().endsWith("@dealer.motorwallah.in"),
+      // Seeded demo logins from earlier builds are hidden/removed on read,
+      // along with the named test dealer used during setup.
+      !dealer.email.toLowerCase().endsWith("@dealer.motorwallah.in") &&
+      !/falana/i.test(`${dealer.name} ${dealer.showroom}`),
   );
 }
 
