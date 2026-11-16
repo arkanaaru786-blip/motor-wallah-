@@ -33,7 +33,9 @@ export function supabaseClient(): SupabaseClient | null {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: false,
+        // Needed for the customer Google OAuth redirect: the session arrives in
+        // the callback URL and must be picked up automatically.
+        detectSessionInUrl: true,
         storageKey: "mw_supabase_auth",
       },
       global: { headers: { "x-application-name": "motor-wallah" } },

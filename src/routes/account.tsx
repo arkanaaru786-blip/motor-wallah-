@@ -184,7 +184,7 @@ function AccountPage() {
                 Hello, <em>{firstName}</em>
               </h1>
               <p className="mw-acct-hero-sub">
-                {maskMobile(customer.mobile)} · {customer.city}
+                {customer.mobile ? maskMobile(customer.mobile) : customer.email} · {customer.city}
               </p>
             </div>
             <div className="mw-acct-hero-actions">
@@ -242,7 +242,9 @@ function AccountPage() {
                 </span>
                 <span className="mw-acct-nav-foot-text">
                   <span className="mw-acct-nav-foot-name">{customer.name}</span>
-                  <span className="mw-acct-nav-foot-meta">{maskMobile(customer.mobile)}</span>
+                  <span className="mw-acct-nav-foot-meta">
+                    {customer.mobile ? maskMobile(customer.mobile) : customer.email}
+                  </span>
                 </span>
               </div>
             </nav>

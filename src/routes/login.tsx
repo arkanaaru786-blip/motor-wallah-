@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, BadgeCheck, LogOut, ShieldCheck, Smartphone } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
@@ -11,10 +11,12 @@ import {
   profileFor,
   sendOtp,
   signIn,
+  signInWithOAuthProfile,
   signOut,
   useCustomerSession,
   verifyOtp,
 } from "@/lib/account-store";
+import { supabaseClient } from "@/lib/supabase";
 
 const TITLE = "Login or Create Your Account | Motor Wallah";
 const DESCRIPTION =
@@ -53,6 +55,75 @@ function LoginPage() {
   const [profile, setProfile] = useState({ name: "", email: "", city: "" });
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [googleBusy, setGoogleBusy] = useState(false);
+
+  // Returning from Google: Supabase reads the callback URL, then we bridge the
+  // verified identity into the local customer profile and open the dashboard.
+  useEffect(() => {
+    const client = supabaseClient();
+    if (!client) return;
+    let active = true;
+    let handled = false;
+
+    const finish = (email: string | undefined, name: string | undefined) => {
+      if (!active || handled || !email) return;
+      const providerSession = client.auth.getSession();
+      void providerSession.then(({ data }) => {
+        const provider = data.session?.user.app_metadata?.provider;
+        if (provider && provider !== "google") return;
+        const result = signInWithOAuthProfile({ email, name });
+        if (!result.ok) {
+          setError(result.error ?? "Could not complete Google sign-in.");
+          setGoogleBusy(false);
+          return;
+        }
+        handled = true;
+        navigate({ to: "/account" });
+      });
+    };
+
+    void client.auth.getSession().then(({ data }) => {
+      const user = data.session?.user;
+      if (user?.app_metadata?.provider === "google") {
+        finish(
+          user.email,
+          (user.user_metadata?.["full_name"] as string) ?? user.user_metadata?.["name"],
+        );
+      }
+    });
+
+    const { data: subscription } = client.auth.onAuthStateChange((event, session) => {
+      if (event !== "SIGNED_IN" || session?.user.app_metadata?.provider !== "google") return;
+      const user = session.user;
+      finish(
+        user.email,
+        (user.user_metadata?.["full_name"] as string) ?? user.user_metadata?.["name"],
+      );
+    });
+
+    return () => {
+      active = false;
+      subscription.subscription.unsubscribe();
+    };
+  }, [navigate]);
+
+  const handleGoogle = async () => {
+    const client = supabaseClient();
+    if (!client) {
+      setError("Google sign-in needs the database configuration. Please try the mobile login.");
+      return;
+    }
+    setError(null);
+    setGoogleBusy(true);
+    const { error: oauthError } = await client.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/login` },
+    });
+    if (oauthError) {
+      setError(oauthError.message);
+      setGoogleBusy(false);
+    }
+  };
 
   const stepIndex = STEP_LABELS.findIndex((item) => item.id === step);
 
@@ -66,7 +137,9 @@ function LoginPage() {
     setMobile(result.mobile);
     setCode("");
     setError(null);
-    setNotice(`Code ready for ${maskMobile(result.mobile)}. SMS delivery is not configured, so it is shown below.`);
+    setNotice(
+      `Code ready for ${maskMobile(result.mobile)}. SMS delivery is not configured, so it is shown below.`,
+    );
     setStep("otp");
   };
 
@@ -172,6 +245,41 @@ function LoginPage() {
               </div>
             ) : (
               <>
+                {!customer && (
+                  <>
+                    <button
+                      type="button"
+                      className="mw-acct-google"
+                      onClick={() => void handleGoogle()}
+                      disabled={googleBusy}
+                      data-testid="google-login"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18">
+                        <path
+                          fill="#4285F4"
+                          d="M23.5 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.45a5.52 5.52 0 0 1-2.39 3.62v3h3.86c2.26-2.08 3.58-5.15 3.58-8.81Z"
+                        />
+                        <path
+                          fill="#34A853"
+                          d="M12 24c3.24 0 5.95-1.08 7.93-2.92l-3.87-3c-1.07.72-2.44 1.15-4.06 1.15-3.12 0-5.77-2.1-6.71-4.93H1.29v3.1A12 12 0 0 0 12 24Z"
+                        />
+                        <path
+                          fill="#FBBC05"
+                          d="M5.29 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.29a12 12 0 0 0 0 10.8l4-3.1Z"
+                        />
+                        <path
+                          fill="#EA4335"
+                          d="M12 4.77c1.76 0 3.34.6 4.58 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.29 6.6l4 3.1C6.23 6.87 8.88 4.77 12 4.77Z"
+                        />
+                      </svg>
+                      {googleBusy ? "Opening Google…" : "Continue with Google"}
+                    </button>
+                    <div className="mw-acct-divider" aria-hidden="true">
+                      <span>or continue with mobile</span>
+                    </div>
+                  </>
+                )}
+
                 <ol className="mw-acct-auth-steps" aria-label="Login progress">
                   {STEP_LABELS.map((item, index) => (
                     <li
@@ -223,7 +331,8 @@ function LoginPage() {
                       Send OTP <ArrowRight size={16} aria-hidden="true" />
                     </button>
                     <p className="mw-acct-demo" data-testid="demo-otp">
-                      SMS delivery is not configured yet · code <strong>{currentOtpCode() ?? "----"}</strong>
+                      SMS delivery is not configured yet · code{" "}
+                      <strong>{currentOtpCode() ?? "----"}</strong>
                     </p>
                   </form>
                 )}

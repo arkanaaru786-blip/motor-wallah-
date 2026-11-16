@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 import { replicaRead, replicaWrite } from "@/lib/cloud-store";
+import { supabaseClient } from "@/lib/supabase";
 
 /**
  * Customer accounts (Supabase-backed profiles, mock OTP).
@@ -217,8 +218,63 @@ export function signIn(mobile: string): { ok: boolean; error?: string } {
   return { ok: true };
 }
 
+/**
+ * Bridge a Google (Supabase OAuth) identity into the customer profile.
+ *
+ * The dashboard is keyed by a local profile, so after the OAuth redirect we
+ * upsert one from the verified email and start the local session. Google does
+ * not supply a mobile number; the profile starts without one and the customer
+ * can add it under My Profile.
+ */
+export function signInWithOAuthProfile(input: {
+  email: string;
+  name?: string | null | undefined;
+}): {
+  ok: boolean;
+  error?: string;
+  profile?: CustomerProfile;
+} {
+  const email = input.email.trim().toLowerCase();
+  if (!EMAIL_RE.test(email)) {
+    return { ok: false, error: "Google did not return a usable email address." };
+  }
+
+  const name =
+    input.name?.trim().replace(/\s+/g, " ") ||
+    email.split("@")[0]?.replace(/[._-]+/g, " ") ||
+    "Customer";
+  const profiles = readProfiles();
+  const existing = Object.entries(profiles).find(
+    ([, profile]) => profile.email.toLowerCase() === email,
+  );
+  const key = existing?.[0] ?? `oauth:${email}`;
+  const now = new Date().toISOString();
+  const profile: CustomerProfile = {
+    mobile: existing?.[1].mobile ?? "",
+    name,
+    email,
+    city: existing?.[1].city ?? "Indore",
+    createdAt: existing?.[1].createdAt ?? now,
+    updatedAt: now,
+  };
+
+  profiles[key] = profile;
+  if (!writeProfiles(profiles) || !writeSession(key)) {
+    return {
+      ok: false,
+      error:
+        "This browser blocked local storage, so you could not be signed in. Please allow storage and retry.",
+    };
+  }
+  emit();
+  return { ok: true, profile };
+}
+
 export function signOut() {
   writeSession(null);
+  // Drop the Google session too, otherwise the login page would immediately
+  // sign the same person back in from the stored Supabase session.
+  void supabaseClient()?.auth.signOut();
   emit();
 }
 
