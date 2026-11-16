@@ -112,6 +112,17 @@ create table if not exists public.vehicle_approvals (
 create index if not exists vehicle_approvals_status_idx
   on public.vehicle_approvals (status, created_at desc);
 
+-- Master-admin listings: featured vehicles sort above normal inventory.
+alter table public.vehicle_approvals
+  add column if not exists featured boolean not null default false;
+alter table public.vehicle_approvals
+  add column if not exists description text not null default '';
+alter table public.vehicle_approvals
+  add column if not exists image_urls text[] not null default '{}';
+
+create index if not exists vehicle_approvals_featured_idx
+  on public.vehicle_approvals (featured desc, decided_at desc);
+
 drop trigger if exists vehicle_approvals_touch on public.vehicle_approvals;
 create trigger vehicle_approvals_touch before update on public.vehicle_approvals
   for each row execute function public.touch_updated_at();

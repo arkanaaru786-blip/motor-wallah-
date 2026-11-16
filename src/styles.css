@@ -3089,3 +3089,46 @@ a.mw-info-contact-link:hover {
   gap: 10px;
   justify-content: center;
 }
+
+/* Master-admin vehicle form + featured listing treatment */
+.mw-vehicle-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--dlr-amber, oklch(0.62 0.13 75)) 38%, transparent);
+  background: color-mix(in oklab, var(--dlr-amber, oklch(0.62 0.13 75)) 8%, transparent);
+  cursor: pointer;
+}
+.mw-vehicle-feature input {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: var(--dlr-red);
+  flex: none;
+}
+.mw-vehicle-feature strong {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--dlr-ink);
+}
+.mw-vehicle-feature small {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--dlr-muted);
+}
+.mw-admin .mw-dealer-chip.is-featured {
+  color: oklch(0.48 0.12 75);
+  background: oklch(0.82 0.14 85 / 0.22);
+  border-color: oklch(0.72 0.13 80 / 0.45);
+}
+.mw-tag--featured {
+  background: oklch(0.82 0.14 85);
+  color: oklch(0.28 0.06 70);
+  font-weight: 700;
+}

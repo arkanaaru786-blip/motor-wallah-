@@ -134,6 +134,8 @@ export type BuyListing = {
   verified: boolean;
   status: "Available" | "Reserved" | "Sold";
   demo: boolean;
+  /** Admin-picked listing that sorts above the rest of the category. */
+  featured?: boolean;
   description: string | null;
   /** Honest caption for the photos that are actually attached. */
   photoNote: string;

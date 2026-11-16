@@ -53,6 +53,7 @@ export function BuyListingCard({
           loading="lazy"
         />
         <span className="mw-card-tags">
+          {listing.featured && <span className="mw-tag mw-tag--featured">Featured</span>}
           {listing.verified && (
             <span className="mw-tag mw-tag--verified">
               <BadgeCheck size={12} aria-hidden="true" /> Verified

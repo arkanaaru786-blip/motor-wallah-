@@ -235,7 +235,12 @@ function BuyPage() {
       })
       .filter((listing) => !filters.verifiedOnly || listing.verified)
       .filter((listing) => !shortlistedOnly || shortlist.ids.includes(listing.id))
-      .sort((a, b) => b.year - a.year || a.priceLakh - b.priceLakh);
+      .sort(
+        (a, b) =>
+          Number(Boolean(b.featured)) - Number(Boolean(a.featured)) ||
+          b.year - a.year ||
+          a.priceLakh - b.priceLakh,
+      );
   }, [categoryId, filters, shortlistedOnly, shortlist.ids, approvedListings]);
 
   const activeCount = categoryId

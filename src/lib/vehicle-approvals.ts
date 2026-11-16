@@ -28,6 +28,9 @@ export type VehicleApproval = {
   fuel: string;
   city: string;
   status: ApprovalStatus;
+  featured: boolean;
+  description: string;
+  images: string[];
   rejectionReason: string;
   createdAt: string;
   decidedAt: string | null;
@@ -37,7 +40,7 @@ export const APPROVALS_SETUP_HINT =
   "The vehicle_approvals table is not in this database yet. Run supabase/admin-features.sql in the Supabase SQL editor, then reload this page.";
 
 const COLUMNS =
-  "id, dealer_id, dealer_name, category, brand, model, vehicle_name, year, price, km, fuel, city, status, rejection_reason, created_at, decided_at";
+  "id, dealer_id, dealer_name, category, brand, model, vehicle_name, year, price, km, fuel, city, status, featured, description, image_urls, rejection_reason, created_at, decided_at";
 
 type Row = {
   id: string;
@@ -53,6 +56,9 @@ type Row = {
   fuel: string | null;
   city: string | null;
   status: string | null;
+  featured: boolean | null;
+  description: string | null;
+  image_urls: string[] | null;
   rejection_reason: string | null;
   created_at: string;
   decided_at: string | null;
@@ -75,6 +81,11 @@ const rowToApproval = (row: Row): VehicleApproval => ({
   fuel: row.fuel ?? "Petrol",
   city: row.city ?? "",
   status: row.status === "Approved" || row.status === "Rejected" ? row.status : "Pending",
+  featured: Boolean(row.featured),
+  description: row.description ?? "",
+  images: Array.isArray(row.image_urls)
+    ? row.image_urls.filter((url) => typeof url === "string" && url.trim().length > 0)
+    : [],
   rejectionReason: row.rejection_reason ?? "",
   createdAt: row.created_at,
   decidedAt: row.decided_at,
@@ -83,8 +94,11 @@ const rowToApproval = (row: Row): VehicleApproval => ({
 const isMissingTable = (error: { code?: string; message?: string } | null): boolean =>
   Boolean(error) &&
   (error?.code === "42P01" ||
+    error?.code === "42703" ||
     error?.code === "PGRST205" ||
-    /does not exist|could not find the table|schema cache/i.test(error?.message ?? ""));
+    /does not exist|column .* does not exist|could not find the table|schema cache/i.test(
+      error?.message ?? "",
+    ));
 
 /**
  * Submit a dealer's new vehicle for review. Fire-and-forget: the portal's own
@@ -138,6 +152,55 @@ export async function loadApprovals(): Promise<{
     };
   }
   return { approvals: ((data ?? []) as Row[]).map(rowToApproval), missing: false, error: null };
+}
+
+export type AdminVehicleInput = {
+  category: BuyCategoryId;
+  brand: string;
+  model: string;
+  year: number;
+  price: number;
+  km: number;
+  fuel: string;
+  city: string;
+  description: string;
+  photos: string[];
+  featured: boolean;
+};
+
+/**
+ * Add a vehicle directly from Master Control.
+ *
+ * It is inserted already Approved (the admin is the reviewer), and the
+ * featured flag is what lifts it above normal inventory in the BUY grid.
+ */
+export async function createAdminVehicle(
+  input: AdminVehicleInput,
+): Promise<{ ok: boolean; error?: string }> {
+  const client = staffClient();
+  if (!client) return { ok: false, error: "The database is not configured for this build." };
+  await staffSession();
+
+  const { error } = await client.from("vehicle_approvals").insert({
+    dealer_id: "master-admin",
+    dealer_name: "Motor Wallah",
+    category: input.category,
+    brand: input.brand.trim(),
+    model: input.model.trim(),
+    vehicle_name: `${input.brand.trim()} ${input.model.trim()}`,
+    year: Math.round(input.year),
+    price: Math.round(input.price),
+    km: Math.round(input.km),
+    fuel: input.fuel,
+    city: input.city.trim(),
+    description: input.description.trim(),
+    image_urls: input.photos.map((url) => url.trim()).filter(Boolean),
+    featured: input.featured,
+    status: "Approved",
+    decided_at: new Date().toISOString(),
+  });
+
+  return error ? { ok: false, error: describeSupabaseError(error) } : { ok: true };
 }
 
 export async function decideApproval(
@@ -196,13 +259,19 @@ export async function loadApprovedListings(): Promise<BuyListing[]> {
       city: approval.city || "Indore",
       locality: null,
       ownership: null,
-      images: category ? [category.image] : [],
+      images: approval.images.length > 0 ? approval.images : category ? [category.image] : [],
       verified: true,
       status: "Available",
       demo: false,
-      description: `Approved dealer listing from ${approval.dealerName || approval.dealerId}.`,
-      photoNote: "Illustrative category photograph — dealer photos are added after handover.",
-      photoAlt: `${name} ${category?.label ?? "vehicle"} illustrative photograph`,
+      featured: approval.featured,
+      description:
+        approval.description ||
+        `Approved ${approval.dealerName === "Motor Wallah" ? "Motor Wallah" : "dealer"} listing from ${approval.dealerName || approval.dealerId}.`,
+      photoNote:
+        approval.images.length > 0
+          ? "Photos supplied with this listing."
+          : "Illustrative category photograph — real photos are added after handover.",
+      photoAlt: `${name} ${category?.label ?? "vehicle"} photograph`,
     };
   });
 }
