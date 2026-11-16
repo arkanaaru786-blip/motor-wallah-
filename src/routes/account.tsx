@@ -22,7 +22,14 @@ import {
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { StickyActions } from "@/components/site/StickyActions";
-import { useCustomerSession, maskMobile, signOut, updateProfile } from "@/lib/account-store";
+import {
+  useCustomerSession,
+  maskMobile,
+  signInWithOAuthProfile,
+  signOut,
+  updateProfile,
+} from "@/lib/account-store";
+import { supabaseClient } from "@/lib/supabase";
 import type { CustomerProfile } from "@/lib/account-store";
 import { ChatThreadView, BUYER_QUICK_REPLIES } from "@/components/chat/ChatThreadView";
 import { NotificationPermissionButton } from "@/components/notify/NotificationPermissionButton";
@@ -137,12 +144,47 @@ function AccountPage() {
   });
   // Unread dealer messages drive the red badge on My Chats.
   const unreadChats = useUnreadChats("buyer");
+  // A Google session can arrive a moment after the local profile bridge. Give
+  // Supabase one look before treating the visitor as signed out.
+  const [authFallbackChecked, setAuthFallbackChecked] = useState(false);
 
   useEffect(() => {
     setCounts(dashboardCounts());
   }, [tab, customer]);
 
-  if (!ready) {
+  useEffect(() => {
+    if (!ready || customer) {
+      setAuthFallbackChecked(true);
+      return;
+    }
+    const client = supabaseClient();
+    if (!client) {
+      setAuthFallbackChecked(true);
+      return;
+    }
+    let active = true;
+    void client.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!active) return;
+        const user = data.session?.user;
+        if (user?.app_metadata?.provider === "google" && user.email) {
+          signInWithOAuthProfile({
+            email: user.email,
+            name: (user.user_metadata?.["full_name"] as string) ?? user.user_metadata?.["name"],
+          });
+        }
+        setAuthFallbackChecked(true);
+      })
+      .catch(() => {
+        if (active) setAuthFallbackChecked(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [ready, customer]);
+
+  if (!ready || (!customer && !authFallbackChecked)) {
     return (
       <div className="mw-sell mw-acct">
         <SiteHeader pills />
@@ -289,7 +331,11 @@ function ProfileTab({ customer }: { customer: CustomerProfile }) {
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
-    const result = updateProfile({ currentMobile: customer.mobile, ...form });
+    const result = updateProfile({
+      currentMobile: customer.mobile,
+      currentEmail: customer.email,
+      ...form,
+    });
     if (!result.ok) {
       setError(result.error);
       setSaved(false);
@@ -329,14 +375,17 @@ function ProfileTab({ customer }: { customer: CustomerProfile }) {
         </div>
         <div className="mw-acct-field">
           <label className="mw-acct-label" htmlFor="account-mobile">
-            Mobile number
+            Mobile number <span className="mw-acct-required">Required</span>
           </label>
           <input
             id="account-mobile"
             data-testid="profile-mobile"
             className="mw-acct-input"
             inputMode="numeric"
+            autoComplete="tel"
             maxLength={10}
+            placeholder="98765 43210"
+            required
             value={form.mobile}
             onChange={(event) => {
               setForm({ ...form, mobile: event.target.value.replace(/\D/g, "").slice(0, 10) });
@@ -344,6 +393,11 @@ function ProfileTab({ customer }: { customer: CustomerProfile }) {
               setError(null);
             }}
           />
+          {!customer.mobile ? (
+            <p className="mw-acct-note">
+              Add your mobile once so dealers and our team can reach you about offers and enquiries.
+            </p>
+          ) : null}
         </div>
         <div className="mw-acct-field">
           <label className="mw-acct-label" htmlFor="account-email">

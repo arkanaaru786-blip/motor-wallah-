@@ -321,9 +321,18 @@ export function createAccount(input: {
   return { ok: true, profile };
 }
 
-/** Profile edit — the mobile number is the account key, so a change re-keys it. */
+/**
+ * Profile edit.
+ *
+ * Mobile OTP accounts are keyed by their mobile number; a Google account is
+ * keyed by `oauth:<email>` until the customer adds a mobile. Resolve either key
+ * (falling back to the email), then migrate the record to the mobile key once
+ * one is supplied. A Supabase-authenticated Google user therefore never sees
+ * "account not found" — the profile is created if it is somehow absent.
+ */
 export function updateProfile(input: {
   currentMobile: string;
+  currentEmail?: string;
   name: string;
   email: string;
   city: string;
@@ -342,27 +351,36 @@ export function updateProfile(input: {
   if (city.length < 2) return { ok: false, error: "Please enter your city." };
 
   const profiles = readProfiles();
-  const current = profiles[input.currentMobile];
-  if (!current)
-    return { ok: false, error: "Your account could not be found. Please sign in again." };
+  const lookupEmail = (input.currentEmail ?? email).trim().toLowerCase();
+  const directKey = input.currentMobile;
+  const currentEntry =
+    (directKey ? Object.entries(profiles).find(([key]) => key === directKey) : undefined) ??
+    Object.entries(profiles).find(
+      ([key, profile]) =>
+        key === `oauth:${lookupEmail}` || profile.email.toLowerCase() === lookupEmail,
+    );
+  const currentKey = currentEntry?.[0] ?? null;
+  const current = currentEntry?.[1] ?? null;
 
-  if (mobile.mobile !== input.currentMobile && profiles[mobile.mobile]) {
+  const occupant = profiles[mobile.mobile];
+  if (occupant && currentKey !== mobile.mobile) {
     return {
       ok: false,
       error: "That mobile number is already linked to another account on this device.",
     };
   }
 
+  const now = new Date().toISOString();
   const profile: CustomerProfile = {
-    ...current,
     mobile: mobile.mobile,
     name,
     email,
     city,
-    updatedAt: new Date().toISOString(),
+    createdAt: current?.createdAt ?? now,
+    updatedAt: now,
   };
 
-  if (mobile.mobile !== input.currentMobile) delete profiles[input.currentMobile];
+  if (currentKey && currentKey !== mobile.mobile) delete profiles[currentKey];
   profiles[mobile.mobile] = profile;
 
   if (!writeProfiles(profiles)) {
@@ -371,7 +389,8 @@ export function updateProfile(input: {
       error: "This browser blocked local storage, so your changes could not be saved.",
     };
   }
-  if (mobile.mobile !== input.currentMobile) writeSession(mobile.mobile);
+  // Always point the device session at the mobile key so refreshes keep working.
+  writeSession(mobile.mobile);
   emit();
   return { ok: true, profile };
 }
