@@ -888,21 +888,19 @@ type LegacyEmployee = {
  * employee exactly once — a later deletion by the admin is never undone.
  */
 function topUpDeskEmployees(employees: AdminEmployee[]): AdminEmployee[] {
-  const already = readJson<string>(DESK_SEED_KEY, "");
-  if (!already) writeJson(DESK_SEED_KEY, "1");
-  if (already) return employees;
-
-  const ids = new Set(employees.map((item) => item.id));
-  const emails = new Set(employees.map((item) => item.email.toLowerCase()));
-  const missing = DEMO_EMPLOYEES.filter(
-    (item) => !ids.has(item.id) && !emails.has(item.email.toLowerCase()),
-  );
-  if (!missing.length) return employees;
-
-  const next = [...employees, ...missing];
-  writeJson(EMPLOYEES_KEY, next);
-  return next;
+  // Launch: the directory owns its rows. Never re-add seeded staff after a
+  // deletion, and never seed anyone on a fresh browser.
+  return employees;
 }
+
+/** Known seeded identities, removed from browsers that still store them. */
+const DEMO_EMPLOYEE_IDS = new Set(DEMO_EMPLOYEES.map((item) => item.id));
+const DEMO_EMPLOYEE_EMAILS = new Set(DEMO_EMPLOYEES.map((item) => item.email.toLowerCase()));
+
+const isDemoEmployee = (item: AdminEmployee) =>
+  DEMO_EMPLOYEE_IDS.has(item.id) || DEMO_EMPLOYEE_EMAILS.has(item.email.toLowerCase());
+
+const isDemoCase = (item: CrmCase) => item.origin === "demo" || item.sourceKey.startsWith("seed:");
 
 /**
  * Upgrades the Phase 1 team list (name / role text / desk) into the employee
@@ -939,7 +937,7 @@ function migrateEmployees(): AdminEmployee[] {
           mobile: row.mobile ?? seed.mobile,
         };
       })
-    : [...DEMO_EMPLOYEES];
+    : [];
 
   const unique = new Map(migrated.map((item) => [item.id, item]));
   writeJson(EMPLOYEES_KEY, [...unique.values()]);
@@ -963,19 +961,23 @@ function remapLegacyAssignments(cases: CrmCase[]): CrmCase[] {
 export function ensureAdminDatabase(): CrmSnapshot {
   if (typeof window === "undefined") return EMPTY;
 
-  const existing = readSnapshot();
-  const employees = topUpDeskEmployees(migrateEmployees());
+  const stored = readSnapshot();
+  const employees = topUpDeskEmployees(migrateEmployees()).filter((item) => !isDemoEmployee(item));
+  // Clean out previously seeded demo records so an existing browser starts
+  // from the same empty state as a fresh one.
+  let cases = remapLegacyAssignments(stored.cases).filter((item) => !isDemoCase(item));
+  const audit = stored.audit.filter((entry) => !entry.id.startsWith("aud-seed"));
+  if (employees.length !== stored.employees.length) writeJson(EMPLOYEES_KEY, employees);
+  if (cases.length !== stored.cases.length) writeJson(CASES_KEY, cases);
+  if (audit.length !== stored.audit.length) writeJson(AUDIT_KEY, audit);
+
+  const existing: CrmSnapshot = { cases, employees, audit };
   const knownEmployees = new Set(employees.map((item) => item.id));
 
-  let cases = existing.cases.length
-    ? remapLegacyAssignments(existing.cases)
-    : seedCases(Date.now());
   // A case assigned to someone who was deleted belongs back in the open queue.
   cases = cases.map((item) =>
     item.assignedTo && !knownEmployees.has(item.assignedTo) ? { ...item, assignedTo: null } : item,
   );
-
-  if (!existing.cases.length) writeJson(SEED_FLAG_KEY, "1");
 
   // Pull in leads the site collected, without touching cases imported before.
   const known = new Set(cases.map((item) => item.sourceKey));
@@ -1017,7 +1019,7 @@ export function ensureAdminDatabase(): CrmSnapshot {
         department: null,
         outcome: "allowed",
       }));
-    writeJson(AUDIT_KEY, migrated.length ? migrated.slice(0, 20) : seedAudit(cases));
+    writeJson(AUDIT_KEY, migrated.slice(0, 20));
   }
 
   return readSnapshot();

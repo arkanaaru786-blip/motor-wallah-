@@ -278,19 +278,13 @@ export const BUY_LISTINGS: BuyListing[] = DEMO_CONTENT_ENABLED
   : [];
 
 /**
- * Homepage "Popular Vehicles" sample picks.
+ * Homepage "Popular Vehicles" picks.
  *
- * The marketplace catalogue itself stays empty while DEMO_CONTENT_ENABLED is
- * off, but the homepage still needs a representative grid: these come from the
- * same seeded car/category datasets, are shown with their illustrative photos
- * and demo status, and resolve through getBuyListing() so every card opens its
- * real detail page instead of a dead end.
+ * Launch state: no inventory is bundled. The homepage shows its empty state
+ * until real listings exist (dealer submissions after approval, or records
+ * loaded from the database).
  */
-export const HOME_POPULAR_LISTINGS: BuyListing[] = [
-  ...CAR_LISTINGS,
-  ...NON_CAR_LISTINGS,
-  ...EXTRA_NON_CAR_LISTINGS,
-];
+export const HOME_POPULAR_LISTINGS: BuyListing[] = [];
 
 /**
  * Dealer vehicles approved in Master Admin → Vehicle Approvals. Registered at

@@ -96,7 +96,7 @@ export function LiveVisitorMap() {
 
       for (const pin of feed.pins) {
         const icon = leaflet.divIcon({
-          className: `mw-live-dot ${pin.live ? "is-live" : "is-recent"}${pin.demo ? " is-demo" : ""}`,
+          className: `mw-live-dot ${pin.live ? "is-live" : "is-recent"}`,
           html: "<span></span>",
           iconSize: [16, 16],
           iconAnchor: [8, 8],
@@ -115,9 +115,7 @@ export function LiveVisitorMap() {
         meta.textContent = `${pin.device} · ${pin.browser} · ${pin.source}`;
         const detail = document.createElement("span");
         const seen = pin.live ? "live now" : "earlier today";
-        detail.textContent = `${pin.pages} page${pin.pages === 1 ? "" : "s"} · ${seen}${
-          pin.demo ? " · sample" : ""
-        }`;
+        detail.textContent = `${pin.pages} page${pin.pages === 1 ? "" : "s"} · ${seen}`;
         popup.append(title, meta, detail);
         marker.bindPopup(popup);
         marker.addTo(layer);
@@ -150,15 +148,9 @@ export function LiveVisitorMap() {
           </p>
         </div>
         <div className="mw-live-status">
-          {feed?.demo ? (
-            <span className="mw-adv-pill">
-              <MapPin size={14} /> Sample locations
-            </span>
-          ) : (
-            <span className="mw-adv-pill">
-              <Radio size={14} /> {feed?.liveCount ?? 0} live now
-            </span>
-          )}
+          <span className="mw-adv-pill">
+            <Radio size={14} /> {feed?.liveCount ?? 0} live now
+          </span>
           <span className="mw-live-updated">
             <RefreshCw size={12} /> {loading && !feed ? "Loading…" : "Auto-refresh"}
           </span>

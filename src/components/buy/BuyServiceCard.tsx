@@ -35,9 +35,6 @@ export function BuyServiceCard({
         <span className="mw-card-iconplate">
           <Icon size={34} strokeWidth={1.6} />
         </span>
-        <span className="mw-card-tags">
-          <span className="mw-tag mw-tag--demo">Demo</span>
-        </span>
       </div>
 
       <div className="mw-card-body">

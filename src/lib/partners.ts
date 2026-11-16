@@ -113,6 +113,8 @@ export type Partner = {
   temporaryPassword?: boolean;
 };
 
+import { DEMO_CONTENT_ENABLED } from "@/lib/production";
+
 const KEY = "mw_partners_v1";
 const SEED_FLAG_KEY = "mw_partners_seeded_v1";
 
@@ -140,7 +142,9 @@ function readAll(): Partner[] {
       partner &&
       typeof partner.id === "string" &&
       isPartnerType(partner.type) &&
-      partner.id.startsWith(`${getPartnerType(partner.type).prefix}-`),
+      partner.id.startsWith(`${getPartnerType(partner.type).prefix}-`) &&
+      // Seeded demo logins from earlier builds are hidden/removed on read.
+      !partner.email.toLowerCase().endsWith("@partner.motorwallah.in"),
   );
 }
 
@@ -218,6 +222,8 @@ let seeding: Promise<void> | null = null;
  * account is left alone.
  */
 export function ensurePartners(): Promise<void> {
+  // Launch: no seeded partner logins. The admin creates partner accounts.
+  if (!DEMO_CONTENT_ENABLED) return Promise.resolve();
   if (typeof window === "undefined" || !cryptoAvailable()) return Promise.resolve();
   if (seeding) return seeding;
 

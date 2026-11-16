@@ -1,9 +1,4 @@
-import {
-  BRAND_NAMES,
-  FUEL_TYPES,
-  TRANSMISSION_TYPES,
-  YEAR_OPTIONS,
-} from "@/lib/vehicle-catalog";
+import { BRAND_NAMES, FUEL_TYPES, TRANSMISSION_TYPES, YEAR_OPTIONS } from "@/lib/vehicle-catalog";
 import placeholderHatchback from "@/assets/placeholder-hatchback.jpg";
 
 import placeholderSedan from "@/assets/placeholder-sedan.jpg";
@@ -138,12 +133,16 @@ const demoInspection = (seed: number): InspectionReport => {
   const items: InspectionItem[] = INSPECTION_CATEGORIES.map((category, i) => {
     const mod = (seed * 7 + i * 3) % 11;
     const result: InspectionResult =
-      mod === 0 ? "Attention Required" : mod === 5 && category === "Infotainment" ? "Not Applicable" : "Passed";
+      mod === 0
+        ? "Attention Required"
+        : mod === 5 && category === "Infotainment"
+          ? "Not Applicable"
+          : "Passed";
     return {
       category,
       points: 9,
       result,
-      note: result === "Attention Required" ? "Minor wear noted in the demo report" : null,
+      note: result === "Attention Required" ? "Minor wear noted in the inspection report" : null,
     };
   });
   const applicable = items.filter((i) => i.result !== "Not Applicable");
@@ -216,13 +215,142 @@ const demo = (v: DemoInput, seed: number): Vehicle => ({
 });
 
 export const VEHICLES: Vehicle[] = [
-  demo({ id: "mw-01", status: "Available", make: "Maruti Suzuki", model: "Baleno", variant: "Zeta", year: 2022, price: 7.4, kilometres: 21600, fuel: "Petrol", transmission: "Manual", bodyType: "Hatchback", location: "Indore", createdAt: "2026-07-28", featured: true, ownership: "First Owner" }, 1),
-  demo({ id: "mw-02", status: "Available", make: "Hyundai", model: "i20", variant: "Asta", year: 2021, price: 7.85, kilometres: 32400, fuel: "Petrol", transmission: "Manual", bodyType: "Hatchback", location: "Bhopal", createdAt: "2026-07-22", ownership: "First Owner" }, 2),
-  demo({ id: "mw-03", status: "Available", make: "Hyundai", model: "Creta", variant: "SX", year: 2022, price: 12.5, kilometres: 45000, fuel: "Petrol", transmission: "Automatic", bodyType: "SUV", location: "Indore", createdAt: "2026-08-04", featured: true, ownership: "Second Owner" }, 3),
-  demo({ id: "mw-04", status: "Reserved", make: "Maruti Suzuki", model: "Ertiga", variant: "ZXI CNG", year: 2021, price: 9.6, kilometres: 54800, fuel: "CNG", transmission: "Manual", bodyType: "MUV", location: "Ujjain", createdAt: "2026-07-10", ownership: "Second Owner" }, 4),
-  demo({ id: "mw-05", status: "Available", make: "Tata", model: "Nexon", variant: "XZ+", year: 2021, price: 9.1, kilometres: 33250, fuel: "Diesel", transmission: "Manual", bodyType: "SUV", location: "Indore", createdAt: "2026-08-01", ownership: "First Owner" }, 5),
-  demo({ id: "mw-06", status: "Available", make: "Mahindra", model: "Scorpio-N", variant: "Z8", year: 2022, price: 18.2, kilometres: 29800, fuel: "Diesel", transmission: "Manual", bodyType: "SUV", location: "Indore", createdAt: "2026-08-08", featured: true, ownership: "First Owner" }, 6),
-  demo({ id: "mw-07", status: "Sold", make: "Tata", model: "Altroz", variant: "XT", year: 2020, price: 6.25, kilometres: 41200, fuel: "Petrol", transmission: "Manual", bodyType: "Hatchback", location: "Dewas", createdAt: "2026-06-30", ownership: "Second Owner" }, 7),
+  demo(
+    {
+      id: "mw-01",
+      status: "Available",
+      make: "Maruti Suzuki",
+      model: "Baleno",
+      variant: "Zeta",
+      year: 2022,
+      price: 7.4,
+      kilometres: 21600,
+      fuel: "Petrol",
+      transmission: "Manual",
+      bodyType: "Hatchback",
+      location: "Indore",
+      createdAt: "2026-07-28",
+      featured: true,
+      ownership: "First Owner",
+    },
+    1,
+  ),
+  demo(
+    {
+      id: "mw-02",
+      status: "Available",
+      make: "Hyundai",
+      model: "i20",
+      variant: "Asta",
+      year: 2021,
+      price: 7.85,
+      kilometres: 32400,
+      fuel: "Petrol",
+      transmission: "Manual",
+      bodyType: "Hatchback",
+      location: "Bhopal",
+      createdAt: "2026-07-22",
+      ownership: "First Owner",
+    },
+    2,
+  ),
+  demo(
+    {
+      id: "mw-03",
+      status: "Available",
+      make: "Hyundai",
+      model: "Creta",
+      variant: "SX",
+      year: 2022,
+      price: 12.5,
+      kilometres: 45000,
+      fuel: "Petrol",
+      transmission: "Automatic",
+      bodyType: "SUV",
+      location: "Indore",
+      createdAt: "2026-08-04",
+      featured: true,
+      ownership: "Second Owner",
+    },
+    3,
+  ),
+  demo(
+    {
+      id: "mw-04",
+      status: "Reserved",
+      make: "Maruti Suzuki",
+      model: "Ertiga",
+      variant: "ZXI CNG",
+      year: 2021,
+      price: 9.6,
+      kilometres: 54800,
+      fuel: "CNG",
+      transmission: "Manual",
+      bodyType: "MUV",
+      location: "Ujjain",
+      createdAt: "2026-07-10",
+      ownership: "Second Owner",
+    },
+    4,
+  ),
+  demo(
+    {
+      id: "mw-05",
+      status: "Available",
+      make: "Tata",
+      model: "Nexon",
+      variant: "XZ+",
+      year: 2021,
+      price: 9.1,
+      kilometres: 33250,
+      fuel: "Diesel",
+      transmission: "Manual",
+      bodyType: "SUV",
+      location: "Indore",
+      createdAt: "2026-08-01",
+      ownership: "First Owner",
+    },
+    5,
+  ),
+  demo(
+    {
+      id: "mw-06",
+      status: "Available",
+      make: "Mahindra",
+      model: "Scorpio-N",
+      variant: "Z8",
+      year: 2022,
+      price: 18.2,
+      kilometres: 29800,
+      fuel: "Diesel",
+      transmission: "Manual",
+      bodyType: "SUV",
+      location: "Indore",
+      createdAt: "2026-08-08",
+      featured: true,
+      ownership: "First Owner",
+    },
+    6,
+  ),
+  demo(
+    {
+      id: "mw-07",
+      status: "Sold",
+      make: "Tata",
+      model: "Altroz",
+      variant: "XT",
+      year: 2020,
+      price: 6.25,
+      kilometres: 41200,
+      fuel: "Petrol",
+      transmission: "Manual",
+      bodyType: "Hatchback",
+      location: "Dewas",
+      createdAt: "2026-06-30",
+      ownership: "Second Owner",
+    },
+    7,
+  ),
 ];
 
 export const PRICE_RANGES = [
@@ -231,7 +359,6 @@ export const PRICE_RANGES = [
   { label: "₹10–20 Lakh", min: 10, max: 20 },
   { label: "₹20 Lakh+", min: 20, max: Infinity },
 ];
-
 
 export const KM_RANGES = [
   { label: "Under 25,000 km", min: 0, max: 25000 },
@@ -249,7 +376,6 @@ export const AVAILABILITY: VehicleStatus[] = ["Available", "Reserved", "Sold"];
 /** Brand/model/year options come from the central catalogue, never from listing data. */
 export const BRANDS = BRAND_NAMES;
 export const YEARS = YEAR_OPTIONS;
-
 
 export const vehicleName = (v: Vehicle) => `${v.year} ${v.make} ${v.model} ${v.variant}`;
 export const formatPrice = (lakh: number) => `₹${lakh.toFixed(2)} Lakh`;

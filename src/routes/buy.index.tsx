@@ -436,8 +436,8 @@ function BuyPage() {
                     <p className="mw-results-note">
                       <Info size={13} aria-hidden="true" />{" "}
                       {service
-                        ? `${serviceResults.length} of ${serviceListingsInCategory(service.id).length} demo records — partners and pricing are illustrative.`
-                        : "Demo catalogue records from the project datasets — not confirmed Motor Wallah inventory."}
+                        ? `${serviceResults.length} of ${serviceListingsInCategory(service.id).length} live records — partners and pricing are confirmed on enquiry.`
+                        : "Live Motor Wallah inventory — every listing is added by a seller or dealer."}
                     </p>
                   </div>
                   {!service && (
@@ -478,12 +478,10 @@ function BuyPage() {
                   serviceResults.length === 0 ? (
                     <div className="mw-empty">
                       <SearchX size={26} aria-hidden="true" />
-                      <p className="mw-empty-title">
-                        No {service.label.toLowerCase()} match these filters
-                      </p>
+                      <p className="mw-empty-title">No {service.label.toLowerCase()} listed yet</p>
                       <p className="mw-empty-text">
-                        Try widening the budget, clearing the {service.optionLabel.toLowerCase()} or
-                        choosing all cities.
+                        Real partner records appear here once they are added. Try clearing the{" "}
+                        {service.optionLabel.toLowerCase()} or city filter.
                       </p>
                       <button
                         type="button"
@@ -510,7 +508,7 @@ function BuyPage() {
                     <div className="mw-empty">
                       <SearchX size={26} aria-hidden="true" />
                       <p className="mw-empty-title">
-                        No {category.label.toLowerCase()} match these filters
+                        No vehicles listed yet. Be the first to sell!
                       </p>
                       {filters.verifiedOnly ? (
                         <p className="mw-empty-text">
@@ -542,9 +540,14 @@ function BuyPage() {
                           filters.
                         </p>
                       )}
-                      <button type="button" onClick={clearAll} className="mw-btn mw-btn--primary">
-                        Clear all filters
-                      </button>
+                      <div className="mw-empty-actions">
+                        <Link to="/sell-your-car" className="mw-btn mw-btn--primary">
+                          Sell your vehicle
+                        </Link>
+                        <button type="button" onClick={clearAll} className="mw-btn">
+                          Clear all filters
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="mw-bento">

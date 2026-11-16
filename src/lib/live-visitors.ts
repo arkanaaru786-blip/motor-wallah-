@@ -125,11 +125,7 @@ function jitter(id: string): [number, number] {
 }
 
 function cityKey(city: string) {
-  return city
-    .split(",")[0]!
-    .trim()
-    .toLowerCase()
-    .replace(/[.]/g, "");
+  return city.split(",")[0]!.trim().toLowerCase().replace(/[.]/g, "");
 }
 
 export function coordsForCity(city: string): [number, number] | null {
@@ -137,48 +133,15 @@ export function coordsForCity(city: string): [number, number] | null {
   return CITY_COORDS[cityKey(city)] ?? null;
 }
 
-const DEMO_VISITORS: { city: string; device: string; browser: string; source: string }[] = [
-  { city: "Mumbai", device: "Mobile", browser: "Chrome", source: "Instagram" },
-  { city: "Delhi", device: "Desktop", browser: "Chrome", source: "Google" },
-  { city: "Bengaluru", device: "Mobile", browser: "Safari", source: "Direct" },
-  { city: "Hyderabad", device: "Mobile", browser: "Chrome", source: "Instagram" },
-  { city: "Pune", device: "Desktop", browser: "Edge", source: "Google" },
-  { city: "Chennai", device: "Mobile", browser: "Chrome", source: "WhatsApp" },
-  { city: "Jaipur", device: "Mobile", browser: "Chrome", source: "Direct" },
-  { city: "Ahmedabad", device: "Tablet", browser: "Safari", source: "Google" },
-];
-
-function demoFeed(): LiveVisitorFeed {
-  const now = new Date().toISOString();
-  const pins: VisitorPin[] = DEMO_VISITORS.flatMap((visitor, index) => {
-    const coords = coordsForCity(visitor.city);
-    if (!coords) return [];
-    const [dLat, dLng] = jitter(`demo-${visitor.city}`);
-    return [
-      {
-        id: `demo-${index}`,
-        city: visitor.city,
-        lat: coords[0] + dLat,
-        lng: coords[1] + dLng,
-        device: visitor.device,
-        browser: visitor.browser,
-        source: visitor.source,
-        pages: 2 + (index % 4),
-        lastSeenAt: now,
-        landingPath: "/buy",
-        live: true,
-        demo: true,
-      },
-    ];
-  });
+function emptyFeed(note = "No visitor sessions recorded yet."): LiveVisitorFeed {
   return {
-    pins,
-    liveCount: pins.length,
+    pins: [],
+    liveCount: 0,
     recentCount: 0,
     unresolved: 0,
-    demo: true,
-    note: "No visitor sessions recorded yet — showing a sample distribution until real traffic arrives.",
-    checkedAt: now,
+    demo: false,
+    note,
+    checkedAt: new Date().toISOString(),
   };
 }
 
@@ -195,7 +158,7 @@ type SessionRow = {
 
 export async function loadLiveVisitorFeed(): Promise<LiveVisitorFeed> {
   const client = supabaseClient();
-  if (!client) return demoFeed();
+  if (!client) return emptyFeed();
 
   let rows: SessionRow[] = [];
   try {
@@ -209,7 +172,7 @@ export async function loadLiveVisitorFeed(): Promise<LiveVisitorFeed> {
     /* table may not exist yet */
   }
 
-  if (rows.length === 0) return demoFeed();
+  if (rows.length === 0) return emptyFeed();
 
   const now = Date.now();
   const pins: VisitorPin[] = [];
@@ -250,14 +213,13 @@ export async function loadLiveVisitorFeed(): Promise<LiveVisitorFeed> {
   }
 
   if (pins.length === 0) {
-    const empty = demoFeed();
     return {
-      ...empty,
+      ...emptyFeed(),
       unresolved,
       note:
         unresolved > 0
-          ? "Visits were recorded but their cities could not be resolved — showing a sample distribution."
-          : empty.note,
+          ? "Visits were recorded but their cities could not be resolved yet."
+          : "No visitor sessions recorded yet.",
     };
   }
 

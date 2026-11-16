@@ -37,8 +37,8 @@ export function AiAssistant({ session }: { session: AdminSession }) {
           </h2>
           <p>Ask about the work you can see — answers come from your live tracker.</p>
         </div>
-        <span className="mw-admin-chip is-demo" data-testid="ai-engine">
-          Demo engine
+        <span className="mw-admin-chip" data-testid="ai-engine">
+          Rule-based
         </span>
       </header>
 

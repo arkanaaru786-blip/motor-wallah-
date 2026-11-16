@@ -58,7 +58,6 @@ export function BuyListingCard({
               <BadgeCheck size={12} aria-hidden="true" /> Verified
             </span>
           )}
-          {listing.demo && <span className="mw-tag mw-tag--demo">Demo</span>}
         </span>
         {listing.images.length > 1 && (
           <span className="mw-card-photos">

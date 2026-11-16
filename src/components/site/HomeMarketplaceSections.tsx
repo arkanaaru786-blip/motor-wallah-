@@ -229,77 +229,89 @@ export function PopularVehicles() {
           View all <ArrowRight size={14} />
         </Link>
       </div>
-      <div className="home-listing-grid">
-        {LISTINGS.map(({ listing, image }, index) => {
-          const name = `${listing.brand} ${listing.model}`;
-          const shortlisted = shortlist.has(listing.id);
-          const featured = index < FEATURED_COUNT;
-          return (
-            <article key={listing.id} className="home-listing-card">
-              {/* The whole card opens the vehicle detail page; the buttons below
+      {LISTINGS.length === 0 ? (
+        <div className="home-listing-empty">
+          <p className="home-listing-empty-title">No vehicles listed yet.</p>
+          <p className="home-listing-empty-text">
+            Be the first to sell — list your vehicle and reach buyers across the marketplace.
+          </p>
+          <Link to="/sell-your-car" className="home-cta">
+            Sell your vehicle <ArrowRight size={14} />
+          </Link>
+        </div>
+      ) : (
+        <div className="home-listing-grid">
+          {LISTINGS.map(({ listing, image }, index) => {
+            const name = `${listing.brand} ${listing.model}`;
+            const shortlisted = shortlist.has(listing.id);
+            const featured = index < FEATURED_COUNT;
+            return (
+              <article key={listing.id} className="home-listing-card">
+                {/* The whole card opens the vehicle detail page; the buttons below
                   sit above this overlay so favourite and offer still work. */}
-              <Link
-                to="/buy/vehicle/$id"
-                params={{ id: listing.id }}
-                className="home-listing-hit"
-                aria-label={`Open details for ${name}`}
-              />
-              <div className="home-listing-image">
-                <img
-                  src={image}
-                  alt={`${name} ${listing.categoryLabel} illustrative demo photograph`}
-                  width={720}
-                  height={450}
-                  loading="lazy"
+                <Link
+                  to="/buy/vehicle/$id"
+                  params={{ id: listing.id }}
+                  className="home-listing-hit"
+                  aria-label={`Open details for ${name}`}
                 />
-                {featured ? <span className="home-listing-featured">Featured</span> : null}
-                <button
-                  type="button"
-                  className="home-listing-fav"
-                  aria-label={shortlisted ? `Remove ${name} from shortlist` : `Shortlist ${name}`}
-                  aria-pressed={shortlisted}
-                  onClick={() => shortlist.toggle(listing.id)}
-                >
-                  <Heart
-                    size={16}
-                    fill={shortlisted ? "currentColor" : "none"}
-                    aria-hidden="true"
+                <div className="home-listing-image">
+                  <img
+                    src={image}
+                    alt={`${name} ${listing.categoryLabel} photograph`}
+                    width={720}
+                    height={450}
+                    loading="lazy"
                   />
-                </button>
-              </div>
-              <div className="home-listing-body">
-                <p className="home-listing-brand">{listing.brand}</p>
-                <h3>{name}</h3>
-                <p className="home-listing-variant">{listing.categoryLabel}</p>
-                <p className="home-listing-meta">
-                  {listing.year} · {listing.fuel}
-                </p>
-                <p className="home-listing-meta">
-                  {listing.kilometres !== null
-                    ? `${listing.kilometres.toLocaleString("en-IN")} km`
-                    : "Km on request"}{" "}
-                  · {listing.city}
-                </p>
-                <p className="home-listing-price">{lakhLabel(listing.priceLakh)}</p>
-                <div className="home-listing-actions">
-                  <Button asChild size="sm" className="home-listing-button">
-                    <Link to="/buy/vehicle/$id" params={{ id: listing.id }}>
-                      View Details <ArrowRight size={12} />
-                    </Link>
-                  </Button>
+                  {featured ? <span className="home-listing-featured">Featured</span> : null}
                   <button
                     type="button"
-                    className="home-listing-offer"
-                    onClick={() => gateCustomerAction("offer", () => setOfferId(listing.id))}
+                    className="home-listing-fav"
+                    aria-label={shortlisted ? `Remove ${name} from shortlist` : `Shortlist ${name}`}
+                    aria-pressed={shortlisted}
+                    onClick={() => shortlist.toggle(listing.id)}
                   >
-                    Make an Offer
+                    <Heart
+                      size={16}
+                      fill={shortlisted ? "currentColor" : "none"}
+                      aria-hidden="true"
+                    />
                   </button>
                 </div>
-              </div>
-            </article>
-          );
-        })}
-      </div>
+                <div className="home-listing-body">
+                  <p className="home-listing-brand">{listing.brand}</p>
+                  <h3>{name}</h3>
+                  <p className="home-listing-variant">{listing.categoryLabel}</p>
+                  <p className="home-listing-meta">
+                    {listing.year} · {listing.fuel}
+                  </p>
+                  <p className="home-listing-meta">
+                    {listing.kilometres !== null
+                      ? `${listing.kilometres.toLocaleString("en-IN")} km`
+                      : "Km on request"}{" "}
+                    · {listing.city}
+                  </p>
+                  <p className="home-listing-price">{lakhLabel(listing.priceLakh)}</p>
+                  <div className="home-listing-actions">
+                    <Button asChild size="sm" className="home-listing-button">
+                      <Link to="/buy/vehicle/$id" params={{ id: listing.id }}>
+                        View Details <ArrowRight size={12} />
+                      </Link>
+                    </Button>
+                    <button
+                      type="button"
+                      className="home-listing-offer"
+                      onClick={() => gateCustomerAction("offer", () => setOfferId(listing.id))}
+                    >
+                      Make an Offer
+                    </button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
       {offerListing && (
         <MakeOfferDialog listing={offerListing} open onClose={() => setOfferId(null)} />
       )}

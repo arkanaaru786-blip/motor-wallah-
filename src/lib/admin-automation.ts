@@ -304,18 +304,22 @@ const DEMO_SUBSCRIPTIONS: Subscription[] = [
   },
 ];
 
-/** Seeds the demo rules and renewal watchlist once per device. */
+/**
+ * Launch state: start with an empty autopilot book.
+ *
+ * The seeded rules and watchlist are no longer written. Existing browsers also
+ * lose their demo-origin rules the next time the lists are read.
+ */
 export function ensureAutopilot(): void {
   if (typeof window === "undefined") return;
   if (read<string | null>(SEEDED_KEY, null)) return;
-  write(RULES_KEY, DEMO_RULES);
-  write(SUBS_KEY, DEMO_SUBSCRIPTIONS);
   write(SEEDED_KEY, new Date().toISOString());
 }
 
 /* --------------------------------------------------------------- reading */
 
-export const listRules = (): AutomationRule[] => read<AutomationRule[]>(RULES_KEY, []);
+export const listRules = (): AutomationRule[] =>
+  read<AutomationRule[]>(RULES_KEY, []).filter((rule) => rule.origin !== "demo");
 
 export const listRuns = (): RunEntry[] => read<RunEntry[]>(RUNS_KEY, []);
 

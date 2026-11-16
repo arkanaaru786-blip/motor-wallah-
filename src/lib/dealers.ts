@@ -74,7 +74,12 @@ function readAll(): Dealer[] {
   // Drop rows with an unknown category: an account without a valid category
   // must not fall through to "sees everything".
   return (raw as Dealer[]).filter(
-    (dealer) => dealer && typeof dealer.id === "string" && isDealerCategory(dealer.category),
+    (dealer) =>
+      dealer &&
+      typeof dealer.id === "string" &&
+      isDealerCategory(dealer.category) &&
+      // Seeded demo logins from earlier builds are hidden/removed on read.
+      !dealer.email.toLowerCase().endsWith("@dealer.motorwallah.in"),
   );
 }
 

@@ -778,12 +778,20 @@ function writeStore<T extends DeskRow>(desk: DeskKey, store: Store<T>): boolean 
  */
 function ensureStore<T extends DeskRow>(desk: DeskKey): Store<T> {
   const existing = readStore<T>(desk);
-  if (existing) return existing;
+  if (existing) {
+    // Drop rows left over from the old seeded boards.
+    const rows = existing.rows.filter((row) => !row.id.includes("-demo-"));
+    if (rows.length !== existing.rows.length) {
+      const cleaned = { ...existing, rows };
+      writeStore(desk, cleaned);
+      return cleaned;
+    }
+    return existing;
+  }
 
   const snapshot = ensureAdminDatabase();
   const imported = importFromCases(desk, snapshot.cases) as T[];
-  const seen = new Set(imported.map((row) => row.id));
-  const rows = [...imported, ...DEMO_BY_DESK[desk]().filter((row) => !seen.has(row.id))] as T[];
+  const rows = [...imported] as T[];
   rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   const store: Store<T> = { seededAt: now(), rows };

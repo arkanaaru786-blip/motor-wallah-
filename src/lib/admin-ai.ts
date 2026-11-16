@@ -46,7 +46,7 @@ export type Answer = {
   followUps: string[];
 };
 
-export const ENGINE_LABEL = "Demo engine · rule-based, runs on your device";
+export const ENGINE_LABEL = "Rule-based assistant · runs on your device";
 
 const TYPE_ALIASES: { type: CaseType; words: string[] }[] = [
   { type: "Finance", words: ["finance", "loan", "disbursal", "finance desk"] },

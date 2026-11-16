@@ -3057,3 +3057,35 @@ a.mw-info-contact-link:hover {
   background: color-mix(in oklab, var(--dlr-muted) 10%, transparent);
   border-color: var(--dlr-line);
 }
+
+/* Launch empty states — no bundled inventory */
+.home-listing-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 28px;
+  border-radius: 16px;
+  background: var(--glass-strong);
+  border: 1px solid var(--home-line);
+}
+.home-listing-empty-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  text-transform: uppercase;
+  color: var(--foreground);
+}
+.home-listing-empty-text {
+  max-width: 460px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.home-listing-empty .home-cta {
+  margin-top: 6px;
+}
+.mw-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}

@@ -351,8 +351,8 @@ function Page() {
 
                 {result.source === "mock" && (
                   <p className="mw-trk-mock">
-                    <MapPin size={13} aria-hidden="true" /> Sample tracking data — this device has
-                    no matching booking, so a demo status is shown.
+                    <MapPin size={13} aria-hidden="true" /> This device has no matching booking, so
+                    the standard service stages are shown.
                   </p>
                 )}
 

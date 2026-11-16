@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, KeyRound, ShieldCheck, Wrench } from "lucide-react";
+import { ArrowRight, KeyRound, Wrench } from "lucide-react";
 
 import {
-  DEMO_PARTNER_PASSWORD,
   PARTNER_TYPES,
   ensurePartners,
   getPartnerType,
@@ -22,25 +21,14 @@ export function PartnerLogin({ type }: { type: PartnerType }) {
   const def = getPartnerType(type);
   const { ready, session } = usePartnerSession(type);
   const navigate = useNavigate();
-  const [demoAccounts, setDemoAccounts] = useState<Partner[]>([]);
   const [partnerId, setPartnerId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-    void ensurePartners().then(() => {
-      if (cancelled) return;
-      const account = listPartnersOfType(type).find(
-        (partner) => partner.id === `${def.prefix}-${def.startAt}`,
-      );
-      setDemoAccounts(account ? [account] : []);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [type, def.prefix, def.startAt]);
+    void ensurePartners();
+  }, []);
 
   useEffect(() => {
     if (ready && session) void navigate({ to: def.portalPath, replace: true });
@@ -138,36 +126,14 @@ export function PartnerLogin({ type }: { type: PartnerType }) {
         </div>
 
         <aside className="mw-dealer-login-aside">
-          <h2>Demo {def.label.toLowerCase()} login</h2>
+          <h2>{def.label} partner access</h2>
           <p className="mw-dealer-demo-note">
-            This demo account is created for the mock setup. Click it to fill the form — the
-            password is <code>{DEMO_PARTNER_PASSWORD}</code>.
+            Your portal ID and password are issued by the Motor Wallah team. If you have lost them,
+            contact the control room to have the password reset — the ID never changes.
           </p>
-          <ul className="mw-dealer-demo-list">
-            {demoAccounts.map((partner) => (
-              <li key={partner.id}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPartnerId(partner.id);
-                    setPassword(DEMO_PARTNER_PASSWORD);
-                    setError(null);
-                  }}
-                  data-testid={`${type}-demo-account`}
-                >
-                  <strong className="mw-partner-id">{partner.id}</strong>
-                  <span>{partner.business}</span>
-                </button>
-              </li>
-            ))}
-            {demoAccounts.length === 0 ? (
-              <li className="mw-dealer-demo-note">Preparing the demo account…</li>
-            ) : null}
-          </ul>
-
           <p className="mw-dealer-demo-note">
-            <ShieldCheck size={13} /> Passwords are stored as salted PBKDF2 hashes — never as
-            plaintext — and a partner ID only works on its own portal.
+            A partner ID only works on its own portal, so a workshop login cannot open parts or
+            decor records.
           </p>
 
           <div className="mw-partner-switcher">
