@@ -99,7 +99,31 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "Discover, buy, sell, exchange, value and service vehicles with Motor Wallah.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Motor Wallah" },
+      {
+        property: "og:image",
+        content: "https://motorwallahindia.com/images/og-image.png",
+      },
+      {
+        property: "og:image:secure_url",
+        content: "https://motorwallahindia.com/images/og-image.png",
+      },
+      { property: "og:image:type", content: "image/png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      {
+        property: "og:image:alt",
+        content: "Motor Wallah — Every Vehicle. One Marketplace.",
+      },
       { name: "twitter:card", content: "summary_large_image" },
+      {
+        name: "twitter:image",
+        content: "https://motorwallahindia.com/images/og-image.png",
+      },
+      {
+        name: "twitter:image:alt",
+        content: "Motor Wallah — Every Vehicle. One Marketplace.",
+      },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
