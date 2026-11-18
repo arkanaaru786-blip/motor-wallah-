@@ -106,11 +106,16 @@ export const createRazorpayOrder = createServerFn({ method: "POST" })
     const { keyId, keySecret } = readEnv();
 
     if (!keyId || isPlaceholderSecret(keySecret)) {
+      const missing = [
+        !keyId ? "RAZORPAY_KEY_ID (or VITE_RAZORPAY_KEY_ID)" : "",
+        isPlaceholderSecret(keySecret) ? "RAZORPAY_KEY_SECRET" : "",
+      ]
+        .filter(Boolean)
+        .join(" and ");
       return {
         ok: false,
         code: "not_configured",
-        message:
-          "Online payment is not switched on yet. Add RAZORPAY_KEY_SECRET to the server environment, then reload.",
+        message: `Online payment is not switched on yet. Add ${missing} to the server environment, then reload.`,
       };
     }
 
