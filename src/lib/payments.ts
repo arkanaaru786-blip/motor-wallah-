@@ -22,9 +22,7 @@ import { isValidRazorpaySignature } from "@/lib/payment-signature";
  * used to exercise the checkout against a local stub during development.
  */
 function ordersUrl(): string {
-  const base =
-    (typeof process !== "undefined" && process.env["RAZORPAY_API_BASE"]) ||
-    "https://api.razorpay.com";
+  const base = pickEnv("RAZORPAY_API_BASE") || "https://api.razorpay.com";
   return `${base.replace(/\/+$/, "")}/v1/orders`;
 }
 
@@ -47,28 +45,57 @@ function loadLocalEnv(): void {
 
 type Env = { keyId: string; keySecret: string };
 
+type EnvMap = Record<string, string | undefined>;
+
+/**
+ * Every place a runtime may keep its environment.
+ *
+ * Nitro's Cloudflare runtime assigns the Worker's bindings to
+ * `globalThis.__env__` on each invocation, while Node and `nodejs_compat`
+ * expose them through `process.env`. Some deployments populate only one of
+ * the two, so both are consulted (Cloudflare's `env` first: it is the value
+ * the dashboard actually configures).
+ */
+function runtimeEnvs(): EnvMap[] {
+  const maps: EnvMap[] = [];
+  const globalEnv = (globalThis as { __env__?: unknown }).__env__;
+  if (globalEnv && typeof globalEnv === "object") maps.push(globalEnv as EnvMap);
+  if (typeof process !== "undefined" && process.env) maps.push(process.env as EnvMap);
+  return maps;
+}
+
+/** First non-empty string for `name`, or "" when nothing is configured. */
+function pickEnv(name: string, maps: EnvMap[] = runtimeEnvs()): string {
+  for (const map of maps) {
+    const value = map[name];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
 /** A placeholder left in the file must never be sent to Razorpay as a secret. */
 function isPlaceholderSecret(secret: string): boolean {
   return secret === "" || /^YOUR_SECRET|^your_secret|_HERE$/i.test(secret);
 }
 
-function readProcessEnv(): Env {
-  const env = typeof process !== "undefined" ? process.env : {};
-  const keyId = env["VITE_RAZORPAY_KEY_ID"] ?? env["RAZORPAY_KEY_ID"] ?? "";
-  const keySecret = env["RAZORPAY_KEY_SECRET"] ?? "";
-  return { keyId: keyId.trim(), keySecret: keySecret.trim() };
+function readRuntimeEnv(): Env {
+  const maps = runtimeEnvs();
+  return {
+    keyId: pickEnv("VITE_RAZORPAY_KEY_ID", maps) || pickEnv("RAZORPAY_KEY_ID", maps),
+    keySecret: pickEnv("RAZORPAY_KEY_SECRET", maps),
+  };
 }
 
 /**
  * Real environment variables always win. `.env.local` is only read when the
- * process has no usable values, so a deployment's injected secret is never
+ * runtime has no usable values, so a deployment's injected secret is never
  * replaced by a developer's local placeholder.
  */
 function readEnv(): Env {
-  const current = readProcessEnv();
+  const current = readRuntimeEnv();
   if (current.keyId && !isPlaceholderSecret(current.keySecret)) return current;
   loadLocalEnv();
-  const loaded = readProcessEnv();
+  const loaded = readRuntimeEnv();
   return {
     keyId: current.keyId || loaded.keyId,
     keySecret: !isPlaceholderSecret(current.keySecret) ? current.keySecret : loaded.keySecret,
