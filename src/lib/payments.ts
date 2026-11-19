@@ -64,6 +64,17 @@ function runtimeEnvs(): EnvMap[] {
   return maps;
 }
 
+/**
+ * Which of the expected names the Worker can see right now. Names only — a
+ * binding's value is never included, so this is safe to show in an error.
+ */
+function describeEnv(): string {
+  const maps = runtimeEnvs();
+  return ["RAZORPAY_KEY_ID", "VITE_RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET"]
+    .map((name) => `${name}=${pickEnv(name, maps) ? "set" : "missing"}`)
+    .join(", ");
+}
+
 /** First non-empty string for `name`, or "" when nothing is configured. */
 function pickEnv(name: string, maps: EnvMap[] = runtimeEnvs()): string {
   for (const map of maps) {
@@ -142,7 +153,10 @@ export const createRazorpayOrder = createServerFn({ method: "POST" })
       return {
         ok: false,
         code: "not_configured",
-        message: `Online payment is not switched on yet. Add ${missing} to the server environment, then reload.`,
+        message:
+          `Online payment is not switched on yet. Add ${missing} to the Worker environment ` +
+          `(Cloudflare → Workers → this Worker → Settings → Variables) and redeploy. ` +
+          `The Worker can currently see: ${describeEnv()}.`,
       };
     }
 
