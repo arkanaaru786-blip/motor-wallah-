@@ -18,6 +18,7 @@ import {
   Settings,
   ShoppingBag,
   Store,
+  UserRound,
   Users,
   Wallet,
   Zap,
@@ -130,6 +131,7 @@ export function AdminShell({
     nav.push({ to: "/master-admin/analytics", label: "Reports & Analytics", icon: BarChart3 });
   }
   if (isSuperAdmin(actor)) {
+    nav.push({ to: "/master-admin/customers", label: "Customers", icon: UserRound });
     nav.push({ to: "/master-admin/orders", label: "Orders", icon: ShoppingBag });
     nav.push({
       to: "/master-admin/vehicle-approvals",

@@ -80,6 +80,10 @@ const HEADINGS: Record<string, { title: string; subtitle: string }> = {
     title: "MW Autopilot",
     subtitle: "Rules that run themselves — and a check that no submission goes missing.",
   },
+  customers: {
+    title: "Customers",
+    subtitle: "Every registered customer account — name, mobile, email, city and sign-up date.",
+  },
   orders: {
     title: "Orders",
     subtitle: "Every auto parts and decor order, with payment and fulfilment in one table.",
@@ -114,6 +118,7 @@ function headingFor(pathname: string) {
   if (pathname.startsWith("/master-admin/disputes")) return HEADINGS["disputes"]!;
   if (pathname.startsWith("/master-admin/audit")) return HEADINGS["audit"]!;
   if (pathname.startsWith("/master-admin/automation")) return HEADINGS["automation"]!;
+  if (pathname.startsWith("/master-admin/customers")) return HEADINGS["customers"]!;
   if (pathname.startsWith("/master-admin/orders")) return HEADINGS["orders"]!;
   if (pathname.startsWith("/master-admin/vehicle-approvals")) return HEADINGS["vehicle-approvals"]!;
   if (pathname.startsWith("/master-admin/job-vacancies")) return HEADINGS["job-vacancies"]!;
