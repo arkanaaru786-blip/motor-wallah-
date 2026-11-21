@@ -18,6 +18,7 @@ import {
 import { submitLead } from "@/lib/leads";
 import { toUploadedFile, type UploadedFile } from "@/lib/uploads";
 import { LOCATIONS } from "@/lib/cars-data";
+import { FUEL_TYPES } from "@/lib/vehicle-catalog";
 import { PHONE_DISPLAY, PHONE_HREF, whatsappLink } from "@/lib/site";
 import { clearFormStart, evaluateBotSignals, markFormStart } from "@/lib/analytics";
 import { FormShield, useRecaptchaToken } from "@/components/site/FormShield";
@@ -141,8 +142,17 @@ function Page() {
   const safeBrand = brands.some((b) => b.brand === brand) ? brand : "";
   const models = safeBrand && category ? catalogModelsFor(category.id, safeBrand) : [];
   const safeModel = models.includes(model) ? model : "";
+  /* The standard fuel list is always offered, for every category: the live
+     -listing query only knows fuels that already have stock, which left the
+     dropdown empty for categories/brands/models without matching listings.
+     Any extra fuel present in the catalogue (e.g. LPG) is appended after. */
   const fuels = category
-    ? fuelOptionsFor(category.id, safeBrand || undefined, safeModel || undefined)
+    ? Array.from(
+        new Set([
+          ...FUEL_TYPES,
+          ...fuelOptionsFor(category.id, safeBrand || undefined, safeModel || undefined),
+        ]),
+      )
     : [];
   const safeFuel = fuels.includes(fuel) ? fuel : "";
   const locations = category
@@ -430,7 +440,7 @@ function Page() {
                   </label>
 
                   <label className="mw-sell-field">
-                    <span className="mw-sell-field-label">Fuel *</span>
+                    <span className="mw-sell-field-label">Fuel Type *</span>
                     <select
                       name="fuel"
                       required
